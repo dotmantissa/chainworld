@@ -7,7 +7,6 @@ import { http, createConfig } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
 import { defineChain } from 'viem'
 import { injected } from 'wagmi/connectors'
-import { registerChain } from './tracing'
 
 export const monadTestnet = defineChain({
   id: 10143,
@@ -22,15 +21,18 @@ export const monadTestnet = defineChain({
   testnet: true,
 })
 
-// Pre-register chain RPC URLs so trace events show correct chain names immediately
-registerChain(monadTestnet.id, monadTestnet.rpcUrls.default.http[0])
-registerChain(mainnet.id, mainnet.rpcUrls.default.http[0])
+export const monadMainnet = defineChain({
+  id: 143, name: 'Monad',
+  nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.monad.xyz'] } },
+})
 
 export const config = createConfig({
-  chains: [monadTestnet, mainnet],
+  chains: [monadTestnet, monadMainnet, mainnet],
   connectors: [injected()],
   transports: {
     [monadTestnet.id]: http('https://testnet-rpc.monad.xyz'),
     [mainnet.id]: http(),
+    [monadMainnet.id]: http(),
   },
 })

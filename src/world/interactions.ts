@@ -1,0 +1,22 @@
+import type { ActionKind, GameState } from '../game/types'
+import { ACTIONS } from '../game/gameEngine'
+export type FurnitureKind='eat'|'rest'|'work'|'socialize'
+export const INTERACTIONS:Record<FurnitureKind,{title:string;description:string;image:string;actions:{kind:ActionKind;benefit:string}[]}>= {
+  eat:{title:'The kitchen',description:'Something good, made right here at home.',image:'/art/kitchen.webp',actions:[{kind:'eat',benefit:'+35 hunger'},{kind:'snack',benefit:'+15 hunger'}]},
+  rest:{title:'Your bed',description:'Set the world aside for a while. Rest is always free.',image:'/art/bed.webp',actions:[{kind:'rest',benefit:'+40 energy, plus your home bonus'},{kind:'sleep',benefit:'Fully restore energy'}]},
+  work:{title:'The workstation',description:'Pull up a chair and turn a little effort into a better life.',image:'/art/workstation.webp',actions:[{kind:'work',benefit:'100 base gCHOG · 10 energy'},{kind:'focus',benefit:'250 base gCHOG · 20 energy'},{kind:'hermit',benefit:'Passive income every full minute · 10 energy per minute'}]},
+  socialize:{title:'The reading nook',description:'A comfortable seat, a familiar voice, a moment for yourself.',image:'/art/social.webp',actions:[{kind:'socialize',benefit:'Restore social using your charisma'},{kind:'unwind',benefit:'+20 energy'}]},
+}
+export function furnitureFor(kind:ActionKind):FurnitureKind {
+  if(kind==='eat'||kind==='snack')return'eat'
+  if(kind==='rest'||kind==='sleep')return'rest'
+  if(kind==='work'||kind==='focus'||kind==='hermit')return'work'
+  return'socialize'
+}
+export function unavailableReason(s:GameState,kind:ActionKind,cost=ACTIONS[kind].cost):string|null {
+  if(s.gChog<cost)return'Not enough gCHOG'
+  if((s.cooldowns[kind]??0)>s.lastSaved)return'Cooling down'
+  const energy=kind==='focus'?20:kind==='work'||kind==='hermit'?10:0
+  if(s.meters.energy<energy)return`Needs ${energy} energy — rest first`
+  return null
+}

@@ -44,6 +44,10 @@ export default function ZoneCard({ zone, isCurrentZone, isUnlocked, rarityRank, 
           ? 'border-white/10 bg-white/5 hover:bg-white/8 cursor-pointer'
           : 'border-white/5 bg-white/2 opacity-50 cursor-not-allowed'
       }`}
+      role="button"
+      tabIndex={isUnlocked && !isCurrentZone ? 0 : -1}
+      aria-disabled={!isUnlocked || isCurrentZone}
+      onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && isUnlocked && !isCurrentZone) { e.preventDefault(); onTravel(zone.id) } }}
       onClick={() => isUnlocked && !isCurrentZone && onTravel(zone.id)}
     >
       {/* Zone color strip */}
@@ -72,15 +76,13 @@ export default function ZoneCard({ zone, isCurrentZone, isUnlocked, rarityRank, 
               <div className="flex items-center gap-1 justify-end">
                 <div className={`live-dot ${gweiData.stale ? 'opacity-40' : ''}`} style={{ background: zone.color }} />
                 <span className="tabular text-xs font-semibold mono" style={{ color: zone.color }}>
-                  {gweiData.gwei != null ? `${gweiData.gwei}` : '—'} gwei
+                  {gweiData.gwei != null ? `${gweiData.gwei.toPrecision(4)} gwei${gweiData.stale ? ' · stale' : ''}` : 'Fees unavailable · baseline'}
                 </span>
               </div>
               {dailyCost != null && (
                 <p className="tabular text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                   {dailyCost} gCHOG/day
-                  {eventMultiplier > 1 && (
-                    <span style={{ color: 'var(--danger)' }}> ×{eventMultiplier}</span>
-                  )}
+
                 </p>
               )}
             </>
@@ -93,7 +95,7 @@ export default function ZoneCard({ zone, isCurrentZone, isUnlocked, rarityRank, 
       {congested && (
         <div className="mt-1.5 flex items-center gap-1">
           <Zap size={9} style={{ color: 'var(--danger)' }} />
-          <span className="text-xs" style={{ color: 'var(--danger)' }}>CONGESTED — 2× fees</span>
+          <span className="text-xs" style={{ color: 'var(--danger)' }}>CONGESTED — higher upkeep</span>
         </div>
       )}
 

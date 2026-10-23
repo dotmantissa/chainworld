@@ -50,13 +50,15 @@ function mouthToPersuasion(mouth: string): { persuasion: number; incomeMultiplie
 function bodyToEndurance(body: string): { endurance: number; decayMultiplier: number; bodyColor: string } {
   const b = body.toLowerCase()
   if (b.includes('gold') || b.includes('metallic')) return { endurance: 95, decayMultiplier: 0.6, bodyColor: '#f5c542' }
-  if (b.includes('purple') || b.includes('pink') || b.includes('chrome')) return { endurance: 80, decayMultiplier: 0.75, bodyColor: '#a855f7' }
+  if (b.includes('pink')) return { endurance: 80, decayMultiplier: 0.75, bodyColor: '#e783b8' }
+  if (b.includes('purple') || b.includes('chrome')) return { endurance: 80, decayMultiplier: 0.75, bodyColor: '#54278f' }
   if (b.includes('blue')) return { endurance: 65, decayMultiplier: 0.9, bodyColor: '#3b82f6' }
   if (b.includes('green')) return { endurance: 60, decayMultiplier: 0.95, bodyColor: '#22c55e' }
   if (b.includes('dark') || b.includes('black') || b.includes('shadow')) return { endurance: 30, decayMultiplier: 1.2, bodyColor: '#374151' }
   if (b.includes('red') || b.includes('orange')) return { endurance: 55, decayMultiplier: 1.0, bodyColor: '#f97316' }
-  // Default Chog green
-  return { endurance: 50, decayMultiplier: 1.0, bodyColor: '#4ade80' }
+  if (b.includes('white') || b.includes('cream')) return { endurance: 50, decayMultiplier: 1.0, bodyColor: '#f1e6c7' }
+  if (b.includes('yellow')) return { endurance: 55, decayMultiplier: 1.0, bodyColor: '#e9bc4e' }
+  return { endurance: 50, decayMultiplier: 1.0, bodyColor: '#40206c' }
 }
 
 // ─── Hat → Intelligence + Unlocks ─────────────────────────────────────────────
@@ -101,35 +103,14 @@ export function rankToTier(rank: number): RarityTier {
   return 'floor'
 }
 
-// ─── Estimate rarity rank from trait scores ────────────────────────────────────
-// Without a full collection index, we score traits by rarity keywords.
-// Higher score = rarer = lower rank number.
-export function estimateRarityRank(traits: ChogTrait[], tokenId: number): number {
-  let score = 0
-  for (const t of traits) {
-    const v = t.value.toLowerCase()
-    // Legendary keywords
-    if (/gold|laser|crown|legend|genesis|rare|chromat|metallic|diamond|halo/.test(v)) score += 25
-    // Uncommon keywords
-    else if (/purple|wizard|smirk|grin|armor|chain|monad/.test(v)) score += 12
-    // Common
-    else score += 3
-  }
-  // Clamp to 1–1969, bias toward middle for unknown tokens
-  const normalized = Math.min(score, 200)
-  const rank = Math.max(1, Math.round(1969 - (normalized / 200) * 1900))
-  // Add small token-ID variance so two identical-score tokens get different ranks
-  return Math.max(1, Math.min(1969, rank + (tokenId % 20) - 10))
-}
-
 // ─── Starting gCHOG by tier ────────────────────────────────────────────────────
 export function tierToStartingFunds(tier: RarityTier): number {
   const map: Record<RarityTier, number> = {
-    genesis: 50000,
-    legendary: 20000,
-    rare: 8000,
-    uncommon: 3000,
-    common: 800,
+    genesis: 3200,
+    legendary: 1600,
+    rare: 800,
+    uncommon: 400,
+    common: 200,
     floor: 100,
   }
   return map[tier]
@@ -163,15 +144,15 @@ export function mapTraitsToCharacter(
 ): { stats: CharacterStats; appearance: CharacterAppearance; startingZone: ZoneId } {
 
   const get = (type: string) =>
-    traits.find(t => t.trait_type.toLowerCase().includes(type.toLowerCase()))?.value ?? ''
+    traits.find(t => t.trait_type.trim().toLowerCase()===type.toLowerCase())?.value ?? ''
 
   const bg = get('background')
-  const eyes = get('eye')
+  const eyes = get('eyes') || get('eye')
   const mouth = get('mouth')
-  const body = get('body') || get('fur') || get('skin') || get('color')
+  const body = get('skin') || get('fur') || get('color')
   const hat = get('hat') || get('head') || get('head wear')
-  const clothes = get('cloth') || get('outfit') || get('wear') || get('shirt') || get('top')
-  const accessory = get('accessor') || get('neck') || get('jewel') || get('item')
+  const clothes = get('body') || get('clothes') || get('clothing') || get('outfit') || get('wear') || get('shirt') || get('top')
+  const accessory = get('accessory') || get('accessories') || get('accessor') || get('neck') || get('jewel') || get('item')
 
   const { zoneId: startingZone } = backgroundToZone(bg)
   const { charisma, socialGain, eyeType } = eyesToCharisma(eyes)
@@ -190,7 +171,7 @@ export function mapTraitsToCharacter(
     : 1.0
 
   // Accessory stacks
-  const abilityMod = ability === 'whale_aura' ? 1.1 : 1.0
+  const abilityMod = ability === 'whale_aura' ? 1.1 : ability === 'alpha_reader' ? 1.08 : 1.0
   const housingMod = ability === 'diamond_hands' ? 0.5 : 1.0
 
   const stats: CharacterStats = {
@@ -199,11 +180,13 @@ export function mapTraitsToCharacter(
     endurance,
     intelligence,
     incomeMultiplier: incomeMultiplier * professionMod * abilityMod,
-    meterDecayMultiplier: decayMultiplier * housingMod,
-    socialGainRate: 5 + socialGain,
+    meterDecayMultiplier: Math.max(0.5, Math.min(1.3, decayMultiplier * housingMod)),
+    socialGainRate: Math.max(5, Math.min(30, 15 + socialGain + (ability === 'smooth_talker' ? 5 : 0))),
   }
 
   const appearance: CharacterAppearance = {
+    schemaVersion:2,
+    skinTrait:body,bodyTrait:clothes,headTrait:hat,eyeTrait:eyes,mouthTrait:mouth,formTrait:get('form'),sideTrait:get('side'),
     bodyColor,
     eyeType,
     mouthType,

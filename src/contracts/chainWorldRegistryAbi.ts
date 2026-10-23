@@ -1,83 +1,26 @@
-// Chain World Registry — ABI (matches ChainWorldRegistry.sol)
-
-export const CHAIN_WORLD_REGISTRY_ABI = [
-  {
-    type: 'function',
-    name: 'register',
-    inputs: [{ name: 'tokenId', type: 'uint256' }],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'setZone',
-    inputs: [{ name: 'zoneId', type: 'uint8' }],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'saveMeterSnapshot',
-    inputs: [
-      { name: 'fundsPercent', type: 'uint8' },
-      { name: 'hunger', type: 'uint8' },
-      { name: 'social', type: 'uint8' },
-      { name: 'rep', type: 'uint8' },
-      { name: 'housing', type: 'uint8' },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'getLot',
-    inputs: [{ name: 'lotId', type: 'uint8' }],
-    outputs: [
-      { name: 'owner', type: 'address' },
-      { name: 'tokenId', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'getPlayer',
-    inputs: [{ name: 'wallet', type: 'address' }],
-    outputs: [
-      { name: 'tokenId', type: 'uint256' },
-      { name: 'zone', type: 'uint8' },
-      { name: 'meters', type: 'uint8[5]' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'isRegistered',
-    inputs: [{ name: 'wallet', type: 'address' }],
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'totalRegistered',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'event',
-    name: 'Registered',
-    inputs: [
-      { name: 'player', type: 'address', indexed: true },
-      { name: 'tokenId', type: 'uint256', indexed: false },
-      { name: 'lotId', type: 'uint8', indexed: false },
-    ],
-  },
-  {
-    type: 'event',
-    name: 'ZoneMoved',
-    inputs: [
-      { name: 'player', type: 'address', indexed: true },
-      { name: 'zoneId', type: 'uint8', indexed: false },
-    ],
-  },
-] as const
+import { parseAbi } from 'viem'
+// V2 only. Never use the historical V1 deployment with this ABI.
+export const CHAIN_WORLD_REGISTRY_ABI = parseAbi([
+  'function chogContract() view returns (address)',
+  'function register(uint256 tokenId)',
+  'function setZone(uint256 tokenId, uint8 zone)',
+  'function saveMeterSnapshot(uint256 tokenId, uint16[6] meters)',
+  'function isRegistered(uint256 tokenId) view returns (bool)',
+  'function tokenLot(uint256 tokenId) view returns (uint256)',
+  'function getLot(uint256 lotId) view returns (address owner, uint256 tokenId)',
+  'function getLots(uint256 start, uint256 count) view returns (address[] owners, uint256[] tokenIds)',
+  'function getPlayer(uint256 tokenId) view returns (bool registered, uint256 lot, uint8 zone, uint16[6] meters, uint256 updatedAt)',
+  'function totalRegistered() view returns (uint256)',
+  'event Registered(address indexed player, uint256 indexed tokenId, uint256 lotId)',
+])
+export const FAUCET_ABI = parseAbi([
+  'function sourceCollection() view returns(address)',
+  'function sourceChainId() view returns(uint256)',
+  'function claim(uint256 originalId, string originalURI, bytes32[] proof)',
+  'function hasClaimed(address) view returns (bool)',
+  'function totalSupply() view returns (uint256)',
+  'function maxSupply() view returns (uint256)',
+  'function manifestRoot() view returns (bytes32)',
+  'function sourceTokenId(uint256) view returns (uint256)',
+  'event Claimed(address indexed player,uint256 indexed tokenId,uint256 indexed originalTokenId)',
+])

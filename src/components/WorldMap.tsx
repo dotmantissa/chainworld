@@ -1,138 +1,32 @@
-// Chain World — 6x6 World Map (lot grid)
-
+import { useState } from 'react'
 import { useReadContract } from 'wagmi'
-import { CHAIN_WORLD_REGISTRY_ABI } from '../contracts/chainWorldRegistryAbi'
+import { CHAIN_WORLD_REGISTRY_ABI as abi } from '../contracts/chainWorldRegistryAbi'
+import { REGISTRY_ADDRESS } from '../contracts/addresses'
 import type { GameState } from '../game/types'
-
-const REGISTRY_ADDRESS = import.meta.env.VITE_REGISTRY_ADDRESS as `0x${string}` | undefined
-
-const LOT_COUNT = 36 // 6x6 grid
-
-interface Props {
-  gameState: GameState
-  onVisit?: (walletAddress: string) => void
+import { ZONES } from '../game/zones'
+import { HOUSING_LABELS } from '../game/gameEngine'
+function Profile({tokenId,onClose}:{tokenId:bigint;onClose():void}) {
+  const profile=useReadContract({address:REGISTRY_ADDRESS,abi,functionName:'getPlayer',args:[tokenId],chainId:10143})
+  const p=profile.data
+  return <section className="panel space-y-2" aria-label="Neighbor profile"><button onClick={onClose}>Close profile</button><h3>Chog #{tokenId.toString()}</h3>
+    {profile.isLoading?<p>Loading profile…</p>:profile.error?<p>Profile unavailable. <button onClick={()=>void profile.refetch()}>Retry</button></p>:p?<>
+      <p>{ZONES[p[2]]?.name} · Lot #{p[1].toString()}</p>
+      {p[4]===0n?<p className="muted">This resident has not published a profile snapshot.</p>:<><p>{HOUSING_LABELS[p[3][5]]} · Reputation {p[3][4]}/500</p><p>Hunger {p[3][1]} · Energy {p[3][2]} · Social {p[3][3]}</p><p className="muted">Owner-reported snapshot · {new Date(Number(p[4])*1000).toLocaleString()}</p></>}
+    </>:null}
+  </section>
 }
-
-// Single lot reader
-function LotCell({
-  lotId,
-  isOwnLot,
-  currentWallet,
-  onVisit,
-}: {
-  lotId: number
-  isOwnLot: boolean
-  currentWallet: string
-  onVisit?: (wallet: string) => void
-}) {
-  const { data } = useReadContract(
-    REGISTRY_ADDRESS
-      ? {
-          address: REGISTRY_ADDRESS,
-          abi: CHAIN_WORLD_REGISTRY_ABI,
-          functionName: 'getLot',
-          args: [lotId],
-          chainId: 10143,
-        }
-      : undefined
-  )
-
-  const owner = data ? (data as [string, bigint])[0] : null
-  const isEmpty =
-    !owner || owner === '0x0000000000000000000000000000000000000000'
-  const isMe = owner?.toLowerCase() === currentWallet.toLowerCase()
-
-  const handleClick = () => {
-    if (!isEmpty && !isMe && owner && onVisit) {
-      onVisit(owner)
-    }
-  }
-
-  return (
-    <div
-      onClick={handleClick}
-      title={
-        isOwnLot
-          ? 'Your lot'
-          : !isEmpty && owner
-          ? `Visit ${owner.slice(0, 8)}...`
-          : 'Empty lot'
-      }
-      className="aspect-square rounded-md flex items-center justify-center transition-all duration-150"
-      style={{
-        background: isOwnLot
-          ? 'rgba(126,179,248,0.25)'
-          : !isEmpty
-          ? 'rgba(255,255,255,0.08)'
-          : 'rgba(255,255,255,0.03)',
-        border: isOwnLot
-          ? '1px solid var(--accent)'
-          : !isEmpty
-          ? '1px solid var(--border)'
-          : '1px solid rgba(255,255,255,0.04)',
-        cursor: !isEmpty && !isMe ? 'pointer' : 'default',
-        boxShadow: isOwnLot ? '0 0 8px rgba(126,179,248,0.3)' : undefined,
-      }}
-    >
-      {isOwnLot ? (
-        <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }} />
-      ) : !isEmpty ? (
-        <div
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ background: 'var(--muted)' }}
-        />
-      ) : null}
-    </div>
-  )
-}
-
-export default function WorldMap({ gameState, onVisit }: Props) {
-  const lots = Array.from({ length: LOT_COUNT }, (_, i) => i)
-
-  return (
-    <div className="glass p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold display" style={{ color: 'var(--ink)' }}>
-          Chog World Map
-        </h3>
-        <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
-          <span className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }} />
-            You
-          </span>
-          <span className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--muted)' }} />
-            Player
-          </span>
-        </div>
-      </div>
-
-      {!REGISTRY_ADDRESS ? (
-        <div
-          className="rounded-xl p-4 text-center"
-          style={{ background: 'var(--surface-muted)', border: '1px solid var(--border)' }}
-        >
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>
-            World map available after contract deployment
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-6 gap-1">
-          {lots.map(id => (
-            <LotCell
-              key={id}
-              lotId={id}
-              isOwnLot={gameState.registeredLot === id}
-              currentWallet={gameState.walletAddress}
-              onVisit={onVisit}
-            />
-          ))}
-        </div>
-      )}
-
-      <p className="text-xs text-center" style={{ color: 'var(--subtle)' }}>
-        {REGISTRY_ADDRESS ? 'Click an occupied lot to visit' : ''}
-      </p>
-    </div>
-  )
+export default function WorldMap({gameState:s}:{gameState:GameState}) {
+  const [page,setPage]=useState(0),[selected,setSelected]=useState<bigint|null>(null)
+  const count=useReadContract({address:REGISTRY_ADDRESS,abi,functionName:'totalRegistered',chainId:10143,query:{enabled:!!REGISTRY_ADDRESS,refetchInterval:15000}})
+  const lots=useReadContract({address:REGISTRY_ADDRESS,abi,functionName:'getLots',args:[BigInt(page*36),36n],chainId:10143,query:{enabled:!!REGISTRY_ADDRESS,refetchInterval:15000}})
+  if(!REGISTRY_ADDRESS)return <section className="panel"><h2>Meet the neighborhood</h2><p className="muted">The token-bound world directory is awaiting deployment.</p></section>
+  return <div className="space-y-3"><section className="panel space-y-3"><div className="flex justify-between"><h2>The neighborhood</h2><span>Page {page+1}</span></div>
+    <p className="muted">Select a resident to read their published profile.</p>
+    {lots.error?<p role="alert">Could not load the map. <button onClick={()=>void lots.refetch()}>Retry</button></p>:lots.isLoading?<p>Loading neighborhood…</p>:<div className="grid grid-cols-6 gap-2">{Array.from({length:36},(_,i)=>{
+      const owner=lots.data?.[0][i],token=lots.data?.[1][i],empty=!owner||/^0x0{40}$/.test(owner)
+      const own=token!==undefined&&Number(token)===s.tokenId&&!empty
+      return <button key={i} className={`lot-cell ${own?'own':''}`} disabled={empty} aria-label={empty?`Empty lot ${page*36+i}`:`Visit Chog ${token}`} title={owner} onClick={()=>setSelected(token!)}>{empty?'·':own?'⌂':`#${token}`}</button>
+    })}</div>}
+    <div className="flex justify-between"><button disabled={page===0} onClick={()=>setPage(p=>p-1)}>Previous</button><button disabled={!count.data||BigInt((page+1)*36)>=count.data} onClick={()=>setPage(p=>p+1)}>Next</button></div>
+  </section>{selected!==null&&<Profile tokenId={selected} onClose={()=>setSelected(null)}/>}</div>
 }

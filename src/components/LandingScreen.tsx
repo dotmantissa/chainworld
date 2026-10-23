@@ -1,150 +1,28 @@
-// Chain World — Landing / Connect Screen
-
 import { ConnectKitButton } from 'connectkit'
 import { useAccount, useSwitchChain } from 'wagmi'
-import { Globe, AlertTriangle } from 'lucide-react'
-import { MONAD_TESTNET_ID } from '../hooks/useChogNFT'
-
-interface Props {
-  hasChog: boolean
-  isLoading: boolean
-  ownsChog: boolean
-}
-
-export default function LandingScreen({ isLoading, ownsChog }: Props) {
-  const { isConnected, chainId } = useAccount()
-  const { switchChain, isPending: isSwitching } = useSwitchChain()
-  const isWrongChain = isConnected && chainId !== MONAD_TESTNET_ID
-
-  return (
-    <div
-      className="min-h-dvh flex flex-col items-center justify-center px-4"
-      style={{ background: 'var(--bg-gradient)' }}
-    >
-      {/* Logo */}
-      <div className="mb-8 text-center">
-        <div className="flex items-center justify-center gap-3 mb-3">
-          <Globe size={36} style={{ color: 'var(--accent)' }} />
-          <h1
-            className="display text-5xl font-bold"
-            style={{ color: 'var(--ink)', letterSpacing: '-0.04em' }}
-          >
-            Chain World
-          </h1>
-        </div>
-        <p className="text-base" style={{ color: 'var(--muted)' }}>
-          A blockchain life simulator powered by Chog NFTs
-        </p>
-        <p className="text-sm mt-1" style={{ color: 'var(--subtle)' }}>
-          Your Chog = Your Character. Live costs tied to real blockchain gas.
-        </p>
-      </div>
-
-      {/* Feature cards */}
-      <div className="grid grid-cols-3 gap-3 max-w-sm w-full mb-8">
-        {[
-          { title: 'NFT Identity', desc: 'Your Chog traits build your character' },
-          { title: 'Live Gas Costs', desc: 'Cost of living = real-time gwei' },
-          { title: 'Earn gCHOG', desc: 'Jobs, quests, and events' },
-        ].map(f => (
-          <div
-            key={f.title}
-            className="glass p-3 text-center"
-          >
-            <p
-              className="text-xs font-semibold mb-1"
-              style={{ color: 'var(--ink)' }}
-            >
-              {f.title}
-            </p>
-            <p className="text-xs" style={{ color: 'var(--muted)', lineHeight: 1.4 }}>
-              {f.desc}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Connect / chain warning / no NFT */}
-      <div className="w-full max-w-xs space-y-3">
-        {!isConnected ? (
-          <div className="flex flex-col items-center gap-3">
-            <ConnectKitButton label="Connect Wallet to Enter" />
-            <p className="text-xs text-center" style={{ color: 'var(--subtle)' }}>
-              Requires a Chog Genesis NFT on Monad Testnet
-            </p>
-          </div>
-        ) : isWrongChain ? (
-          <div className="space-y-3">
-            <div
-              className="flex items-start gap-2 p-3 rounded-xl"
-              style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)' }}
-            >
-              <AlertTriangle size={16} style={{ color: 'var(--danger)', flexShrink: 0, marginTop: 1 }} />
-              <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--danger)' }}>Wrong Network</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                  Chain World runs on Monad Testnet. Switch to continue.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => switchChain({ chainId: MONAD_TESTNET_ID })}
-              disabled={isSwitching}
-              className="w-full py-3 rounded-xl text-sm font-semibold transition-opacity"
-              style={{ background: 'var(--accent)', color: '#0a0f1e', opacity: isSwitching ? 0.6 : 1 }}
-            >
-              {isSwitching ? 'Switching...' : 'Switch to Monad Testnet'}
-            </button>
-          </div>
-        ) : isLoading ? (
-          <div className="text-center py-4">
-            <div
-              className="w-6 h-6 border-2 rounded-full mx-auto mb-2 animate-spin"
-              style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
-            />
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>Checking your Chog NFT...</p>
-          </div>
-        ) : !ownsChog ? (
-          <div
-            className="p-4 rounded-xl text-center space-y-2"
-            style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)' }}
-          >
-            <p className="text-sm font-semibold" style={{ color: 'var(--danger)' }}>
-              No Chog Genesis NFT Found
-            </p>
-            <p className="text-xs" style={{ color: 'var(--muted)', lineHeight: 1.5 }}>
-              A Chog Genesis NFT on Monad Testnet is required to enter Chain World.
-              The NFT determines your character, home, and life standard.
-            </p>
-            <a
-              href="https://testnet.monadexplorer.com/address/0x32A325b0640594377D0708Ca9081c93da95e1908"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs underline"
-              style={{ color: 'var(--accent)' }}
-            >
-              View Chog Contract on Monad Testnet
-            </a>
-          </div>
-        ) : (
-          <div
-            className="flex items-center gap-2 p-3 rounded-xl"
-            style={{ background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)' }}
-          >
-            <div className="live-dot" />
-            <p className="text-sm font-medium" style={{ color: 'var(--success)' }}>
-              Chog NFT detected — loading your world...
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Hackathon badge */}
-      <div className="mt-8 text-center">
-        <p className="text-xs" style={{ color: 'var(--subtle)' }}>
-          Chogathon 2026 Entry
-        </p>
-      </div>
-    </div>
-  )
+import type { useChogNFT } from '../hooks/useChogNFT'
+import { MONAD_TESTNET_ID } from '../contracts/addresses'
+import FaucetPanel from './FaucetPanel'
+import CollectionGallery, { type SourcePreview } from './CollectionGallery'
+interface Props { nft:ReturnType<typeof useChogNFT>; onPreview(resident?:SourcePreview):void; onAuthenticate():void; shared:boolean; authBusy:boolean; error:string }
+export default function LandingScreen({nft,onPreview,onAuthenticate,shared,authBusy,error}:Props) {
+  const {isConnected,chainId}=useAccount()
+  const network=useSwitchChain()
+  return <main className="landing-shell">
+    <nav className="landing-nav"><a className="wordmark" href="/">chain<span>world</span><i>✦</i></a><ConnectKitButton/></nav>
+    <div className="landing-grid"><section className="landing-copy"><p className="eyebrow">SMALL CHOG. BIG ON-CHAIN LIFE.</p><h1>Your little corner<br/>of the <em>chain.</em></h1><p>Find a home, make a living, and look after your Chog. A cozy life simulator where your NFT is the resident and the world moves with real blockchain gas.</p><div className="flex gap-3 flex-wrap mt-6"><button className="primary" onClick={()=>onPreview()}>Explore a local preview ↗</button><a href="#enter" className="text-link">Bring your Chog ↓</a></div><div className="landing-stats"><span>01 <small>Your NFT identity</small></span><span>05 <small>Blockchain cities</small></span><span>∞ <small>Little possibilities</small></span></div></section>
+    <section id="enter" className="onboarding-card space-y-5"><p className="eyebrow">YOUR NEXT CHAPTER</p><h2>Move into Chain World</h2><p className="muted">Connect on Monad Testnet, select your resident, and step inside.</p>
+      {!isConnected?<ConnectKitButton label="Connect wallet"/>:chainId!==MONAD_TESTNET_ID?<div className="space-y-2"><button className="primary" disabled={network.isPending} onClick={()=>network.switchChain({chainId:MONAD_TESTNET_ID})}>Switch to Monad Testnet</button>{network.error&&<p role="alert">{network.error.message.split('\n')[0]}</p>}</div>:<>
+        <FaucetPanel key={nft.address} onClaimed={tokenId=>{nft.setSelected(String(tokenId));nft.retry()}}/>
+        <label className="token-label">Resident token ID <small>(leave blank to use your first NFT)</small><input inputMode="numeric" value={nft.selected} onChange={e=>nft.setSelected(e.target.value)} placeholder="e.g. 0" aria-label="Resident token ID"/></label>
+        {nft.needsTokenId&&<p className="muted">This collection does not support token enumeration. Enter an owned token ID.</p>}
+        {nft.isLoading?<p role="status">Loading ownership and original NFT traits…</p>:nft.ownsChog&&nft.metadata?<><p>Chog #{nft.tokenId} is ready.</p>{shared&&<button className="primary" disabled={authBusy} onClick={onAuthenticate}>{authBusy?'Opening your world…':'Verify wallet & enter'}</button>}</>:!nft.error&&<p className="muted">No owned Chog selected. Claim above when the faucet is available, or enter an existing token ID.</p>}
+      </>}
+      {(nft.error||error)&&<div className="notice" role="alert"><p>{error||nft.error}</p><button onClick={nft.retry}>Retry NFT loading</button></div>}
+      <p className="preview-note">Testnet game. gCHOG is in-game currency. {shared?'Progress follows your NFT in the shared world.':'NFT progress stays in this browser until the shared service is configured.'}</p>
+    </section></div>
+    <section className="landing-features">{[['⌂','A home that grows with you','Care, work, and spend your earnings on a better little life.'],['✦','An identity of your own','Your original NFT traits shape your resident and career.'],['↗','A world with a pulse','Live gas moves living costs. Find the neighborhood that suits you.']].map(([icon,title,text])=><article key={title}><span>{icon}</span><h3>{title}</h3><p>{text}</p></article>)}</section>
+    <CollectionGallery onPreview={onPreview}/>
+    <footer>CHAIN WORLD <span>A life worth logging into. · Monad Testnet</span></footer>
+  </main>
 }

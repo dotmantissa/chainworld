@@ -1,242 +1,44 @@
-// Chain World — Chog Character Avatar (CSS/SVG layered renderer)
-
+import { useId } from 'react'
 import type { CharacterAppearance, RarityTier } from '../game/types'
+import { metadataUrls } from '../game/metadata'
 
-interface Props {
-  appearance: CharacterAppearance
-  tier: RarityTier
-  size?: number
-  animated?: boolean
+export function traitColor(value:string,fallback:string):string {
+  const colors:Record<string,string>={black:'#252138',white:'#f7efda',cream:'#eadebd',purple:'#59318b',pink:'#ec8cbd',blue:'#3e78bf',green:'#6b9e70',red:'#b95161',orange:'#d89752',yellow:'#e8c35b',gold:'#cda84e',brown:'#795a47',gray:'#8e939b',grey:'#8e939b',teal:'#4c9898',navy:'#31436b'}
+  const word=value.toLowerCase().split(/[\s_-]+/).find(word=>word in colors)
+  return word?colors[word]:fallback
 }
-
-const EYE_SHAPES: Record<string, JSX.Element> = {
-  laser: (
-    <g>
-      <circle cx="35" cy="42" r="5" fill="#f87171" />
-      <circle cx="65" cy="42" r="5" fill="#f87171" />
-      <line x1="0" y1="42" x2="35" y2="42" stroke="#f87171" strokeWidth="2" opacity="0.6" />
-      <line x1="65" y1="42" x2="100" y2="42" stroke="#f87171" strokeWidth="2" opacity="0.6" />
-    </g>
-  ),
-  smirk: (
-    <g>
-      <ellipse cx="35" cy="42" rx="6" ry="5" fill="#1a1a2e" />
-      <ellipse cx="65" cy="42" rx="6" ry="5" fill="#1a1a2e" />
-      <circle cx="37" cy="41" r="2" fill="white" opacity="0.8" />
-      <circle cx="67" cy="41" r="2" fill="white" opacity="0.8" />
-    </g>
-  ),
-  happy: (
-    <g>
-      <path d="M29 40 Q35 48 41 40" stroke="#1a1a2e" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      <path d="M59 40 Q65 48 71 40" stroke="#1a1a2e" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-    </g>
-  ),
-  shades: (
-    <g>
-      <rect x="25" y="37" width="20" height="12" rx="6" fill="#1a1a2e" />
-      <rect x="55" y="37" width="20" height="12" rx="6" fill="#1a1a2e" />
-      <line x1="45" y1="43" x2="55" y2="43" stroke="#1a1a2e" strokeWidth="2" />
-      <rect x="26" y="38" width="8" height="4" rx="2" fill="white" opacity="0.2" />
-    </g>
-  ),
-  dead: (
-    <g>
-      <line x1="28" y1="38" x2="42" y2="48" stroke="#1a1a2e" strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="42" y1="38" x2="28" y2="48" stroke="#1a1a2e" strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="58" y1="38" x2="72" y2="48" stroke="#1a1a2e" strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="72" y1="38" x2="58" y2="48" stroke="#1a1a2e" strokeWidth="2.5" strokeLinecap="round" />
-    </g>
-  ),
-  cry: (
-    <g>
-      <circle cx="35" cy="42" r="5" fill="#1a1a2e" />
-      <circle cx="65" cy="42" r="5" fill="#1a1a2e" />
-      <path d="M32 48 Q35 56 38 48" fill="#60a5fa" opacity="0.8" />
-      <path d="M62 48 Q65 56 68 48" fill="#60a5fa" opacity="0.8" />
-    </g>
-  ),
-  angry: (
-    <g>
-      <circle cx="35" cy="44" r="5" fill="#1a1a2e" />
-      <circle cx="65" cy="44" r="5" fill="#1a1a2e" />
-      <line x1="28" y1="36" x2="42" y2="40" stroke="#1a1a2e" strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="58" y1="40" x2="72" y2="36" stroke="#1a1a2e" strokeWidth="2.5" strokeLinecap="round" />
-    </g>
-  ),
-  heart: (
-    <g>
-      <path d="M35 46 C35 40 27 38 27 44 C27 50 35 54 35 54 C35 54 43 50 43 44 C43 38 35 40 35 46Z" fill="#f43f5e" />
-      <path d="M65 46 C65 40 57 38 57 44 C57 50 65 54 65 54 C65 54 73 50 73 44 C73 38 65 40 65 46Z" fill="#f43f5e" />
-    </g>
-  ),
-  default: (
-    <g>
-      <circle cx="35" cy="42" r="6" fill="#1a1a2e" />
-      <circle cx="65" cy="42" r="6" fill="#1a1a2e" />
-      <circle cx="37" cy="40" r="2" fill="white" opacity="0.7" />
-      <circle cx="67" cy="40" r="2" fill="white" opacity="0.7" />
-    </g>
-  ),
-}
-
-const MOUTH_SHAPES: Record<string, JSX.Element> = {
-  grin: <path d="M30 65 Q50 80 70 65" stroke="#1a1a2e" strokeWidth="3" fill="none" strokeLinecap="round" />,
-  smirk: <path d="M35 65 Q55 72 68 62" stroke="#1a1a2e" strokeWidth="2.5" fill="none" strokeLinecap="round" />,
-  frown: <path d="M30 72 Q50 60 70 72" stroke="#1a1a2e" strokeWidth="3" fill="none" strokeLinecap="round" />,
-  open: (
-    <g>
-      <ellipse cx="50" cy="68" rx="14" ry="9" fill="#1a1a2e" />
-      <ellipse cx="50" cy="70" rx="10" ry="5" fill="#7f1d1d" />
-    </g>
-  ),
-  tongue: (
-    <g>
-      <path d="M30 65 Q50 78 70 65" stroke="#1a1a2e" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      <ellipse cx="50" cy="76" rx="8" ry="5" fill="#f43f5e" />
-    </g>
-  ),
-  default: <path d="M35 66 Q50 74 65 66" stroke="#1a1a2e" strokeWidth="2.5" fill="none" strokeLinecap="round" />,
-}
-
-const HAT_SHAPES: Record<string, JSX.Element> = {
-  crown: (
-    <g>
-      <rect x="25" y="12" width="50" height="14" rx="2" fill="#f5c542" />
-      <polygon points="25,26 30,12 37,22 44,12 50,22 56,12 63,22 70,12 75,26" fill="#f5c542" />
-      <circle cx="37" cy="14" r="3" fill="#ef4444" />
-      <circle cx="50" cy="12" r="3" fill="#3b82f6" />
-      <circle cx="63" cy="14" r="3" fill="#ef4444" />
-    </g>
-  ),
-  wizard: (
-    <g>
-      <polygon points="50,2 30,26 70,26" fill="#7c3aed" />
-      <rect x="22" y="24" width="56" height="7" rx="3" fill="#6d28d9" />
-      <circle cx="50" cy="10" r="3" fill="#f5c542" />
-    </g>
-  ),
-  cap: (
-    <g>
-      <path d="M20 24 Q50 10 80 24 L75 28 Q50 18 25 28Z" fill="#1e293b" />
-      <rect x="15" y="24" width="70" height="6" rx="3" fill="#0f172a" />
-    </g>
-  ),
-  tophat: (
-    <g>
-      <rect x="32" y="6" width="36" height="22" rx="3" fill="#0f172a" />
-      <rect x="22" y="26" width="56" height="5" rx="2" fill="#0f172a" />
-      <rect x="34" y="19" width="32" height="3" fill="#f5c542" opacity="0.6" />
-    </g>
-  ),
-  halo: (
-    <ellipse cx="50" cy="10" rx="24" ry="7" fill="none" stroke="#f5c542" strokeWidth="4" opacity="0.9" />
-  ),
-  none: <></>,
-  other: (
-    <g>
-      <rect x="28" y="14" width="44" height="14" rx="7" fill="#334155" />
-    </g>
-  ),
-}
-
-const CLOTHES_COLORS: Record<string, string> = {
-  suit: '#1e293b',
-  hoodie: '#7c3aed',
-  armor: '#64748b',
-  none: 'transparent',
-  other: '#374151',
-}
-
-const ACCESSORY_ELEMENTS: Record<string, JSX.Element> = {
-  chain: (
-    <path d="M30 82 Q50 88 70 82" stroke="#f5c542" strokeWidth="3" fill="none" opacity="0.9" />
-  ),
-  glasses: (
-    <g>
-      <circle cx="35" cy="42" r="8" fill="none" stroke="#94a3b8" strokeWidth="1.5" />
-      <circle cx="65" cy="42" r="8" fill="none" stroke="#94a3b8" strokeWidth="1.5" />
-      <line x1="43" y1="42" x2="57" y2="42" stroke="#94a3b8" strokeWidth="1.5" />
-    </g>
-  ),
-  earring: (
-    <g>
-      <circle cx="17" cy="55" r="3" fill="#f5c542" />
-      <circle cx="83" cy="55" r="3" fill="#f5c542" />
-    </g>
-  ),
-  pipe: (
-    <g>
-      <path d="M55 70 Q65 70 68 65" stroke="#78350f" strokeWidth="3" fill="none" strokeLinecap="round" />
-      <circle cx="68" cy="63" r="4" fill="#451a03" />
-    </g>
-  ),
-  none: <></>,
-}
-
-const TIER_FRAME_STYLE: Record<RarityTier, React.CSSProperties> = {
-  genesis:   { boxShadow: '0 0 0 2px #f5c542, 0 0 20px 4px rgba(245,197,66,0.5)' },
-  legendary: { boxShadow: '0 0 0 2px #f5c542' },
-  rare:      { boxShadow: '0 0 0 2px #a855f7' },
-  uncommon:  { boxShadow: '0 0 0 2px #3b82f6' },
-  common:    { boxShadow: '0 0 0 1px #475569' },
-  floor:     {},
-}
-
-export default function ChogAvatar({ appearance, tier, size = 100, animated = false }: Props) {
-  const { bodyColor, eyeType, mouthType, hatType, clothesType, accessoryType } = appearance
-
-  const eyeSvg = EYE_SHAPES[eyeType] ?? EYE_SHAPES.default
-  const mouthSvg = MOUTH_SHAPES[mouthType] ?? MOUTH_SHAPES.default
-  const hatSvg = HAT_SHAPES[hatType] ?? HAT_SHAPES.none
-  const accessorySvg = ACCESSORY_ELEMENTS[accessoryType] ?? ACCESSORY_ELEMENTS.none
-  const clothesColor = CLOTHES_COLORS[clothesType] ?? CLOTHES_COLORS.other
-
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        overflow: 'hidden',
-        flexShrink: 0,
-        ...TIER_FRAME_STYLE[tier],
-        animation: animated ? 'glow-pulse 3s ease-in-out infinite' : undefined,
-      }}
-    >
-      <svg viewBox="0 0 100 100" width={size} height={size} xmlns="http://www.w3.org/2000/svg">
-        {/* Background circle */}
-        <circle cx="50" cy="50" r="50" fill="#1e293b" />
-
-        {/* Hat (behind head) */}
-        {hatSvg}
-
-        {/* Head */}
-        <ellipse cx="50" cy="55" rx="32" ry="30" fill={bodyColor} />
-
-        {/* Ears */}
-        <ellipse cx="18" cy="50" rx="8" ry="10" fill={bodyColor} />
-        <ellipse cx="82" cy="50" rx="8" ry="10" fill={bodyColor} />
-        <ellipse cx="18" cy="50" rx="4" ry="6" fill={bodyColor} opacity="0.6" />
-        <ellipse cx="82" cy="50" rx="4" ry="6" fill={bodyColor} opacity="0.6" />
-
-        {/* Eyes */}
-        {eyeSvg}
-
-        {/* Nose */}
-        <ellipse cx="50" cy="56" rx="5" ry="3" fill="rgba(0,0,0,0.2)" />
-
-        {/* Mouth */}
-        {mouthSvg}
-
-        {/* Clothes strip at bottom */}
-        {clothesType !== 'none' && (
-          <path d="M18 82 Q50 95 82 82 L82 100 L18 100Z" fill={clothesColor} />
-        )}
-
-        {/* Accessory */}
-        {accessorySvg}
-      </svg>
-    </div>
-  )
+interface Props { appearance:CharacterAppearance; tier:RarityTier; size?:number; animated?:boolean; portrait?:boolean }
+export default function ChogAvatar({appearance:a,tier,size=100,animated=false,portrait=true}:Props) {
+  const id=useId().replace(/:/g,'')
+  const body=a.bodyColor||'#40206c',shirt=traitColor(a.bodyTrait??'',a.clothesType==='none'?body:'#565471'),hat=traitColor(a.headTrait??'','#75509c')
+  const rawEyes=(a.eyeTrait??a.eyeType).toLowerCase(),rawHead=(a.headTrait??a.hatType).toLowerCase()
+  const clothed=!!a.bodyTrait&&!/^(none|naked|bare|origin)$/i.test(a.bodyTrait)
+  const cap=/cap|mcga|hat|beanie|bucket|crown|helmet|wizard|cowboy/.test(rawHead)
+  const glasses=/glass|shade|btc|sunglass|pixel/.test(rawEyes)
+  const frameColor=({genesis:'#d6b765',legendary:'#cfac66',rare:'#a188c4',uncommon:'#7e9ebd',common:'#b3b2a3',floor:'#b3b2a3'})[tier]
+  return <div className="chog-avatar" style={{width:size,height:size,flexShrink:0,borderRadius:18,overflow:'hidden',boxShadow:`0 0 0 2px ${frameColor}`,animation:animated?'glow-pulse 3s ease-in-out infinite':undefined}}>
+    {portrait&&a.sourceImage?<img alt={a.sourceName??'Original Chog NFT'} src={metadataUrls(a.sourceImage)[0]} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={event=>{const img=event.currentTarget;const urls=metadataUrls(a.sourceImage!);const next=Number(img.dataset.gateway??0)+1;if(next<urls.length){img.dataset.gateway=String(next);img.src=urls[next]}}}/>:<svg viewBox="0 0 120 140" width={size} height={size} xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Resident interpreted from original NFT traits">
+      <defs>
+        <radialGradient id={`${id}body`} cx="35%" cy="20%" r="85%"><stop stopColor={body}/><stop offset="1" stopColor="#1b1032"/></radialGradient>
+        <radialGradient id={`${id}face`} cx="35%" cy="30%" r="80%"><stop stopColor="#fff8d9"/><stop offset="1" stopColor="#c7bb91"/></radialGradient>
+        <linearGradient id={`${id}shirt`} x2=".6" y2="1"><stop stopColor={shirt}/><stop offset="1" stopColor={shirt} stopOpacity=".55"/></linearGradient>
+      </defs>
+      <g fill={`url(#${id}body)`} stroke="#211239" strokeWidth="1.4" strokeLinejoin="round">
+        <path d="M30 54 7 22 40 36 37 6 62 30 76 10 82 38 112 27 98 57 119 65 96 79 112 95 83 97 75 116 58 102 37 112 34 95 7 96 20 77 1 65Z"/>
+        <path d="M36 88Q59 76 82 88L92 123 72 130 62 107 53 129 31 126Z"/>
+      </g>
+      {clothed&&<path d="M35 91Q61 83 84 91L88 110Q60 122 32 111Z" fill={`url(#${id}shirt)`} stroke="#30243a" strokeWidth="1"/>}
+      <path d="M33 108 28 126 38 130 44 112M83 108 91 126 82 130 76 113" fill={body}/>
+      <g fill="#e775ad" stroke="#9d3f7d" strokeWidth="1"><path d="M29 123Q20 129 24 133L29 131 32 135 36 132 40 135 46 131 41 125Z"/><path d="M78 125 74 132 80 136 84 132 89 135 92 131 97 133Q100 128 90 123Z"/></g>
+      <ellipse cx="60" cy="65" rx="39" ry="32" fill={`url(#${id}face)`} stroke="#31213c" strokeWidth="1.4"/>
+      <path d="M38 39 43 29 49 37 54 27 59 36 64 26 68 37 74 31 79 41" fill="#fff9de"/>
+      {glasses?<g fill={/btc/.test(rawEyes)?'#e6a840':'#22253b'} stroke="#2b2038" strokeWidth="2"><rect x="28" y="53" width="28" height="19" rx="7"/><rect x="65" y="53" width="28" height="19" rx="7"/><path d="M56 59H65"/>{/btc/.test(rawEyes)&&<g fill="#fff8dd" stroke="none" fontSize="13" textAnchor="middle"><text x="42" y="67">₿</text><text x="79" y="67">₿</text></g>}</g>:<g fill="#171220"><ellipse cx="43" cy="61" rx="10" ry="12"/><ellipse cx="78" cy="61" rx="10" ry="12"/><g fill="white"><ellipse cx="46" cy="56" rx="3" ry="4"/><ellipse cx="81" cy="56" rx="3" ry="4"/></g>{/angry/.test(rawEyes)&&<path d="m31 47 22 5m14 0 22-5" stroke="#3a2840" strokeWidth="3"/>}</g>}
+      <g fill="#e775ad" opacity=".9"><ellipse cx="31" cy="74" rx="12" ry="5"/><ellipse cx="90" cy="74" rx="12" ry="5"/></g>
+      <ellipse cx="60" cy="74" rx="8" ry="4.5" fill="#e783b8" stroke="#af4d89"/><path d="M56 75v1m8-1v1" stroke="#753960" strokeWidth="2"/>
+      <path d={/smile|grin/.test(a.mouthTrait??'')?'M49 85Q60 95 73 84':'M48 87Q60 81 73 87'} fill="none" stroke="#594351" strokeWidth="1.5" strokeLinecap="round"/>
+      {cap&&<g fill={hat} stroke="#352344" strokeWidth="1.4"><path d="M30 43Q32 14 61 18 90 17 92 44Z"/><path d="M23 43Q57 34 99 45L94 50Q55 44 25 49Z"/></g>}
+      {a.accessoryType==='chain'&&<path d="M41 97Q60 113 80 97" fill="none" stroke="#e3bf63" strokeWidth="3"/>}
+      {a.accessoryType==='earring'&&<circle cx="22" cy="77" r="4" fill="none" stroke="#e3bf63" strokeWidth="2"/>}
+    </svg>}
+  </div>
 }

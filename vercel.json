@@ -1,11 +1,17 @@
 {
-  "buildCommand": "bun run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "functions": {
+    "api/*.ts": {
+      "maxDuration": 60,
+      "includeFiles": "public/faucet-manifest.json"
+    }
+  },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "env": {
-    "VITE_REGISTRY_ADDRESS": "0x6706b660883ce7f209eb5ea61a6114a1cac41a97"
-  }
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
 }

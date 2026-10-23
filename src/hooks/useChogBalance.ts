@@ -5,7 +5,7 @@ import { useReadContract } from 'wagmi'
 import { useAccount } from 'wagmi'
 
 const CHOG_TOKEN_ADDRESS = '0x350035555e10d9afaf1566aaebfced5ba6c27777' as const
-const MONAD_MAINNET_ID = 41455 // Monad Mainnet
+const MONAD_MAINNET_ID = 143 // Monad Mainnet
 
 const ERC20_ABI = [
   {
@@ -47,12 +47,7 @@ export function useChogTokenBalance() {
     : badgeTier === 1 ? '$CHOG Holder'
     : null
 
-  const badgeBonus =
-    badgeTier >= 4 ? 'All zones unlocked, housing +1, 2× start funds'
-    : badgeTier >= 3 ? 'Whale Zone housing, +50 Reputation'
-    : badgeTier >= 2 ? 'Gwei Grifter unlocked, Silver badge'
-    : badgeTier >= 1 ? '+10 starting Reputation'
-    : null
+  const badgeBonus = badgeTier > 0 ? 'Cosmetic holder badge' : null
 
   return {
     balance,

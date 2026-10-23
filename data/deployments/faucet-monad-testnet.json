@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "chainId": 10143,
+  "manifestRoot": "0xf7b07d0a833c9bf8c0de946d1bfdcadb0169506e9d87e077cf719ca5566be811",
+  "supply": 1969,
+  "collection": "0x9fcC2FB7487A3530809f45DFD9bb419EA2E0aF17",
+  "registry": "0xA4aB8dbc0b3213C2d80af677bD7B4b5f259BdD0f",
+  "deployer": "0xBC1399c55538eC034d4Da550C03c34Ae0C357f53",
+  "collectionTransaction": "0xc01aa68f10757110badb7fe0670167559ff33c756d231fad42074629ca67951d",
+  "registryTransaction": "0xb58ad16305b4b6bef5447cace92a5a2ca59f9ad5efcccf07746136c00865ab9e"
+}

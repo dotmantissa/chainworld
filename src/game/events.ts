@@ -1,95 +1,21 @@
-// Chain World — Daily Events (block-timestamp seeded)
+import type { DailyEvent, ZoneId, EventTarget } from './types'
 
-import type { DailyEvent, ZoneId } from './types'
-
-const EVENT_DURATION_MS = 2 * 60 * 60 * 1000 // 2 hours
-
-const EVENT_TEMPLATES: Omit<DailyEvent, 'endsAt'>[] = [
-  {
-    id: 'gas_war',
-    name: 'Gas War',
-    description: 'Network congestion spikes! Zone costs are doubled.',
-    effect: 'All zones cost 2x for 2 hours',
-    icon: 'Flame',
-    multiplier: 2,
-    affectedZone: 'all',
-  },
-  {
-    id: 'airdrop_season',
-    name: 'Airdrop Season',
-    description: 'Free money is raining! All earnings increased.',
-    effect: 'All earnings 1.5x for 2 hours',
-    icon: 'Gift',
-    multiplier: 1.5,
-    affectedZone: 'all',
-  },
-  {
-    id: 'chog_parade',
-    name: 'Chog Parade',
-    description: 'The Chog World Order marches! Social gains tripled.',
-    effect: 'Social gain rate 3x for 2 hours',
-    icon: 'Users',
-    multiplier: 3,
-    affectedZone: 0,
-  },
-  {
-    id: 'rug_pull',
-    name: 'Rug Pull',
-    description: 'A shadowy dev has rugged the floor. Floor Chogs take losses.',
-    effect: 'Floor tier loses 50% gCHOG',
-    icon: 'TrendingDown',
-    multiplier: 0.5,
-    affectedZone: 0,
-  },
-  {
-    id: 'bull_run',
-    name: 'Bull Run',
-    description: 'Number go up! NFT Flipper payouts are doubled.',
-    effect: 'NFT Flipper 2x payouts for 2 hours',
-    icon: 'TrendingUp',
-    multiplier: 2,
-    affectedZone: 'all',
-  },
-  {
-    id: 'eth_surge',
-    name: 'ETH Gas Surge',
-    description: 'Ethereum Heights is CONGESTED. Fees are brutal.',
-    effect: 'Ethereum Heights costs 4x',
-    icon: 'Zap',
-    multiplier: 4,
-    affectedZone: 1,
-  },
-  {
-    id: 'monad_speed',
-    name: 'Monad Speed Demon',
-    description: 'Monad hits peak throughput. Monad Slums earns 2x.',
-    effect: 'Monad Slums earnings 2x',
-    icon: 'Rocket',
-    multiplier: 2,
-    affectedZone: 0,
-  },
+export const EVENT_DURATION_MS = 2 * 60 * 60 * 1000
+const templates: Omit<DailyEvent, 'startsAt' | 'endsAt'>[] = [
+  { id: 'gas_war', name: 'Gas War', description: 'Congestion increases upkeep.', effect: 'Living costs ×2', icon: 'Flame', multiplier: 2, affectedZone: 'all', target: 'cost' },
+  { id: 'airdrop', name: 'Airdrop Season', description: 'Work is in demand.', effect: 'Job earnings ×1.5', icon: 'Gift', multiplier: 1.5, affectedZone: 'all', target: 'income' },
+  { id: 'parade', name: 'Chog Parade', description: 'Meet your neighbors in Monad.', effect: 'Monad social gains ×3', icon: 'Users', multiplier: 3, affectedZone: 0, target: 'social' },
+  { id: 'eth_surge', name: 'Ethereum Surge', description: 'Ethereum is congested.', effect: 'Ethereum upkeep ×4', icon: 'Zap', multiplier: 4, affectedZone: 1, target: 'cost' },
+  { id: 'monad_speed', name: 'Monad Speed Demon', description: 'Validators are hiring.', effect: 'Monad job earnings ×2', icon: 'Rocket', multiplier: 2, affectedZone: 0, target: 'income' },
 ]
-
-// Seed from today's date — same event for all players on the same day
-export function getTodaysEvent(): DailyEvent {
-  const today = new Date()
-  const dayNumber = Math.floor(today.getTime() / (1000 * 60 * 60 * 24))
-  const idx = dayNumber % EVENT_TEMPLATES.length
-  const template = EVENT_TEMPLATES[idx]
-  const startOfDay = dayNumber * 1000 * 60 * 60 * 24
-  return {
-    ...template,
-    endsAt: startOfDay + EVENT_DURATION_MS,
-  }
+// Deterministic UTC rotation for the local simulation. No block-time authority is claimed.
+export function getTodaysEvent(now = Date.now()): DailyEvent {
+  const slot = Math.floor(now / EVENT_DURATION_MS)
+  return { ...templates[((slot % templates.length) + templates.length) % templates.length], startsAt: slot * EVENT_DURATION_MS, endsAt: (slot + 1) * EVENT_DURATION_MS }
 }
-
-export function isEventActive(event: DailyEvent): boolean {
-  return Date.now() < event.endsAt
+export function isEventActive(event: DailyEvent, now = Date.now()): boolean {
+  return now >= event.startsAt && now < event.endsAt
 }
-
-export function getEventMultiplier(event: DailyEvent, zoneId: ZoneId): number {
-  if (!isEventActive(event)) return 1
-  if (event.affectedZone === 'all') return event.multiplier
-  if (event.affectedZone === zoneId) return event.multiplier
-  return 1
+export function getEventMultiplier(event: DailyEvent, zone: ZoneId, target: EventTarget = 'cost', now = Date.now()): number {
+  return isEventActive(event, now) && event.target === target && (event.affectedZone === 'all' || event.affectedZone === zone) ? event.multiplier : 1
 }

@@ -1,455 +1,69 @@
-// Chain World — Main Game HUD
-
-import { useState, useEffect } from 'react'
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { Home, Briefcase, Map, Zap, Star, Trophy } from 'lucide-react'
-import { toast } from 'sonner'
-import type { GameState, ZoneId } from '../game/types'
-import {
-  saveGameState,
-  applyTimeDecay,
-  isDegenSpiral,
-  isChogLegend,
-  HOUSING_LABELS,
-  TIER_LABELS,
-} from '../game/gameEngine'
-import { ZONES, getAllZoneGwei, computeDailyCost } from '../game/zones'
-import { getTodaysEvent, getEventMultiplier } from '../game/events'
-import { CHAIN_WORLD_REGISTRY_ABI } from '../contracts/chainWorldRegistryAbi'
-import ChogAvatar from './ChogAvatar'
+import { useCallback, useRef, useState } from 'react'
+import { ConnectKitButton } from 'connectkit'
+import type { GameState, ChogTrait } from '../game/types'
+import { ACTIONS, actionCost, dailyCost, HOUSING_LABELS, isDegenSpiral, QUESTS, TIER_LABELS, upgradeCost, type Command } from '../game/gameEngine'
+import { getEventMultiplier, getTodaysEvent } from '../game/events'
+import { ZONES, travelCost } from '../game/zones'
+import { useGameController } from '../hooks/useGameController'
+import WorldRoom, { type RoomHandle } from './WorldRoom'
 import MeterBar from './MeterBar'
-import ZoneCard from './ZoneCard'
 import JobsPanel from './JobsPanel'
 import WorldMap from './WorldMap'
-
-const REGISTRY_ADDRESS = import.meta.env.VITE_REGISTRY_ADDRESS as `0x${string}` | undefined
-
-type Tab = 'home' | 'jobs' | 'map' | 'zones'
-
-interface Props {
-  gameState: GameState
-  onStateChange: (s: GameState) => void
-}
-
-export default function GameHUD({ gameState, onStateChange }: Props) {
-  const { address } = useAccount()
-  const [activeTab, setActiveTab] = useState<Tab>('home')
-  const [dailyCost, setDailyCost] = useState<number | null>(null)
-  const todayEvent = getTodaysEvent()
-  const eventMult = getEventMultiplier(todayEvent, gameState.currentZone)
-
-  const degenSpiral = isDegenSpiral(gameState.meters)
-  const chogLegend = isChogLegend(gameState.meters)
-
-  // ─── Registration ────────────────────────────────────────────────────────────
-  const { writeContract: registerOnChain, data: regHash, isPending: regPending } = useWriteContract()
-  const { isLoading: regConfirming, isSuccess: regSuccess } = useWaitForTransactionReceipt({ hash: regHash })
-
-  useEffect(() => {
-    if (regSuccess && !gameState.registeredOnChain) {
-      const updated = { ...gameState, registeredOnChain: true }
-      onStateChange(updated)
-      saveGameState(updated)
-      toast.success('Registered on-chain! Your lot is claimed.')
-    }
-  }, [regSuccess, gameState, onStateChange])
-
-  const handleRegister = () => {
-    if (!REGISTRY_ADDRESS || !address) return
-    registerOnChain({
-      address: REGISTRY_ADDRESS,
-      abi: CHAIN_WORLD_REGISTRY_ABI,
-      functionName: 'register',
-      args: [BigInt(gameState.tokenId)],
-      chainId: 10143,
-    })
-  }
-
-  // ─── Daily cost calculation ────────────────────────────────────────────────
-  useEffect(() => {
-    const zone = ZONES[gameState.currentZone]
-    const currentZone = gameState.currentZone
-    const rarityRank = gameState.rarityRank
-    const gChog = gameState.gChog
-    const hungerMeter = gameState.meters.hunger
-    void getAllZoneGwei().then(allData => {
-      const zData = allData.find(d => d.zoneId === currentZone)
-      const cost = computeDailyCost(zone, zData?.gwei ?? null, rarityRank, eventMult)
-      setDailyCost(cost)
-      // Apply time decay now
-      const decayed = applyTimeDecay(gameState, cost)
-      if (
-        Math.round(decayed.gChog) !== Math.round(gChog) ||
-        Math.round(decayed.meters.hunger) !== Math.round(hungerMeter)
-      ) {
-        onStateChange(decayed)
-        saveGameState(decayed)
-      }
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState.currentZone, eventMult])
-
-  // ─── Replenish actions ─────────────────────────────────────────────────────
-  const buyFood = () => {
-    const cost = 50
-    if (gameState.gChog < cost) { toast.error('Not enough gCHOG for food!'); return }
-    const updated = {
-      ...gameState,
-      gChog: gameState.gChog - cost,
-      meters: { ...gameState.meters, hunger: Math.min(100, gameState.meters.hunger + 50) },
-    }
-    onStateChange(updated)
-    saveGameState(updated)
-    toast.success('Fed your Chog! +50 Hunger')
-  }
-
-  const socialise = () => {
-    const updated = {
-      ...gameState,
-      meters: {
-        ...gameState.meters,
-        social: Math.min(100, gameState.meters.social + gameState.stats.socialGainRate),
-      },
-    }
-    onStateChange(updated)
-    saveGameState(updated)
-    toast.success(`Socialised! +${gameState.stats.socialGainRate} Social`)
-  }
-
-  // ─── Zone travel ────────────────────────────────────────────────────────────
-  const handleTravel = (zoneId: ZoneId) => {
-    if (!gameState.unlockedZones.includes(zoneId)) {
-      toast.error('Zone locked. Improve your rarity tier to unlock it.')
-      return
-    }
-    const cost = zoneId * 50
-    if (gameState.gChog < cost) {
-      toast.error(`Travel costs ${cost} gCHOG. Earn more first.`)
-      return
-    }
-    const updated = {
-      ...gameState,
-      currentZone: zoneId,
-      gChog: gameState.gChog - cost,
-    }
-    onStateChange(updated)
-    saveGameState(updated)
-    toast.success(`Moved to ${ZONES[zoneId].name}!`)
-  }
-
-  const currentZone = ZONES[gameState.currentZone]
-
-  // ─── Tabs ──────────────────────────────────────────────────────────────────
-  const tabs: { id: Tab; label: string; icon: typeof Home }[] = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'jobs', label: 'Jobs', icon: Briefcase },
-    { id: 'zones', label: 'Zones', icon: Zap },
-    { id: 'map', label: 'Map', icon: Map },
-  ]
-
-  return (
-    <div
-      className="min-h-dvh flex flex-col max-w-md mx-auto"
-      style={{ background: 'var(--bg-gradient)' }}
-    >
-      {/* Top bar */}
-      <div
-        className="px-4 pt-4 pb-2 flex items-center justify-between"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
-        <div>
-          <h1
-            className="display text-lg font-bold"
-            style={{ color: 'var(--ink)', letterSpacing: '-0.03em' }}
-          >
-            Chain World
-          </h1>
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>
-            {currentZone.name}
-            {' '}
-            <span style={{ color: currentZone.color }}>●</span>
-          </p>
-        </div>
-        <div className="text-right">
-          <p
-            className="tabular text-base font-bold mono"
-            style={{ color: 'var(--chog-gold)' }}
-          >
-            {Math.round(gameState.gChog).toLocaleString()} gCHOG
-          </p>
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>
-            {dailyCost != null ? `${dailyCost}/day burn` : '...'}
-          </p>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-
-        {/* Degen spiral warning */}
-        {degenSpiral && (
-          <div
-            className="p-3 rounded-xl flex items-start gap-2 danger-pulse border"
-            style={{ background: 'rgba(248,113,113,0.08)' }}
-          >
-            <Zap size={14} style={{ color: 'var(--danger)', flexShrink: 0, marginTop: 1 }} />
-            <div>
-              <p className="text-xs font-bold" style={{ color: 'var(--danger)' }}>Degen Spiral!</p>
-              <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                Low Hunger + Low Social = -60% earnings. Feed and socialise!
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Chog Legend badge */}
-        {chogLegend && (
-          <div
-            className="p-3 rounded-xl flex items-center gap-2"
-            style={{ background: 'rgba(245,197,66,0.1)', border: '1px solid rgba(245,197,66,0.3)' }}
-          >
-            <Trophy size={14} style={{ color: 'var(--chog-gold)' }} />
-            <p className="text-xs font-bold" style={{ color: 'var(--chog-gold)' }}>
-              Chog Legend — players who visit you gain a buff
-            </p>
-          </div>
-        )}
-
-        {/* Daily event */}
-        <div
-          className="p-3 rounded-xl flex items-center justify-between"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-        >
-          <div>
-            <p className="text-xs font-semibold" style={{ color: 'var(--ink)' }}>
-              {todayEvent.name}
-            </p>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>{todayEvent.effect}</p>
-          </div>
-          <div
-            className="px-2 py-0.5 rounded-full text-xs font-bold"
-            style={{ background: 'rgba(126,179,248,0.15)', color: 'var(--accent)' }}
-          >
-            Active
-          </div>
-        </div>
-
-        {/* HOME TAB */}
-        {activeTab === 'home' && (
-          <div className="space-y-3">
-            {/* Character card */}
-            <div className={`glass-strong p-4 frame-${gameState.rarityTier}`} style={{ borderRadius: 16 }}>
-              <div className="flex items-center gap-4">
-                <ChogAvatar
-                  appearance={gameState.appearance}
-                  tier={gameState.rarityTier}
-                  size={80}
-                  animated={chogLegend}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p
-                      className="display text-base font-bold truncate"
-                      style={{ color: 'var(--ink)' }}
-                    >
-                      Chog #{gameState.tokenId}
-                    </p>
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                      style={{
-                        background: 'rgba(255,255,255,0.08)',
-                        color: gameState.rarityTier === 'genesis' || gameState.rarityTier === 'legendary'
-                          ? 'var(--chog-gold)' : 'var(--ink-2)',
-                      }}
-                    >
-                      {TIER_LABELS[gameState.rarityTier]}
-                    </span>
-                  </div>
-                  <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>
-                    {gameState.appearance.profession.charAt(0).toUpperCase() + gameState.appearance.profession.slice(1)}
-                    {gameState.appearance.specialAbility && (
-                      <span style={{ color: 'var(--chog-gold)' }}> • {gameState.appearance.specialAbility.replace(/_/g, ' ')}</span>
-                    )}
-                  </p>
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                    {HOUSING_LABELS[gameState.meters.housingTier]}
-                  </p>
-                  {/* $CHOG badge */}
-                  {gameState.chogBadgeTier > 0 && (
-                    <div
-                      className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-bold"
-                      style={{ background: 'rgba(245,197,66,0.15)', color: 'var(--chog-gold)' }}
-                    >
-                      <Star size={9} />
-                      {gameState.chogBadgeTier === 4 ? 'Diamond' : gameState.chogBadgeTier === 3 ? 'Gold' : gameState.chogBadgeTier === 2 ? 'Silver' : 'Bronze'} $CHOG Holder
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Life meters */}
-            <div
-              className="glass p-4 space-y-3"
-            >
-              <MeterBar label="Funds" value={gameState.meters.funds} max={1000} icon="" />
-              <MeterBar label="Hunger" value={gameState.meters.hunger} max={100} icon="" />
-              <MeterBar label="Social" value={gameState.meters.social} max={100} icon="" />
-              <MeterBar label="Reputation" value={gameState.meters.reputation} max={500} icon="" />
-
-              {/* Quick actions */}
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={buyFood}
-                  disabled={gameState.gChog < 50}
-                  className="flex-1 py-2 rounded-lg text-xs font-semibold transition-opacity"
-                  style={{
-                    background: 'var(--surface-strong)',
-                    color: 'var(--ink)',
-                    opacity: gameState.gChog < 50 ? 0.4 : 1,
-                    border: '1px solid var(--border)',
-                  }}
-                >
-                  Buy Food (50 gCHOG)
-                </button>
-                <button
-                  onClick={socialise}
-                  className="flex-1 py-2 rounded-lg text-xs font-semibold"
-                  style={{
-                    background: 'var(--surface-strong)',
-                    color: 'var(--ink)',
-                    border: '1px solid var(--border)',
-                  }}
-                >
-                  Socialise
-                </button>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="glass p-4">
-              <p className="text-xs font-semibold mb-2 display" style={{ color: 'var(--ink)' }}>Character Stats</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { label: 'Charisma', val: gameState.stats.charisma },
-                  { label: 'Persuasion', val: gameState.stats.persuasion },
-                  { label: 'Endurance', val: gameState.stats.endurance },
-                  { label: 'Intelligence', val: gameState.stats.intelligence },
-                ].map(s => (
-                  <div key={s.label} className="flex justify-between items-center">
-                    <span className="text-xs" style={{ color: 'var(--muted)' }}>{s.label}</span>
-                    <div className="flex items-center gap-1">
-                      <div
-                        className="h-1 rounded-full"
-                        style={{ width: `${s.val * 0.4}px`, background: 'var(--accent)', minWidth: 4 }}
-                      />
-                      <span className="tabular text-xs mono" style={{ color: 'var(--ink-2)' }}>{s.val}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* On-chain registration */}
-            {!gameState.registeredOnChain && REGISTRY_ADDRESS && (
-              <div
-                className="glass p-4 space-y-2"
-              >
-                <p className="text-xs font-semibold" style={{ color: 'var(--ink)' }}>Claim Your Lot</p>
-                <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                  Register on-chain to claim a lot on the World Map. Your Chog ownership is verified by the contract.
-                </p>
-                <button
-                  onClick={handleRegister}
-                  disabled={regPending || regConfirming}
-                  className="w-full py-2 rounded-lg text-sm font-semibold transition-opacity"
-                  style={{
-                    background: 'var(--accent)',
-                    color: '#0a0f1e',
-                    opacity: regPending || regConfirming ? 0.6 : 1,
-                  }}
-                >
-                  {regPending ? 'Confirm in wallet...' : regConfirming ? 'Registering...' : 'Register On-Chain'}
-                </button>
-              </div>
-            )}
-            {gameState.registeredOnChain && (
-              <div
-                className="flex items-center gap-2 p-3 rounded-xl"
-                style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}
-              >
-                <div className="live-dot" />
-                <p className="text-xs" style={{ color: 'var(--success)' }}>
-                  Registered on-chain {gameState.registeredLot != null ? `• Lot #${gameState.registeredLot}` : ''}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* JOBS TAB */}
-        {activeTab === 'jobs' && (
-          <JobsPanel
-            gameState={gameState}
-            onEarn={(newState) => { onStateChange(newState); saveGameState(newState) }}
-            isDegenSpiral={degenSpiral}
-            eventMultiplier={eventMult}
-          />
-        )}
-
-        {/* ZONES TAB */}
-        {activeTab === 'zones' && (
-          <div className="space-y-2">
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              Travel costs scale with zone distance. Rarer NFTs get cost discounts.
-            </p>
-            {ZONES.map(zone => (
-              <ZoneCard
-                key={zone.id}
-                zone={zone}
-                isCurrentZone={gameState.currentZone === zone.id}
-                isUnlocked={gameState.unlockedZones.includes(zone.id)}
-                rarityRank={gameState.rarityRank}
-                onTravel={handleTravel}
-                eventMultiplier={eventMult}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* MAP TAB */}
-        {activeTab === 'map' && (
-          <WorldMap
-            gameState={gameState}
-            onVisit={(wallet) => toast.info(`Visiting ${wallet.slice(0, 8)}...`)}
-          />
-        )}
-      </div>
-
-      {/* Bottom tab bar */}
-      <div
-        className="px-4 py-2 flex gap-1"
-        style={{ borderTop: '1px solid var(--border)', background: 'rgba(10,15,30,0.8)', backdropFilter: 'blur(20px)' }}
-      >
-        {tabs.map(t => {
-          const Icon = t.icon
-          const active = activeTab === t.id
-          return (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl transition-colors"
-              style={{
-                background: active ? 'var(--surface-strong)' : 'transparent',
-                color: active ? 'var(--ink)' : 'var(--subtle)',
-              }}
-            >
-              <Icon size={18} />
-              <span className="text-xs">{t.label}</span>
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
+import RegistryPanel from './RegistryPanel'
+import ObjectDialog from './ObjectDialog'
+import type {FurnitureKind} from '../world/interactions'
+import ZoneCard from './ZoneCard'
+import ResidentProfile from './ResidentProfile'
+import ChogAvatar from './ChogAvatar'
+import WorldNeighborhood,{type NeighborhoodHandle} from './WorldNeighborhood'
+import {useNeighborhood} from '../hooks/useNeighborhood'
+import {HOME_STYLES,identityOf,CITY_INFRASTRUCTURE} from '../game/neighborhood'
+interface Props { gameState:GameState; revision?:number; traits:ChogTrait[]; preview?:boolean; onExit():void }
+export default function GameHUD({gameState,revision,traits,preview,onExit}:Props) {
+  const {state:s,dispatch,saveError,gas,serverError,pending,shared}=useGameController(gameState,revision)
+  const [tab,setTab]=useState('home')
+  const [selectedObject,setSelectedObject]=useState<FurnitureKind|null>(null)
+  const room=useRef<RoomHandle>(null)
+  const street=useRef<NeighborhoodHandle>(null)
+  const {snapshot:neighborhood,error:neighborhoodError}=useNeighborhood(s,shared)
+  const outdoors=s.location?.kind==='street'
+  const host=s.location?.host?neighborhood.neighbors.find(n=>n.identity===s.location.host):undefined
+  const roomState=host?{...s,home:host.home,meters:{...s.meters,housingTier:host.housingTier}}:s
+  const requestAction=(kind:Parameters<RoomHandle['request']>[0])=>{if(outdoors)street.current?.requestAction(kind);else room.current?.request(kind)}
+  const dispatchJob=useCallback((command:Command)=>{if(command.type==='startJob'){if(s.location?.kind==='street')street.current?.requestJob(command);else room.current?.requestJob(command)}else dispatch(command)},[dispatch,s.location?.kind])
+  const event=getTodaysEvent(s.lastSaved)
+  const activity=s.action??s.job
+  return <main className="game-shell">
+    <header className="game-header"><div><a className="wordmark" href="/">chain<span>world</span><i>✦</i></a><p className="muted">{ZONES[s.currentZone].name} · {HOUSING_LABELS[s.meters.housingTier]}</p></div>
+      <div className="header-balance"><strong>{s.gChog.toLocaleString()} <small>gCHOG</small></strong><p className="muted">{dailyCost(s,{now:s.lastSaved,gas})} / simulated day</p></div>
+      {preview?<button onClick={onExit}>Exit preview</button>:<ConnectKitButton/>}
+    </header>
+    <div className="world-layout"><div className="world-column">
+      <div className="room-heading"><div><p className="eyebrow">A LITTLE LIFE ON THE CHAIN</p><h1>{outdoors?'Life beyond the front door.':host?`Visiting ${host.name}`:'Home, sweet node.'}</h1></div><span className="pill">{shared?'Shared world':preview?'Local preview':'Local prototype'}</span></div>
+      {outdoors?<WorldNeighborhood ref={street} state={s} snapshot={neighborhood} dispatch={dispatch} pending={pending} blocked={selectedObject!==null} gas={gas} onTravel={()=>setTab('zones')}/>:<><WorldRoom ref={room} state={roomState} dispatch={dispatch} pending={pending} dialogOpen={selectedObject!==null} onObjectSelect={setSelectedObject}/><div className="street-controls"><button onClick={()=>dispatch({type:'leaveHome'})} disabled={pending||!!s.action||!!s.job}>Leave home & explore</button>{host&&<p className="muted">You are a guest. Your own funds and needs apply.</p>}</div></>}
+      <div className="activity-strip" role="status" aria-live="polite"><span className="status-dot"/>{s.lastMessage}{pending&&<span className="muted"> · Saving…</span>}</div>
+      {neighborhoodError&&shared&&<p className="notice">{neighborhoodError}</p>}
+      {(saveError||serverError)&&<p className="notice" role="alert">{serverError||'Browser storage is full or unavailable. Your progress is not being saved.'}</p>}
+      {preview&&<p className="preview-note">{s.appearance.sourceImage?'A preview of an original Chog. Ownership and shared progress require your NFT.':'The reference Chog in a local preview. Connect an NFT to play your own character.'}</p>}
+      <div className="action-bar">{(['eat','rest','socialize','work'] as const).map(kind=><button key={kind} onClick={()=>setSelectedObject(kind)}><span>{({eat:'◒',rest:'☾',socialize:'♡',work:'⌘'})[kind]}</span>{ACTIONS[kind].label}<small>{ACTIONS[kind].duration/1000}s · {actionCost(s,kind,gas)?`${actionCost(s,kind,gas)} gCHOG`:'Free'}</small></button>)}</div>
+      {activity&&<div className="panel flex items-center justify-between"><div><p>{s.action?ACTIONS[s.action.kind].label:s.job?.kind==='validator'?'Block Validator':'Gwei Grifter'}</p><progress max={activity.endsAt-activity.startedAt} value={Math.min(activity.endsAt-activity.startedAt,Math.max(0,s.lastSaved-activity.startedAt))}/></div><button onClick={()=>{if(room.current)room.current.cancel();else dispatch({type:'cancel'})}}>Cancel</button></div>}
+      <nav className="game-tabs" aria-label="Game panels">{[['home','Your life'],['jobs','Make a living'],['zones','Travel'],['map','Neighbors']].map(([id,label])=><button key={id} aria-current={tab===id?'page':undefined} onClick={()=>setTab(id)}>{label}</button>)}</nav>
+      {tab==='home'&&<div className="home-panels"><section className="panel space-y-3"><p className="eyebrow">MAKE YOURSELF AT HOME</p><h2>A little room to grow</h2><p className="muted">Your estate has {s.home.plots.length} parcel{s.home.plots.length===1?'':'s'}. Improve your home with earned gCHOG. Better beds restore more energy, and each tier brings a new room palette.</p><button className="primary" disabled={s.meters.housingTier>=5||s.gChog<upgradeCost(s,gas)} onClick={()=>dispatch({type:'upgrade'})}>{s.meters.housingTier>=5?'Home fully improved':`Improve home · ${upgradeCost(s,gas)} gCHOG`}</button><label className="home-style-label">Interior palette<select value={s.home.style} disabled={pending||s.location?.kind==='visit'} onChange={e=>dispatch({type:'decorate',style:e.target.value as typeof HOME_STYLES[number],open:s.home.open})}>{HOME_STYLES.map(style=><option key={style}>{style}</option>)}</select></label><label className="visitor-toggle"><input type="checkbox" checked={s.home.open} disabled={pending} onChange={e=>dispatch({type:'decorate',style:s.home.style,open:e.target.checked})}/> Open my home to visitors</label></section><section className="panel space-y-3"><h2>Little milestones</h2>{QUESTS.map(q=><div className="quest-row" key={q.id}><div><strong>{q.name}</strong><p className="muted">{q.description}</p></div><button disabled={s.quests.includes(q.id)||!q.ready(s)} onClick={()=>dispatch({type:'claimQuest',id:q.id})}>{s.quests.includes(q.id)?'✓ Claimed':`+${q.reward}`}</button></div>)}</section></div>}
+      {tab==='jobs'&&<JobsPanel gameState={s} dispatch={dispatchJob}/>}
+      {tab==='zones'&&<section className="panel space-y-3"><h2>Find your kind of neighborhood</h2><p className="muted">Earn 100 / 200 / 300 / 400 XP to open Basedford / Arbiquerque / Polygone-on-Sea / Gwei York. Home and Sanctuary are always free to reach.</p>{ZONES.map(z=><div key={z.id}><ZoneCard zone={z} isCurrentZone={s.currentZone===z.id} isUnlocked={s.unlockedZones.includes(z.id)} rarityRank={s.rarityRank} onTravel={zone=>dispatch({type:'travel',zone})} eventMultiplier={getEventMultiplier(event,z.id,'cost',s.lastSaved)}/><p className="travel-price">Travel: {travelCost(s.currentZone,z.id,gas[z.id])} gCHOG</p></div>)}</section>}
+      {tab==='map'&&<section className="panel space-y-3"><h2>Your living neighborhood</h2><p className="muted">{s.currentZone!==5?CITY_INFRASTRUCTURE[s.currentZone].architecture:'A quiet place to recover.'}</p>{neighborhood.neighbors.map(n=><div className="quest-row" key={n.identity}><div><strong>{n.name}</strong><p className="muted">{n.home.plots.length} parcels · {n.online?'Around now':'Away'}</p></div><button disabled={!outdoors||!n.home.open} onClick={()=>{dispatch({type:'walk',target:{x:3+n.home.x*4,y:7+n.home.y*4}})}}>Walk to home</button></div>)}{shared&&<p className="preview-note">Properties and gCHOG offers are recorded in the shared game ledger. Onchain land settlement is awaiting contract deployment.</p>}<h3>Land offers</h3>{!neighborhood.offers.length&&<p className="muted">No pending offers. Select adjacent land outside to buy it or make an offer.</p>}{neighborhood.offers.map(offer=><div className="quest-row" key={offer.id}><div><strong>Parcel {offer.x+1}, {offer.y+1}</strong><p>{offer.amount} gCHOG · {offer.expiresAt<s.lastSaved?'Expired':'Funds held'}</p></div><div className="flex gap-2">{offer.buyer===identityOf(s)?<button disabled={pending} onClick={()=>dispatch({type:'respondOffer',id:offer.id,decision:'cancel'})}>Cancel & refund</button>:<><button disabled={pending||offer.expiresAt<s.lastSaved} onClick={()=>dispatch({type:'respondOffer',id:offer.id,decision:'accept'})}>Accept</button><button disabled={pending} onClick={()=>dispatch({type:'respondOffer',id:offer.id,decision:'reject'})}>Reject</button></>}</div></div>)}{neighborhood.messages.map(m=><p className="muted" key={m.id}>{m.sender===identityOf(s)?'You shared':'A neighbor shared'} a {m.gesture}.</p>)}</section>}
+      {tab==='map'&&(preview?<section className="panel"><p>Connect your NFT wallet to see the on-chain neighborhood.</p></section>:<WorldMap gameState={s}/>)}
+    </div><aside className="resident-sidebar">
+      <section className="panel resident-card"><p className="eyebrow">YOUR RESIDENT</p><ChogAvatar appearance={s.appearance} tier={s.rarityTier} size={104}/><h2>{s.profile?.name||s.appearance.sourceName||(preview?'The neighborhood Chog':`Chog #${s.tokenId}`)}</h2><span className="pill">{s.rarityVerified?`${TIER_LABELS[s.rarityTier]} · Rank ${s.rarityRank}`:'Rarity awaiting source verification'}</span><p className="muted capitalize">{s.appearance.profession} · {s.xp} XP</p>
+        <ResidentProfile profile={s.profile} pending={pending} onSave={profile=>dispatch({type:'setProfile',profile})}/><div className="space-y-4 mt-5"><MeterBar label="Hunger" value={s.meters.hunger} max={100}/><MeterBar label="Energy" value={s.meters.energy} max={100}/><MeterBar label="Social" value={s.meters.social} max={100}/><MeterBar label="Reputation" value={s.meters.reputation} max={500}/></div>
+        {isDegenSpiral(s.meters)&&<p className="notice">Degen Spiral: 40% earnings. Food and a friendly call will help.</p>}
+        {s.gChog<20&&s.meters.hunger<20&&<button className="mt-3" onClick={()=>dispatch({type:'ration'})}>Get a community ration</button>}
+      </section>
+      <section className="event-card"><p className="eyebrow">AROUND THE CHAIN</p><h3>{event.name}</h3><p>{event.effect}</p><small>Until {new Date(event.endsAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} · UTC rotation</small></section>
+      {!preview&&<RegistryPanel state={s} dispatch={dispatch} shared={shared}/>}
+      <details className="panel"><summary>NFT traits & abilities</summary>{traits.length?traits.map(t=><p key={t.trait_type} className="trait-row"><span>{t.trait_type}</span><strong>{t.value}</strong></p>):<p className="muted">Neutral preview. No NFT traits are assigned.</p>}<p className="muted mt-3">Income ×{s.stats.incomeMultiplier.toFixed(2)} · Decay ×{s.stats.meterDecayMultiplier.toFixed(2)} · Social +{s.stats.socialGainRate}</p><p className="muted">Unsupported visual traits use a neutral rendering; original traits remain listed here.</p></details>
+      <p className="preview-note">{shared?'Progress is stored for your NFT in the shared world.':'Progress is stored in this browser for this NFT. Shared persistence requires the game service.'} 1 real minute = 10 game minutes. gCHOG is game currency.</p>
+    </aside></div>
+    {selectedObject&&<ObjectDialog key={selectedObject} object={selectedObject} state={s} gas={gas} onChoose={kind=>{requestAction(kind);setSelectedObject(null)}} onClose={()=>setSelectedObject(null)} onStartValidator={()=>{dispatchJob({type:'startJob',kind:'validator'});setTab('jobs');setSelectedObject(null)}}/>}
+  </main>
 }

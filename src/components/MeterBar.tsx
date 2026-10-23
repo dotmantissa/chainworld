@@ -6,7 +6,7 @@ interface Props {
   label: string
   value: number
   max: number
-  icon: string
+  icon?: string
   compact?: boolean
 }
 
@@ -31,7 +31,7 @@ export default function MeterBar({ label, value, max, icon, compact = false }: P
           {Math.round(value)}/{max}
         </span>
       </div>
-      <div className="meter-bar">
+      <div className="meter-bar" role="progressbar" aria-label={label} aria-valuenow={Math.round(value)} aria-valuemin={0} aria-valuemax={max}>
         <div
           className="meter-fill"
           style={{

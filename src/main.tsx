@@ -1,18 +1,3 @@
-/*
- *  ███████╗████████╗██╗   ██╗██████╗ ██╗ ██████╗
- *  ██╔════╝╚══██╔══╝██║   ██║██╔══██╗██║██╔═══██╗
- *  ███████╗   ██║   ██║   ██║██║  ██║██║██║   ██║
- *  ╚════██║   ██║   ██║   ██║██║  ██║██║██║   ██║
- *  ███████║   ██║   ╚██████╔╝██████╔╝██║╚██████╔╝
- *  ╚══════╝   ╚═╝    ╚═════╝ ╚═════╝ ╚═╝ ╚═════╝
- *
- *  Built with Arc Studio
- *  https://studio.arc.io
- */
-
-import './tracing'
-import './console-capture'
-
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { WagmiProvider } from 'wagmi'

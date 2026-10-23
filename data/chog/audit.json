@@ -1,0 +1,33 @@
+{
+  "collection": "0xc96d31f8626c6d03fae5dcd3d61e3fb9f4a73763",
+  "chainId": 143,
+  "snapshotBlock": 115722652,
+  "supply": 1969,
+  "traitCategories": [
+    "Accessory",
+    "Aura",
+    "Background",
+    "Base",
+    "Body",
+    "Eyes",
+    "Form",
+    "Head",
+    "Mouth",
+    "Naked",
+    "Side",
+    "Skin",
+    "Tier"
+  ],
+  "bands": {
+    "legendary": 150,
+    "rare": 300,
+    "common": 500,
+    "uncommon": 400,
+    "floor": 569,
+    "genesis": 50
+  },
+  "faucetRoot": "0xf7b07d0a833c9bf8c0de946d1bfdcadb0169506e9d87e077cf719ca5566be811",
+  "landRarityRoot": "0xa1cc981a704b1da1b4a8ec4d4d1699c0b8acb08345622b1c242aec8edb827ea6",
+  "sourceSha256": "f85a343641f82d7b43a71e5741a9d510ae3c9f3474e0d2755fd4870c651c807b",
+  "verified": "All metadata hashes, source mappings, scores, faucet proofs and land rarity proofs reproduced locally."
+}

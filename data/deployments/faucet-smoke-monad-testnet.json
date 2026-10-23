@@ -1,0 +1,21 @@
+{
+  "claimTransaction": "0x675186f49e88c8fa4d15559501c0fb602e4ab1ed1769858f9ca5f3cea107a36e",
+  "registrationTransaction": "0x4dd0f0120b0f0724fa144ab9e6202090c6f4fe1c6ea6f3b5ec6890784837d7c5",
+  "chainId": 10143,
+  "collection": "0x9fcC2FB7487A3530809f45DFD9bb419EA2E0aF17",
+  "registry": "0xA4aB8dbc0b3213C2d80af677bD7B4b5f259BdD0f",
+  "wallet": "0xBC1399c55538eC034d4Da550C03c34Ae0C357f53",
+  "tokenId": 0,
+  "originalTokenId": 1,
+  "sourceName": "CHOG #1462",
+  "rarityRank": 169,
+  "submitted": [],
+  "verifiedAt": "2026-10-23T08:34:29.025Z",
+  "checks": [
+    "browser claim and automatic token-zero selection",
+    "original source metadata",
+    "signed session and verified starter rarity",
+    "live NFT registration",
+    "shared action and authenticated reload"
+  ]
+}
