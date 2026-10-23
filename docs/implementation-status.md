@@ -31,7 +31,7 @@ Lint, TypeScript and production build pass. Large wallet/vendor/Phaser chunks pr
 
 ## Remaining work and release dependencies
 
-1. Production publishing and multi-wallet browser validation, including two people visiting one house and NFT ownership transfer. Database/contract concurrency and transfer permission tests pass; the full two-wallet visual flow is not yet claimed.
+1. Multi-wallet browser validation, including two people visiting one house and NFT ownership transfer. Production is published at https://chainworld-chog.vercel.app with signed NFT/session/game/neighborhood smoke checks. Database/contract concurrency and transfer permission tests pass; the full two-wallet visual flow is not yet claimed.
 2. The actual game currency and onchain land market: deploy currency/land, configure the quote signer and connect contract events/settlement. Current game balances, furniture, parcels and offers are authoritative Neon records; the economy is NFT-bound but is not fully settled on chain.
 3. Exact parcel-shaped buildings, multiple floors, full room detection and richer structural tools. Current extensions use a rectangle bounded by owned parcel area, rather than merging across the rendered public sidewalks.
 4. Full trait-specific Chog animation coverage beyond the reference and original token 1. Authentic portraits and traits remain available; no claim is made that 1,969 unique animation sets exist.

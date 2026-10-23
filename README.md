@@ -121,4 +121,4 @@ The database check creates and removes isolated verification rows. It tests conc
 
 Events use deterministic UTC two-hour slots. Costs, work income and social effects are scoped independently. Gas observations cache for 60 seconds and retain exact wei values for prediction jobs.
 
-See [implementation status](docs/implementation-status.md) for release dependencies and [art prompts](docs/art-prompts.md) for original/generated asset provenance. Local preview: **http://localhost:5175**. The faucet and V2 registry are deployed on Monad Testnet; production hosting and onchain land settlement remain pending.
+See [implementation status](docs/implementation-status.md) for release dependencies and [art prompts](docs/art-prompts.md) for original/generated asset provenance. Play the deployed app at **https://chainworld-chog.vercel.app**; local preview is **http://localhost:5175**. The faucet and V2 registry are deployed on Monad Testnet. Production NFT/session/game/neighborhood reads passed a signed ownership smoke check; onchain land settlement remains pending. See [submission answers](docs/submission.md) and [Vercel deployment](docs/vercel-deployment.md).

@@ -1,0 +1,23 @@
+# Upload runtime/build inputs only. Local signing and deployment tools stay local.
+.git/
+.vercel/
+.env
+.env.*
+.local-tools/
+TASKS.md
+AGENT.md
+AGENTS.md
+agent.md
+agents.md
+Agent.md
+Agents.md
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+/contracts/
+/data/
+/tests/
+/scripts/
+*.log
