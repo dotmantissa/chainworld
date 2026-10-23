@@ -11,7 +11,7 @@ export const FURNITURE={
  shelf:{label:'Bookcase',price:30,w:2,h:1,family:'socialize',actions:['unwind']},
 } as const
 export type FurnitureType=keyof typeof FURNITURE
-export interface Furniture {id:string;type:FurnitureType;x:number;y:number;rotation:0|1;stored:boolean}
+export interface Furniture {id:string;type:FurnitureType;x:number;y:number;rotation:0|1;stored:boolean;paid?:number}
 export interface Partition {x:number;y:number;axis:'x'|'y';door:boolean}
 export interface Blueprint {width:number;height:number;version:number;objects:Furniture[];walls:Partition[]}
 export const ROOM_STEP=200
@@ -34,13 +34,14 @@ export function approachPath(b:Blueprint,start:Tile,o:Furniture):Tile[]|null{ret
 export function validBlueprint(b:Blueprint):boolean{
  if(!Number.isInteger(b.width)||!Number.isInteger(b.height)||b.width<7||b.height<7||b.width>12||b.height>12||!Number.isSafeInteger(b.version)||b.version<1||!Array.isArray(b.objects)||b.objects.length>80||!Array.isArray(b.walls)||b.walls.length>200)return false
  const occupied=new Set<string>(),ids=new Set<string>()
- for(const o of b.objects){if(!o||!FURNITURE[o.type]||typeof o.id!=='string'||o.id.length>80||ids.has(o.id)||![0,1].includes(o.rotation)||typeof o.stored!=='boolean'||!Number.isInteger(o.x)||!Number.isInteger(o.y))return false;ids.add(o.id);if(o.stored)continue;for(const p of footprint(o)){const k=tileKey(p);if(p.x<0||p.y<0||p.x>=b.width||p.y>=b.height||occupied.has(k))return false;occupied.add(k)}}
+ for(const o of b.objects){if(!o||!Object.prototype.hasOwnProperty.call(FURNITURE,o.type)||typeof o.id!=='string'||o.id.length>80||ids.has(o.id)||![0,1].includes(o.rotation)||typeof o.stored!=='boolean'||!Number.isInteger(o.x)||!Number.isInteger(o.y)||o.paid!==undefined&&(!Number.isSafeInteger(o.paid)||o.paid<0||o.paid>1e9))return false;ids.add(o.id);if(o.stored)continue;for(const p of footprint(o)){const k=tileKey(p);if(p.x<0||p.y<0||p.x>=b.width||p.y>=b.height||occupied.has(k))return false;occupied.add(k)}}
  const edges=new Set<string>()
  for(const w of b.walls){if(!w||!['x','y'].includes(w.axis)||typeof w.door!=='boolean'||!Number.isInteger(w.x)||!Number.isInteger(w.y)||w.x<0||w.y<0||w.x>=b.width-(w.axis==='x'?1:0)||w.y>=b.height-(w.axis==='y'?1:0))return false;const k=`${w.axis}:${w.x}:${w.y}`;if(edges.has(k))return false;edges.add(k)}
  const entry=entryTile(b);if(!houseWalkable(b,entry))return false
  // Every floor tile and every object's usable perimeter must remain reachable.
- for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++)if(houseWalkable(b,{x,y})&&housePath(b,entry,{x,y})===null)return false
- return b.objects.filter(o=>!o.stored).every(o=>approachPath(b,entry,o)!==null)
+ const queue=[entry],seen=new Set([tileKey(entry)])
+ for(let i=0;i<queue.length;i++){const t=queue[i];for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const n={x:t.x+dx,y:t.y+dy},k=tileKey(n);if(n.x>=0&&n.y>=0&&n.x<b.width&&n.y<b.height&&!occupied.has(k)&&!seen.has(k)&&!wallBlocks(b,t,n)){seen.add(k);queue.push(n)}}}
+ return seen.size===b.width*b.height-occupied.size&&b.objects.filter(o=>!o.stored).every(o=>approaches(b,o).length>0)
 }
 export function seedOf(value:string):number{let h=2166136261;for(let i=0;i<value.length;i++)h=Math.imul(h^value.charCodeAt(i),16777619);return h>>>0}
 export function houseSeed(s:Pick<GameState,'chainId'|'collection'|'tokenId'|'appearance'>):number{return seedOf(`${s.chainId}:${s.collection.toLowerCase()}:${s.tokenId}:${s.appearance.sourceImage??''}:household-v1`)}

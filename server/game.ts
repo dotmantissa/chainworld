@@ -15,6 +15,7 @@ import { getAllZoneGwei, getZoneGwei } from '../src/game/zones'
 import type { GameState } from '../src/game/types'
 import { parseAbi } from 'viem'
 import {ensureHousehold,freshHousehold} from '../src/game/household'
+import {entryTile} from '../src/game/housing'
 export default endpoint(async(req,res)=>{
   const receivedAt=Date.now()
   if(!['GET','POST'].includes(req.method??''))throw new HttpError(405,'Method not allowed')
@@ -69,6 +70,12 @@ export default endpoint(async(req,res)=>{
     state={...state,stats:derived.stats,appearance:{...derived.appearance,sourceImage:metadata.image,sourceName:metadata.name}}
   }
   state=ensureHousehold(state)
+  if(state.location.kind==='visit'&&state.location.host){
+    const hosts=await sql`SELECT state FROM cw_games WHERE identity=${state.location.host}`
+    const host=hosts[0]?.state as GameState|undefined
+    if(!host?.home.open){state={...state,action:null,job:null,household:{...state.household!,journey:null,pendingUse:null},location:{kind:'street',tile:state.location.tile,journey:null},lastMessage:'This home is now closed. You returned to the entrance.'}}
+    else{const b=ensureHousehold(host).household!.blueprint;if(b.version!==state.location.interior?.version)state={...state,household:{...state.household!,humanTile:entryTile(b),journey:null,pendingUse:null},location:{...state.location,interior:{...b,objects:b.objects.filter(o=>!o.stored)}}}}
+  }
   if(req.method==='POST'){
     if(existing[0]?.repeated){send(res,200,{state,revision});return}
     if(input.revision!==revision){send(res,409,{state,revision,error:'Progress changed in another tab. The game has refreshed.'});return}
@@ -85,7 +92,8 @@ export default endpoint(async(req,res)=>{
     const host=hosts[0]?.state as GameState|undefined
     if(!host?.home?.open)throw new HttpError(400,'This resident’s home is closed to visitors.')
     if(state.location.kind!=='street'||state.location.journey||state.action||state.job||state.currentZone!==host.home.city||state.home.district!==host.home.district||distance(state.location.tile,frontDoor(host.home))>1)throw new HttpError(400,'Walk to this resident’s front door first.')
-    state={...state,location:{kind:'visit',tile:frontDoor(host.home),host:command.host,journey:null},lastMessage:`Visiting ${host.profile?.name||`Chog #${host.tokenId}`}.`}
+    const hostState=ensureHousehold(host),blueprint={...hostState.household!.blueprint,objects:hostState.household!.blueprint.objects.filter(o=>!o.stored)}
+    state={...state,household:{...state.household!,humanTile:entryTile(blueprint),journey:null,pendingUse:null},location:{kind:'visit',tile:frontDoor(host.home),host:command.host,journey:null,interior:blueprint},lastMessage:`Visiting ${host.profile?.name||`Chog #${host.tokenId}`}.`}
     command={type:'tick'}
   }
   state=unlockEarnedZones(reduceGame(state,command,{now:command.type==='clickBlock'?receivedAt:Date.now(),gas}))
@@ -98,10 +106,16 @@ export default endpoint(async(req,res)=>{
   const commandId=typeof requestId==='string'?requestId:randomUUID()
   let committed
   try {
-    committed=['buyLand','offerLand','respondOffer','gesture'].includes(command.type)?await sql`SELECT * FROM cw_commit_world(${key},${revision},${JSON.stringify(state)}::jsonb,${commandId}::uuid,${JSON.stringify(command)}::jsonb,${cityPrice(250,state.home.city,gas[state.home.city])})`:await sql`SELECT * FROM cw_commit_game(${key},${revision},${JSON.stringify(state)}::jsonb,${commandId}::uuid)`
+    if(['buyLand','offerLand','respondOffer','gesture'].includes(command.type))committed=await sql`SELECT * FROM cw_commit_world(${key},${revision},${JSON.stringify(state)}::jsonb,${commandId}::uuid,${JSON.stringify(command)}::jsonb,${cityPrice(250,state.home.city,gas[state.home.city])})`
+    else{
+      const pending=state.household?.pendingUse,objectId=pending?.objectId??state.action?.objectId??null
+      const place=state.location.host??state.location.venue??key,until=pending?pending.arrivesAt+65000:state.action?.endsAt??Date.now()
+      committed=await sql`SELECT * FROM cw_commit_home(${key},${revision},${JSON.stringify(state)}::jsonb,${commandId}::uuid,${place},${objectId},${until+2000},${['buyFurniture','moveFurniture','storeFurniture','sellFurniture','expandRoom','editWall'].includes(command.type)})`
+    }
   }catch(error){
     const text=error instanceof Error?error.message:''
     const known=['Return to your home city to expand','Only adjacent land can join your estate','You already own this land','This parcel is occupied; make its owner an offer','Not enough gCHOG','This land is available to buy directly','Not enough gCHOG to fund this offer','Cancel an outstanding offer first','Offer is no longer pending','This offer belongs to another resident','This offer expired; reject or cancel it to refund the buyer','The parcel owner changed; reject or cancel this offer','A resident cannot sell their home parcel','The parcel no longer adjoins the buyer estate','This sale would disconnect the seller estate','That resident is no longer nearby','Meet outside in the same neighborhood first','Walk closer to that resident first','Give your neighbor a moment before another interaction']
+    known.push('Someone is using that object. Choose another seat or wait','A guest is using your furniture; finish the visit before editing')
     const message=known.find(message=>text.includes(message))
     if(message)throw new HttpError(400,message)
     throw error

@@ -6,6 +6,8 @@ import { DEFAULT_ESTATE, DEFAULT_LOCATION, estateDefault, settleLocation, street
 import type { Tile } from '../world/navigation'
 import { DEFAULT_PROFILE, parseProfile, type ResidentProfile } from './residentProfile'
 import {ensureHousehold} from './household'
+import {activeBlueprint,queueIndoor,queueObject,editHousing,stopIndoor,type HousingEdit} from './indoor'
+import {FURNITURE,entryTile,houseWalkable,validBlueprint} from './housing'
 
 export const REAL_HOUR = 3_600_000
 export const SIMULATION_SPEED = 10
@@ -21,6 +23,9 @@ export const ACTIONS: Record<ActionKind, { duration: number; cost: number; label
   hermit: { duration: 60000, cost: 0, label: 'Provide liquidity' },
 }
 export type Command =
+  | HousingEdit
+  | {type:'moveIndoor';target:Tile}
+  | {type:'useObject';objectId:string;kind:ActionKind}
   | {type:'carePet';kind:'feed'|'pet'|'play'|'follow'}
   | { type: 'leaveHome' }
   | { type: 'walk'; target:Tile }
@@ -101,10 +106,24 @@ function completeAction(s: GameState, at: number): GameState {
   }
   return next
 }
+function beginActivity(s:GameState,kind:ActionKind,ctx:EngineContext,objectId?:string):GameState{
+ const cost=actionCost(s,kind,ctx.gas),energy=kind==='focus'?20:kind==='work'||kind==='hermit'?10:0
+ if(s.gChog<cost)return message(s,'Not enough gCHOG for this activity.')
+ if(s.meters.energy<energy)return message(s,'Rest before working. You need more energy.')
+ if((s.cooldowns[kind]??0)>ctx.now)return message(s,'This action is cooling down.')
+ return {...s,gChog:s.gChog-cost,sequence:s.sequence+1,meters:{...s.meters,energy:s.meters.energy-energy},action:{id:s.sequence+1,kind,objectId,startedAt:ctx.now,endsAt:ctx.now+ACTIONS[kind].duration},lastMessage:`${ACTIONS[kind].label}…`}
+}
+function arriveIndoor(s:GameState,ctx:EngineContext):GameState{
+ const h=s.household;if(!h)return s
+ if(h.journey&&h.journey.endsAt<=ctx.now){s={...s,household:{...h,humanTile:h.journey.path[h.journey.path.length-1]??h.humanTile,journey:null}}}
+ const pending=s.household!.pendingUse
+ if(pending&&pending.arrivesAt<=ctx.now){const b=activeBlueprint(s),o=b.objects.find(o=>o.id===pending.objectId&&!o.stored);s={...s,household:{...s.household!,pendingUse:null}};if(!o||b.version!==pending.layoutVersion||!(FURNITURE[o.type].actions as readonly string[]).includes(pending.kind))return message(s,'The selected object changed. Choose another activity.');return beginActivity(s,pending.kind,ctx,o.id)}
+ return s
+}
 // One settlement clock, segmented at event and completion boundaries. Saving never changes it.
 export function settle(state: GameState, ctx: EngineContext, offline = false): GameState {
   state=settleLocation(state,ctx.now)
-  if (ctx.now <= state.lastSaved) return state
+  if (ctx.now <= state.lastSaved) return ctx.now===state.lastSaved?arriveIndoor(state,ctx):state
   const end = ctx.now
   let cursor = offline ? Math.max(state.lastSaved, end - 8 * REAL_HOUR) : state.lastSaved
   let s: GameState = { ...state, meters: { ...state.meters } }
@@ -117,7 +136,8 @@ export function settle(state: GameState, ctx: EngineContext, offline = false): G
     const eventEnd = getTodaysEvent(cursor).endsAt
     const actionEnd = s.action?.endsAt ?? Infinity
     const jobEnd = s.job?.kind === 'validator' ? s.job.endsAt : Infinity
-    const boundary = Math.min(end, eventEnd, Math.max(cursor, actionEnd), Math.max(cursor, jobEnd))
+    const arrival=s.household?.pendingUse?.arrivesAt??s.household?.journey?.endsAt??Infinity
+    const boundary = Math.min(end, eventEnd, Math.max(cursor, actionEnd), Math.max(cursor, jobEnd),Math.max(cursor,arrival))
     const hours = Math.max(0, boundary - cursor) / REAL_HOUR * SIMULATION_SPEED
     const decay = s.stats.meterDecayMultiplier
     s.meters.hunger = Math.max(0, s.meters.hunger - hours * 4 * decay)
@@ -135,6 +155,7 @@ export function settle(state: GameState, ctx: EngineContext, offline = false): G
       const job = s.job
       s = income({ ...s, job: null, cooldowns: { ...s.cooldowns, validator: cursor + 60000 } }, job.score * 2, cursor)
     }
+    s=arriveIndoor(s,{...ctx,now:cursor})
   }
   if(s.household){const hours=Math.min(ctx.now-state.lastSaved,8*REAL_HOUR)/REAL_HOUR*SIMULATION_SPEED,p=s.household.pet;s={...s,household:{...s.household,pet:{...p,hunger:Math.max(20,p.hunger-hours*2),affection:Math.max(20,p.affection-hours),energy:Math.min(100,p.energy+hours)}}}}
   return { ...s, lastSaved: end }
@@ -146,6 +167,9 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
   let s = settle(state, ctx)
   const now = Math.max(ctx.now, s.lastSaved)
   switch (command.type) {
+    case 'moveIndoor':if(s.location.kind==='street')return message(s,'Enter a building before walking inside.');return queueIndoor(s,command.target,now)
+    case 'useObject':if(s.location.kind==='street')return message(s,'Enter the building before using its objects.');return arriveIndoor(queueObject(s,command.objectId,command.kind,now),{...ctx,now})
+    case 'buyFurniture':case 'moveFurniture':case 'storeFurniture':case 'sellFurniture':case 'expandRoom':case 'editWall':return editHousing(s,command,n=>cityPrice(n,s.home.city,ctx.gas[s.home.city]))
     case 'carePet':{
       s=ensureHousehold(s);const h=s.household!,p=h.pet
       if(command.kind==='follow')return message({...s,household:{...h,pet:{...p,following:!p.following}}},p.following?'Your Chog is resting at home.':'Your Chog will follow you.')
@@ -164,7 +188,7 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
     }
     case 'tick': return s
     case 'leaveHome': {
-      if(s.action||s.job)return message(s,'Finish or cancel your activity before going outside.')
+      if(s.action||s.job||s.household?.journey)return message(s,'Finish or cancel your activity before going outside.')
       if(s.location?.kind==='street')return s
       return message({...s,location:{kind:'street',tile:s.location?.kind==='visit'?s.location.tile:frontDoor(s.home),journey:null}},'Fresh air. Tap the pavement to walk, or select a building.')
     }
@@ -179,7 +203,7 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
       if(s.location?.kind!=='street'||s.location.journey||s.action||s.job)return message(s,'Finish walking before entering a home.')
       if(command.host)return message(s,'Shared visits require the neighborhood service.')
       if(s.currentZone!==s.home.city||distance(s.location.tile,frontDoor(s.home))>1)return message(s,'Walk to your front door first.')
-      return message({...s,location:{kind:'home',tile:frontDoor(s.home),journey:null}},'Welcome home.')
+      return message({...s,household:s.household?{...s.household,humanTile:entryTile(s.household.blueprint),journey:null,pendingUse:null}:undefined,location:{kind:'home',tile:frontDoor(s.home),journey:null}},'Welcome home.')
     }
     case 'decorate': {
       if(s.location?.kind==='visit')return message(s,'You can customize your own home only.')
@@ -187,8 +211,9 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
     }
     case 'buyLand':case 'offerLand':case 'respondOffer':case 'gesture':return message(s,'Connect your NFT to use the shared property and social service.')
     case 'registration': return { ...s, registeredLot: command.lot, registeredOnChain: command.lot !== null }
-    case 'cancel': return message({ ...s, action: null, job: null, location:s.location?.journey?{...s.location,tile:journeyTile(s.location,now),journey:null}:s.location }, 'Action canceled. Consumed food and energy are not refunded.')
+    case 'cancel': return message({ ...stopIndoor(s,now), action: null, job: null, location:s.location?.journey?{...s.location,tile:journeyTile(s.location,now),journey:null}:s.location }, 'Action canceled. Consumed food and energy are not refunded.')
     case 'startAction': {
+      if(s.household&&s.location.kind!=='street')return message(s,'Select an actual object in this room to start an activity.')
       if (s.action || s.job) return message(s, 'Finish or cancel your current activity first.')
       if(s.location?.journey)return message(s,'Finish walking before starting an activity.')
       if(s.location?.kind==='street'&&!SERVICES.some(service=>service.actions.includes(command.kind)&&distance(s.location.tile,service.approach)<=1))return message(s,'Walk to the appropriate city service first.')
@@ -214,6 +239,13 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
       return message({ ...s, meters: { ...s.meters, hunger: Math.min(100, s.meters.hunger + 35) }, cooldowns: { ...s.cooldowns, ration: now + 300000 } }, 'Community ration received. Rest and social care are always free.')
     }
     case 'upgrade': {
+      if(s.household){
+        if(s.location.kind!=='home'||s.location.venue||s.action||s.job||s.household.journey)return message(s,'Return home and finish your activity before improving the house.')
+        const b=s.household.blueprint,next={...b,width:b.width+1,version:b.version+1}
+        if(!validBlueprint(next)||next.width*next.height>64*s.home.plots.length)return message(s,'Buy adjacent land or customize your existing rooms in Build & Buy.')
+        if(s.meters.housingTier>=5||s.gChog<upgradeCost(s,ctx.gas))return message(s,'Save more household gCHOG for this improvement.')
+        return message({...s,gChog:s.gChog-upgradeCost(s,ctx.gas),household:{...s.household,blueprint:next},meters:{...s.meters,housingTier:s.meters.housingTier+1},upgrades:s.upgrades+1,xp:s.xp+50},'Home improved! A new strip of usable floor is ready.')
+      }
       if (s.meters.housingTier >= 5) return message(s, 'Your home is fully upgraded.')
       if (s.gChog < upgradeCost(s,ctx.gas)) return message(s, `Your next home improvement costs ${upgradeCost(s,ctx.gas)} gCHOG.`)
       return message({ ...s, gChog: s.gChog - upgradeCost(s,ctx.gas), meters: { ...s.meters, housingTier: s.meters.housingTier + 1 }, upgrades: s.upgrades + 1, xp: s.xp + 50 }, 'Home improved! Your bed now restores more energy.')
@@ -224,6 +256,10 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
       return message({ ...s, quests: [...s.quests, quest.id], gChog: s.gChog + quest.reward }, `Quest complete: +${quest.reward} gCHOG.`)
     }
     case 'startJob': {
+      if(s.household&&s.location.kind!=='street'){
+        const b=activeBlueprint(s),desk=b.objects.find(o=>o.type==='desk'&&!o.stored)
+        if(!desk||!houseWalkable(b,s.household.humanTile)||Math.abs(s.household.humanTile.x-desk.x)+Math.abs(s.household.humanTile.y-desk.y)>3)return message(s,'Walk to your study desk before starting this job.')
+      }
       if (s.action || s.job || s.location?.journey) return message(s, 'Finish or cancel your current activity.')
       if(s.location?.kind==='street'&&distance(s.location.tile,SERVICES[1].approach)>1)return message(s,'Walk to the coworking club first.')
       if ((s.cooldowns[command.kind] ?? 0) > now) return message(s, 'Job cooldown active.')

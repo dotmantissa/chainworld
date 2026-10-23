@@ -5,8 +5,8 @@ import type { Command } from '../game/gameEngine'
 import ChogAvatar from './ChogAvatar'
 import type { RoomScene, JobRequest } from '../world/RoomScene'
 import type { FurnitureKind } from '../world/interactions'
-export interface RoomHandle { request(kind: ActionKind): void; requestJob(command:JobRequest):void; cancel(): void }
-interface Props { state: GameState; dispatch(c: Command): void; pending:boolean; dialogOpen:boolean; onObjectSelect(kind:FurnitureKind):void }
+export interface RoomHandle { request(kind: ActionKind,id?:string): void; requestJob(command:JobRequest):void; cancel(): void }
+interface Props { state: GameState; dispatch(c: Command): void; pending:boolean; dialogOpen:boolean; onObjectSelect(kind:FurnitureKind,id?:string):void }
 const WorldRoom = forwardRef<RoomHandle, Props>(function WorldRoom({ state, dispatch, pending, dialogOpen, onObjectSelect }, ref) {
   const host = useRef<HTMLDivElement>(null)
   const latest = useRef(state); useLayoutEffect(()=>{latest.current=state},[state])
@@ -16,7 +16,7 @@ const WorldRoom = forwardRef<RoomHandle, Props>(function WorldRoom({ state, disp
   useLayoutEffect(()=>{dialogRef.current=dialogOpen;if(scene.current?.input)scene.current.input.enabled=!dialogOpen},[dialogOpen])
   const [queue,setQueue] = useState<string[]>([])
   const [message,setMessage]=useState('Tap a floor tile to walk. Tap furniture to interact.')
-  useImperativeHandle(ref,()=>({request:kind=>scene.current?.request(kind),requestJob:command=>scene.current?.requestJob(command),cancel:()=>scene.current?.cancel()}),[])
+  useImperativeHandle(ref,()=>({request:(kind,id)=>scene.current?.request(kind,id),requestJob:command=>scene.current?.requestJob(command),cancel:()=>scene.current?.cancel()}),[])
   useEffect(()=>{
     let disposed=false
     let game: import('phaser').Game | undefined
@@ -28,7 +28,7 @@ const WorldRoom = forwardRef<RoomHandle, Props>(function WorldRoom({ state, disp
       game=new Phaser.Game({type:Phaser.AUTO,parent:host.current,width:800,height:500,backgroundColor:'#b1a595',scene:scene.current,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},render:{antialias:true},fps:{target:30},input:{activePointers:2}})
     }).catch(()=>setMessage('The room could not load. Use the care controls below.'))
     return()=>{disposed=true;game?.destroy(true);scene.current=undefined}
-  },[dispatch,onObjectSelect])
+  },[dispatch,onObjectSelect,state.profile.gender])
   return <section className="room-card" aria-label="Interactive home">
     <div ref={host} className="room-canvas" role="img" aria-label="Isometric Chog home. Accessible furniture controls follow below." />
     <div className="room-caption">{queue.length ? `Queued: ${queue.join(' → ')}` : message}{queue.length>0&&<button className="queue-cancel" onClick={()=>scene.current?.cancel()}>Cancel queue</button>}</div>

@@ -25,7 +25,7 @@ export interface GameMeters {
 }
 export type ActionKind = 'eat' | 'snack' | 'rest' | 'sleep' | 'socialize' | 'unwind' | 'work' | 'focus' | 'hermit'
 export type JobKind = 'validator' | 'grifter'
-export interface ActiveAction { id: number; kind: ActionKind; startedAt: number; endsAt: number }
+export interface ActiveAction { id: number; kind: ActionKind; startedAt: number; endsAt: number;objectId?:string }
 export interface JobSession {
   id: number; kind: JobKind; startedAt: number; endsAt: number; zone: ZoneId
   seed: number; score: number; clicked: number[]; openingWei?: string; openingAt?: number; prediction?: 'up' | 'down'

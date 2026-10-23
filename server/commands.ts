@@ -3,11 +3,18 @@ import type { Command } from '../src/game/gameEngine'
 import { HttpError } from './http'
 import { HOME_STYLES, type HomeStyle } from '../src/game/neighborhood'
 import { parseProfile } from '../src/game/residentProfile'
+import {FURNITURE,type FurnitureType} from '../src/game/housing'
 export function parseCommand(value:unknown):Command {
   if(!value||typeof value!=='object')throw new HttpError(400,'Missing command')
   const c=value as Record<string,unknown>
   const coordinate=(v:unknown)=>Number.isInteger(v)&&Number(v)>=0&&Number(v)<8
   switch(c.type){
+    case 'moveIndoor':{const t=c.target as Record<string,unknown>|undefined;if(t&&Number.isInteger(t.x)&&Number.isInteger(t.y)&&Number(t.x)>=0&&Number(t.x)<12&&Number(t.y)>=0&&Number(t.y)<12)return {type:'moveIndoor',target:{x:Number(t.x),y:Number(t.y)}};break}
+    case 'useObject':if(typeof c.objectId==='string'&&c.objectId.length<80&&['eat','snack','rest','sleep','socialize','unwind','work','focus','hermit'].includes(String(c.kind)))return {type:'useObject',objectId:c.objectId,kind:c.kind as ActionKind};break
+    case 'buyFurniture':case 'moveFurniture':if(Number.isSafeInteger(c.version)&&Number.isInteger(c.x)&&Number.isInteger(c.y)&&Number(c.x)>=0&&Number(c.y)>=0&&Number(c.x)<12&&Number(c.y)<12&&[0,1].includes(Number(c.rotation))){const position={x:Number(c.x),y:Number(c.y),rotation:Number(c.rotation) as 0|1,version:Number(c.version)};if(c.type==='buyFurniture'&&typeof c.furniture==='string'&&Object.prototype.hasOwnProperty.call(FURNITURE,c.furniture))return {type:c.type,furniture:c.furniture as FurnitureType,...position};if(c.type==='moveFurniture'&&typeof c.id==='string'&&c.id.length<80)return {type:c.type,id:c.id,...position}}break
+    case 'storeFurniture':case 'sellFurniture':if(typeof c.id==='string'&&c.id.length<80&&Number.isSafeInteger(c.version))return {type:c.type,id:c.id,version:Number(c.version)};break
+    case 'expandRoom':if(['x','y'].includes(String(c.axis))&&Number.isSafeInteger(c.version))return {type:c.type,axis:c.axis as 'x'|'y',version:Number(c.version)};break
+    case 'editWall':if(Number.isSafeInteger(c.version)&&Number.isInteger(c.x)&&Number.isInteger(c.y)&&Number(c.x)>=0&&Number(c.x)<12&&Number(c.y)>=0&&Number(c.y)<12&&['x','y'].includes(String(c.axis))&&typeof c.door==='boolean'&&typeof c.remove==='boolean')return {type:c.type,x:Number(c.x),y:Number(c.y),axis:c.axis as 'x'|'y',door:c.door,remove:c.remove,version:Number(c.version)};break
     case 'carePet':if(['feed','pet','play','follow'].includes(String(c.kind)))return {type:'carePet',kind:c.kind as 'feed'|'pet'|'play'|'follow'};break
     case 'leaveHome':return {type:'leaveHome'}
     case 'walk':{const t=c.target as Record<string,unknown>|undefined;if(t&&Number.isInteger(t.x)&&Number.isInteger(t.y)&&Number(t.x)>=0&&Number(t.x)<36&&Number(t.y)>=0&&Number(t.y)<39)return {type:'walk',target:{x:Number(t.x),y:Number(t.y)}};break}

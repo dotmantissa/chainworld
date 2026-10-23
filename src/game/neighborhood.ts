@@ -6,7 +6,7 @@ export const HOME_STYLES=['linen','sage','lavender','terracotta','midnight'] as 
 export type HomeStyle=typeof HOME_STYLES[number]
 export interface Estate {city:CityId;district:number;x:number;y:number;plots:Tile[];style:HomeStyle;open:boolean}
 export interface StreetJourney {from:Tile;path:Tile[];startedAt:number;endsAt:number}
-export interface WorldLocation {kind:'home'|'street'|'visit';tile:Tile;host?:string;journey:StreetJourney|null}
+export interface WorldLocation {kind:'home'|'street'|'visit';tile:Tile;host?:string;journey:StreetJourney|null;interior?:import('./housing').Blueprint;venue?:string;district?:number}
 export interface Neighbor {identity:string;tokenId:number;name:string;image?:string;appearance:GameState['appearance'];profile:GameState['profile'];home:Estate;housingTier:number;location:WorldLocation;online:boolean}
 export interface LandOffer {id:string;buyer:string;seller:string;city:CityId;district:number;x:number;y:number;amount:number;expiresAt:number;status:string}
 export interface NeighborhoodSnapshot {neighbors:Neighbor[];parcels:{x:number;y:number;identity:string}[];offers:LandOffer[];messages:{id:string;sender:string;recipient:string;gesture:string;at:number}[]}
