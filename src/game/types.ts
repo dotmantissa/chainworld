@@ -21,9 +21,9 @@ export interface Zone {
   multiplier: number; color: string; bgClass: string; locked: boolean
 }
 export interface GameMeters {
-  hunger: number; energy: number; social: number; reputation: number; housingTier: number
+  hunger: number; energy: number; social: number; hygiene: number; fun: number; comfort: number; reputation: number; housingTier: number
 }
-export type ActionKind = 'eat' | 'snack' | 'rest' | 'sleep' | 'socialize' | 'unwind' | 'work' | 'focus' | 'hermit'
+export type ActionKind = 'eat' | 'snack' | 'rest' | 'sleep' | 'socialize' | 'unwind' | 'work' | 'focus' | 'hermit' | 'wash' | 'relax'
 export type JobKind = 'validator' | 'grifter'
 export interface ActiveAction { id: number; kind: ActionKind; startedAt: number; endsAt: number;objectId?:string }
 export interface JobSession {

@@ -4,13 +4,13 @@ export type FurnitureKind='eat'|'rest'|'work'|'socialize'|'pet'|'decor'
 export const INTERACTIONS:Record<FurnitureKind,{title:string;description:string;image:string;actions:{kind:ActionKind;benefit:string}[]}>= {
   pet:{title:'Your Chog companion',description:'A little care goes a long way. Your pet and your household grow together.',image:'',actions:[]},
   decor:{title:'A little personality',description:'This furnishing belongs to your household. Move it, store it or change its place in Build & Buy.',image:'',actions:[]},
-  eat:{title:'The kitchen',description:'Something good, made right here at home.',image:'/art/kitchen.webp',actions:[{kind:'eat',benefit:'+35 hunger'},{kind:'snack',benefit:'+15 hunger'}]},
+  eat:{title:'The kitchen',description:'Something good, made right here at home.',image:'/art/kitchen.webp',actions:[{kind:'eat',benefit:'+35 hunger'},{kind:'snack',benefit:'+15 hunger'},{kind:'wash',benefit:'+60 hygiene · use the sink'}]},
   rest:{title:'Your bed',description:'Set the world aside for a while. Rest is always free.',image:'/art/bed.webp',actions:[{kind:'rest',benefit:'+40 energy, plus your home bonus'},{kind:'sleep',benefit:'Fully restore energy'}]},
   work:{title:'The workstation',description:'Pull up a chair and turn a little effort into a better life.',image:'/art/workstation.webp',actions:[{kind:'work',benefit:'100 base gCHOG · 10 energy'},{kind:'focus',benefit:'250 base gCHOG · 20 energy'},{kind:'hermit',benefit:'Passive income every full minute · 10 energy per minute'}]},
-  socialize:{title:'The reading nook',description:'A comfortable seat, a familiar voice, a moment for yourself.',image:'/art/social.webp',actions:[{kind:'socialize',benefit:'Restore social using your charisma'},{kind:'unwind',benefit:'+20 energy'}]},
+  socialize:{title:'The reading nook',description:'A comfortable seat, a familiar voice, a moment for yourself.',image:'/art/social.webp',actions:[{kind:'socialize',benefit:'Restore social using your charisma'},{kind:'unwind',benefit:'+20 energy · +35 fun · +15 comfort'},{kind:'relax',benefit:'+40 comfort · +15 fun'}]},
 }
 export function furnitureFor(kind:ActionKind):FurnitureKind {
-  if(kind==='eat'||kind==='snack')return'eat'
+  if(kind==='eat'||kind==='snack'||kind==='wash')return'eat'
   if(kind==='rest'||kind==='sleep')return'rest'
   if(kind==='work'||kind==='focus'||kind==='hermit')return'work'
   return'socialize'

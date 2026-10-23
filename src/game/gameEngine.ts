@@ -9,6 +9,7 @@ import {ensureHousehold} from './household'
 import {activeBlueprint,queueIndoor,queueObject,editHousing,stopIndoor,type HousingEdit} from './indoor'
 import {FURNITURE,entryTile,houseWalkable,validBlueprint} from './housing'
 import {placeKey,venueBlueprint,venueOf,npcById,TOPICS,type Venue} from './places'
+import {ADDED_NEEDS,ensureNeeds} from './needs'
 
 export const REAL_HOUR = 3_600_000
 export const SIMULATION_SPEED = 10
@@ -22,6 +23,8 @@ export const ACTIONS: Record<ActionKind, { duration: number; cost: number; label
   socialize: { duration: 8000, cost: 0, label: 'Call a friend' },
   work: { duration: 20000, cost: 0, label: 'Work a shift' },
   hermit: { duration: 60000, cost: 0, label: 'Provide liquidity' },
+  wash: { duration: 8000, cost: 0, label: 'Wash at the sink' },
+  relax: { duration: 12000, cost: 0, label: 'Relax on the sofa' },
 }
 export type Command =
   | {type:'enterVenue';venue:Venue}
@@ -67,7 +70,7 @@ export function createNewGameState(walletAddress: string, tokenId: number, trait
     profile:{...DEFAULT_PROFILE},
     version: 2, chainId: identity.chainId ?? 10143, collection: (identity.collection ?? '0x32a325b0640594377d0708ca9081c93da95e1908').toLowerCase(), walletAddress, tokenId,
     registeredLot: null, registeredOnChain: false, currentZone: unlockedZones.includes(startingZone) ? startingZone : 0,
-    meters: { hunger: 100, energy: 100, social: 75, reputation: 50, housingTier: tierToHousingLevel(tier) },
+    meters: { ...ADDED_NEEDS, hunger: 100, energy: 100, social: 75, reputation: 50, housingTier: tierToHousingLevel(tier) },
     gChog: tierToStartingFunds(tier), upkeepCarry: 0, lastSaved: identity.now ?? Date.now(), stats, appearance,
     rarityTier: tier, rarityRank: rank, rarityVerified: identity.rank !== undefined, chogBadgeTier, unlockedZones,
     action: null, job: null, sequence: 0, cooldowns: {}, xp: 0, completedWork: 0, upgrades: 0, quests: [], streak: 0,
@@ -96,6 +99,10 @@ function completeAction(s: GameState, at: number): GameState {
   let next: GameState = { ...s, action: null, meters: { ...s.meters }, lastMessage: `${ACTIONS[action.kind].label} complete.` }
   if (action.kind === 'eat' || action.kind === 'snack') next.meters.hunger = Math.min(100, next.meters.hunger + (action.kind==='eat'?35:15))
   if (action.kind === 'rest' || action.kind === 'sleep' || action.kind === 'unwind') next.meters.energy = Math.min(100, next.meters.energy + (action.kind==='sleep'?100:action.kind==='unwind'?20:40 + next.meters.housingTier*2))
+  if(action.kind==='wash')next.meters.hygiene=Math.min(100,next.meters.hygiene+60)
+  if(action.kind==='unwind'){next.meters.fun=Math.min(100,next.meters.fun+35);next.meters.comfort=Math.min(100,next.meters.comfort+15)}
+  if(action.kind==='relax'){next.meters.comfort=Math.min(100,next.meters.comfort+40);next.meters.fun=Math.min(100,next.meters.fun+15)}
+  if(action.kind==='rest'||action.kind==='sleep')next.meters.comfort=Math.min(100,next.meters.comfort+(action.kind==='sleep'?40:20))
   if (action.kind === 'socialize') {
     next.meters.social = Math.min(100, next.meters.social + s.stats.socialGainRate * getEventMultiplier(getTodaysEvent(at), s.currentZone, 'social', at))
     next.cooldowns = { ...s.cooldowns, socialize: at + 15000 }
@@ -125,6 +132,8 @@ function arriveIndoor(s:GameState,ctx:EngineContext):GameState{
 }
 // One settlement clock, segmented at event and completion boundaries. Saving never changes it.
 export function settle(state: GameState, ctx: EngineContext, offline = false): GameState {
+  if(ctx.now<state.lastSaved)return state
+  state=ensureNeeds(state)
   state=settleLocation(state,ctx.now)
   if (ctx.now <= state.lastSaved) return ctx.now===state.lastSaved?arriveIndoor(state,ctx):state
   const end = ctx.now
@@ -146,6 +155,9 @@ export function settle(state: GameState, ctx: EngineContext, offline = false): G
     s.meters.hunger = Math.max(0, s.meters.hunger - hours * 4 * decay)
     s.meters.energy = Math.max(0, s.meters.energy - hours * 3 * decay)
     s.meters.social = Math.max(0, s.meters.social - hours * 2 * decay)
+    s.meters.hygiene = Math.max(0,s.meters.hygiene-hours*2.5*decay)
+    s.meters.fun = Math.max(0,s.meters.fun-hours*3*decay)
+    s.meters.comfort = Math.max(0,s.meters.comfort-hours*2*decay)
     const raw = dailyCost(s, ctx, cursor) * hours / 24 + s.upkeepCarry
     const charge = Math.min(s.gChog, Math.floor(raw), offline ? Math.max(0, Math.floor(offlineBudget - charged)) : Infinity)
     s.gChog -= charge; charged += charge; s.upkeepCarry = raw % 1

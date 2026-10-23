@@ -1,4 +1,5 @@
 import type { GameState, ZoneId } from './types'
+import {ADDED_NEEDS} from './needs'
 import { ACTIONS } from './gameEngine'
 import { parseEstate, DEFAULT_LOCATION, frontDoor, streetWalkable } from './neighborhood'
 import { DEFAULT_PROFILE, parseProfile } from './residentProfile'
@@ -19,13 +20,14 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
     if (!p || typeof p !== 'object' || ![undefined, 1, 2].includes(p.version) || p.tokenId !== identity.tokenId || !p.meters || !finite(p.gChog, 0, Number.MAX_SAFE_INTEGER) || !finite(p.lastSaved, 0, Number.MAX_SAFE_INTEGER) || p.lastSaved > Date.now() + 300000) return null
     if (p.version === 2 && (p.chainId !== identity.chainId || p.collection?.toLowerCase() !== identity.collection)) return null
     if (![p.meters.hunger, p.meters.social].every(n => finite(n, 0, 100)) || !finite(p.meters.reputation, 0, 500) || !finite(p.meters.housingTier, 0, 5)) return null
+    if(Object.keys(ADDED_NEEDS).some(key=>p.meters[key]!==undefined&&!finite(p.meters[key],0,100)))return null
     const v2 = p.version === 2
     if (v2 && (!finite(p.meters.energy, 0, 100) || !finite(p.xp, 0, 1e9) || !finite(p.sequence, 0, Number.MAX_SAFE_INTEGER) || !finite(p.upkeepCarry, 0, 1) || !Array.isArray(p.quests) || !p.cooldowns)) return null
     const cooldowns: Record<string, number> = {}
     if (v2) for (const key of ['socialize', 'ration', 'validator']) if (finite(p.cooldowns[key], 0, Number.MAX_SAFE_INTEGER)) cooldowns[key] = p.cooldowns[key]
     const s: GameState = {
       ...identity, household:undefined,home:parseEstate(p.home)??identity.home,location:{...DEFAULT_LOCATION,tile:frontDoor(parseEstate(p.home)??identity.home)}, profile:parseProfile(p.profile)??{...DEFAULT_PROFILE}, gChog: Math.floor(p.gChog), lastSaved: p.lastSaved, upkeepCarry: v2 ? p.upkeepCarry : 0,
-      meters: { hunger: p.meters.hunger, social: p.meters.social, energy: v2 ? p.meters.energy : 100, reputation: p.meters.reputation, housingTier: Math.floor(p.meters.housingTier) },
+      meters: { hygiene:p.meters.hygiene??ADDED_NEEDS.hygiene,fun:p.meters.fun??ADDED_NEEDS.fun,comfort:p.meters.comfort??ADDED_NEEDS.comfort, hunger: p.meters.hunger, social: p.meters.social, energy: v2 ? p.meters.energy : 100, reputation: p.meters.reputation, housingTier: Math.floor(p.meters.housingTier) },
       currentZone: [0,1,2,3,4,5].includes(p.currentZone) ? p.currentZone : 0,
       xp: v2 ? p.xp : 0, sequence: v2 ? p.sequence : 0, cooldowns,
       completedWork: v2 && finite(p.completedWork, 0, 1e9) ? Math.floor(p.completedWork) : 0,
@@ -45,7 +47,7 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
     if(p.location?.kind==='street'&&Number.isInteger(p.location.tile?.x)&&Number.isInteger(p.location.tile?.y)){const tile=p.location.tile;if(streetWalkable(tile))s.location={kind:'street',tile,journey:null}}
     const trip=p.location?.trip
     if(trip&&[0,1,2,3,4,5].includes(trip.zone)&&finite(trip.startedAt,0,s.lastSaved)&&finite(trip.endsAt,trip.startedAt,trip.startedAt+60000)&&finite(trip.fare,0,1e9))s.location={kind:'street',tile:{x:29,y:3},district:p.location.district??0,journey:null,trip}
-    if (v2 && p.action && ['eat','snack','rest','sleep','socialize','unwind','work','focus','hermit'].includes(p.action.kind) && finite(p.action.id, 1, s.sequence) && finite(p.action.startedAt, 0, s.lastSaved) && finite(p.action.endsAt, p.action.startedAt, p.action.startedAt + 60000) && p.action.endsAt-p.action.startedAt === ACTIONS[p.action.kind as keyof typeof ACTIONS].duration) s.action = p.action
+    if (v2 && p.action && Object.prototype.hasOwnProperty.call(ACTIONS,p.action.kind) && finite(p.action.id, 1, s.sequence) && finite(p.action.startedAt, 0, s.lastSaved) && finite(p.action.endsAt, p.action.startedAt, p.action.startedAt + 60000) && p.action.endsAt-p.action.startedAt === ACTIONS[p.action.kind as keyof typeof ACTIONS].duration) s.action = p.action
     const j = p.job
     if (v2 && j && ['validator','grifter'].includes(j.kind) && finite(j.id, 1, s.sequence) && finite(j.startedAt, 0, s.lastSaved) && finite(j.endsAt, j.startedAt, j.startedAt + 20000) && finite(j.seed, 0, 2147483647) && finite(j.score, 0, 330) && Array.isArray(j.clicked) && j.clicked.every((i: unknown) => Number.isInteger(i) && Number(i) >= 0 && Number(i) < 33) && j.zone === s.currentZone) {
       if (j.kind === 'validator' || (typeof j.openingWei === 'string' && /^\d+$/.test(j.openingWei) && finite(j.openingAt, 0, j.startedAt) && ['up','down'].includes(j.prediction))) s.job = j

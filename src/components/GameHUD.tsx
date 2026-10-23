@@ -7,6 +7,7 @@ import { ZONES, travelCost } from '../game/zones'
 import { useGameController } from '../hooks/useGameController'
 import WorldRoom, { type RoomHandle } from './WorldRoom'
 import MeterBar from './MeterBar'
+import {HUMAN_NEEDS,NEED_LABELS,needAdvice} from '../game/needs'
 import JobsPanel from './JobsPanel'
 import WorldMap from './WorldMap'
 import RegistryPanel from './RegistryPanel'
@@ -68,8 +69,8 @@ export default function GameHUD({gameState,revision,traits,preview,onExit}:Props
       {tab==='map'&&<WorldMap gameState={s}/>}
     </div><aside className="resident-sidebar">
       <section className="panel resident-card"><p className="eyebrow">YOUR CHARACTER</p><HumanAvatar state={s}/><h2>{s.profile?.name||'Your new life'}</h2><span className="pill">{s.household?.sourceTier&&s.household.sourceTier!=='Unverified'?`${s.household.sourceTier} Chog household`:s.rarityVerified?`${TIER_LABELS[s.rarityTier]} · Rank ${s.rarityRank}`:'Local household preview'}</span><p className="muted capitalize">{s.appearance.profession} · {s.xp} XP</p>
-        <ResidentProfile profile={s.profile} pending={pending} onSave={profile=>dispatch({type:'setProfile',profile})}/><div className="space-y-4 mt-5"><MeterBar label="Hunger" value={s.meters.hunger} max={100}/><MeterBar label="Energy" value={s.meters.energy} max={100}/><MeterBar label="Social" value={s.meters.social} max={100}/><MeterBar label="Reputation" value={s.meters.reputation} max={500}/></div>
-        {isDegenSpiral(s.meters)&&<p className="notice">Degen Spiral: 40% earnings. Food and a friendly call will help.</p>}
+        <ResidentProfile profile={s.profile} pending={pending} onSave={profile=>dispatch({type:'setProfile',profile})}/><div className="space-y-4 mt-5">{HUMAN_NEEDS.map(need=><MeterBar key={need} label={NEED_LABELS[need]} value={s.meters[need]} max={100}/>)}<MeterBar label="Reputation" value={s.meters.reputation} max={500}/></div>
+        {needAdvice(s).map(advice=><p className="need-advice muted" key={advice}>{advice}</p>)}{isDegenSpiral(s.meters)&&<p className="notice">Degen Spiral: 40% earnings. Food and a friendly call will help.</p>}
         {s.gChog<20&&s.meters.hunger<20&&<button className="mt-3" onClick={()=>dispatch({type:'ration'})}>Get a community ration</button>}
       </section>
       {s.household&&<section className="panel pet-card"><p className="eyebrow">YOUR CHOG COMPANION</p><ChogAvatar appearance={s.appearance} tier={s.rarityTier} size={80}/><h3>{s.appearance.sourceName||'Your Chog'}</h3><p className="muted">NFT #{s.tokenId} · Bond {s.household.pet.bond}/100</p><MeterBar label="Pet hunger" value={s.household.pet.hunger} max={100}/><MeterBar label="Pet affection" value={s.household.pet.affection} max={100}/><div className="pet-actions">{(['feed','pet','play','follow']as const).map(kind=><button key={kind} disabled={pending} onClick={()=>dispatch({type:'carePet',kind})}>{({feed:'Fill food bowl',pet:'Pet your Chog',play:'Play together',follow:s.household!.pet.following?'Stay home':'Follow me'})[kind]}</button>)}</div></section>}

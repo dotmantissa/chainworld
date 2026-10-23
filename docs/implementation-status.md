@@ -4,6 +4,8 @@ The browser build now implements the first playable household/city stages of the
 
 ## Implemented
 
+- **Human care:** six independently settling needs (hunger, energy, hygiene, fun, comfort and social), free physical sink washing, sofa relaxation and meaningful reading/rest benefits. Older saves receive only missing care meters and retain funds/property.
+
 - **NFT household:** ownership follows chain/collection/token, independent of wallet. Sex/gender is selected on signup or edited later; NFT identity and original traits seed human appearance. Six painted human identities, four garment palettes and six poses per identity provide 24 stable presentations. Human presentation never changes the pet's traits or household wealth.
 - **Authentic source:** all 1,969 original metadata records, shuffled tokenURI mappings, 13 trait categories, hashes, frequency ranks and faucet/land proofs. Original block 115722652. Source Tier is kept separate from computed rank: original token 1 is Uncommon, even though its historical frequency rank 169 maps to Legendary.
 - **Starting homes:** fresh verified Common/Uncommon/Rare/Epic/Legendary packages use one shared cash/furniture budget of 200/500/1200/2500/5000 gCHOG and source-tier land grants of 1/1/2/2/3 parcels. Layout, initial furnishings and palette are seeded by the NFT. Common homes can be empty. Existing saves migrate without losing property/balances or receiving another grant.
