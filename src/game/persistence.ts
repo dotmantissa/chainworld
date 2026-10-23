@@ -2,6 +2,7 @@ import type { GameState, ZoneId } from './types'
 import { ACTIONS } from './gameEngine'
 import { parseEstate, DEFAULT_LOCATION, frontDoor, streetWalkable } from './neighborhood'
 import { DEFAULT_PROFILE, parseProfile } from './residentProfile'
+import {validBlueprint,houseWalkable} from './housing'
 
 export interface StorageLike { getItem(key: string): string | null; setItem(key: string, value: string): void }
 export function storageKey(s: Pick<GameState, 'chainId' | 'collection' | 'tokenId'>): string {
@@ -22,7 +23,7 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
     const cooldowns: Record<string, number> = {}
     if (v2) for (const key of ['socialize', 'ration', 'validator']) if (finite(p.cooldowns[key], 0, Number.MAX_SAFE_INTEGER)) cooldowns[key] = p.cooldowns[key]
     const s: GameState = {
-      ...identity, home:parseEstate(p.home)??identity.home,location:{...DEFAULT_LOCATION,tile:frontDoor(parseEstate(p.home)??identity.home)}, profile:parseProfile(p.profile)??{...DEFAULT_PROFILE}, gChog: Math.floor(p.gChog), lastSaved: p.lastSaved, upkeepCarry: v2 ? p.upkeepCarry : 0,
+      ...identity, household:undefined,home:parseEstate(p.home)??identity.home,location:{...DEFAULT_LOCATION,tile:frontDoor(parseEstate(p.home)??identity.home)}, profile:parseProfile(p.profile)??{...DEFAULT_PROFILE}, gChog: Math.floor(p.gChog), lastSaved: p.lastSaved, upkeepCarry: v2 ? p.upkeepCarry : 0,
       meters: { hunger: p.meters.hunger, social: p.meters.social, energy: v2 ? p.meters.energy : 100, reputation: p.meters.reputation, housingTier: Math.floor(p.meters.housingTier) },
       currentZone: [0,1,2,3,4,5].includes(p.currentZone) ? p.currentZone : 0,
       xp: v2 ? p.xp : 0, sequence: v2 ? p.sequence : 0, cooldowns,
@@ -32,6 +33,8 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
       streak: v2 && finite(p.streak, 0, 1e9) ? p.streak : 0,
       unlockedZones: [...new Set<ZoneId>([...identity.unlockedZones, ...(Array.isArray(p.unlockedZones) ? p.unlockedZones.filter((z: unknown) => typeof z === 'number' && [0,1,2,3,4,5].includes(z)) : [])])],
     }
+    const h=p.household
+    if(h?.schema===1&&Number.isInteger(h.seed)&&['legacy-rank-v1','source-tier-v1'].includes(h.grant)&&typeof h.sourceTier==='string'&&h.blueprint&&validBlueprint(h.blueprint)&&houseWalkable(h.blueprint,h.humanTile)&&h.pet&&[h.pet.hunger,h.pet.energy,h.pet.affection,h.pet.bond].every((n:unknown)=>finite(n,0,100))&&typeof h.pet.following==='boolean'&&finite(h.pet.lastCare,0,Date.now()+300000)&&h.relationships&&typeof h.relationships==='object')s.household={...h,journey:null,pendingUse:null}
     if(p.location?.kind==='street'&&Number.isInteger(p.location.tile?.x)&&Number.isInteger(p.location.tile?.y)){const tile=p.location.tile;if(streetWalkable(tile))s.location={kind:'street',tile,journey:null}}
     if (v2 && p.action && ['eat','snack','rest','sleep','socialize','unwind','work','focus','hermit'].includes(p.action.kind) && finite(p.action.id, 1, s.sequence) && finite(p.action.startedAt, 0, s.lastSaved) && finite(p.action.endsAt, p.action.startedAt, p.action.startedAt + 60000) && p.action.endsAt-p.action.startedAt === ACTIONS[p.action.kind as keyof typeof ACTIONS].duration) s.action = p.action
     const j = p.job

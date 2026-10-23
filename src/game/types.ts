@@ -6,6 +6,7 @@ export interface CharacterStats {
   incomeMultiplier: number; meterDecayMultiplier: number; socialGainRate: number
 }
 export interface CharacterAppearance {
+  sourceTier?:string
   schemaVersion?:2
   bodyColor: string; eyeType: string; mouthType: string; hatType: string; clothesType: string
   accessoryType: string; backgroundTrait: string; profession: Profession; specialAbility: string | null
@@ -30,6 +31,7 @@ export interface JobSession {
   seed: number; score: number; clicked: number[]; openingWei?: string; openingAt?: number; prediction?: 'up' | 'down'
 }
 export interface GameState {
+  household?:import('./household').Household
   home: import('./neighborhood').Estate
   location: import('./neighborhood').WorldLocation
   profile: import('./residentProfile').ResidentProfile

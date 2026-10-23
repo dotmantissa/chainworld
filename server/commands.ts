@@ -8,6 +8,7 @@ export function parseCommand(value:unknown):Command {
   const c=value as Record<string,unknown>
   const coordinate=(v:unknown)=>Number.isInteger(v)&&Number(v)>=0&&Number(v)<8
   switch(c.type){
+    case 'carePet':if(['feed','pet','play','follow'].includes(String(c.kind)))return {type:'carePet',kind:c.kind as 'feed'|'pet'|'play'|'follow'};break
     case 'leaveHome':return {type:'leaveHome'}
     case 'walk':{const t=c.target as Record<string,unknown>|undefined;if(t&&Number.isInteger(t.x)&&Number.isInteger(t.y)&&Number(t.x)>=0&&Number(t.x)<36&&Number(t.y)>=0&&Number(t.y)<39)return {type:'walk',target:{x:Number(t.x),y:Number(t.y)}};break}
     case 'enterHome':if(c.host===undefined||typeof c.host==='string'&&c.host.length<160)return {type:'enterHome',host:c.host as string|undefined};break

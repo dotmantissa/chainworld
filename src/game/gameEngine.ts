@@ -5,6 +5,7 @@ import { cityPrice, computeDailyCost, travelCost, ZONES } from './zones'
 import { DEFAULT_ESTATE, DEFAULT_LOCATION, estateDefault, settleLocation, streetPath, STEP_MS, frontDoor, journeyTile, type HomeStyle, SERVICES, distance } from './neighborhood'
 import type { Tile } from '../world/navigation'
 import { DEFAULT_PROFILE, parseProfile, type ResidentProfile } from './residentProfile'
+import {ensureHousehold} from './household'
 
 export const REAL_HOUR = 3_600_000
 export const SIMULATION_SPEED = 10
@@ -20,6 +21,7 @@ export const ACTIONS: Record<ActionKind, { duration: number; cost: number; label
   hermit: { duration: 60000, cost: 0, label: 'Provide liquidity' },
 }
 export type Command =
+  | {type:'carePet';kind:'feed'|'pet'|'play'|'follow'}
   | { type: 'leaveHome' }
   | { type: 'walk'; target:Tile }
   | { type: 'enterHome'; host?:string }
@@ -134,6 +136,7 @@ export function settle(state: GameState, ctx: EngineContext, offline = false): G
       s = income({ ...s, job: null, cooldowns: { ...s.cooldowns, validator: cursor + 60000 } }, job.score * 2, cursor)
     }
   }
+  if(s.household){const hours=Math.min(ctx.now-state.lastSaved,8*REAL_HOUR)/REAL_HOUR*SIMULATION_SPEED,p=s.household.pet;s={...s,household:{...s.household,pet:{...p,hunger:Math.max(20,p.hunger-hours*2),affection:Math.max(20,p.affection-hours),energy:Math.min(100,p.energy+hours)}}}}
   return { ...s, lastSaved: end }
 }
 export function blockIsValid(seed: number, index: number): boolean {
@@ -143,6 +146,18 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
   let s = settle(state, ctx)
   const now = Math.max(ctx.now, s.lastSaved)
   switch (command.type) {
+    case 'carePet':{
+      s=ensureHousehold(s);const h=s.household!,p=h.pet
+      if(command.kind==='follow')return message({...s,household:{...h,pet:{...p,following:!p.following}}},p.following?'Your Chog is resting at home.':'Your Chog will follow you.')
+      if(s.action||s.job||s.location.journey||h.journey)return message(s,'Finish your activity before caring for your Chog.')
+      if(p.lastCare&&now-p.lastCare<12000)return message(s,'Give your Chog a moment before another activity.')
+      if(command.kind==='feed'&&s.location.kind==='home'&&!h.blueprint.objects.some(o=>o.type==='bowl'&&!o.stored))return message(s,'Place a Chog bowl at home, or use the communal pet care in a city park.')
+      if(s.location.kind==='visit')return message(s,'Care for your Chog at home or in the park.')
+      if(s.location.kind==='street'&&distance(s.location.tile,SERVICES[2].approach)>1)return message(s,'Walk to the park to care for your Chog outside.')
+      const cost=command.kind==='feed'?cityPrice(8,s.currentZone,ctx.gas[s.currentZone]):0
+      if(s.gChog<cost)return message(s,'Not enough household gCHOG for pet food.')
+      return message({...s,gChog:s.gChog-cost,household:{...h,pet:{...p,hunger:command.kind==='feed'?Math.min(100,p.hunger+35):p.hunger,affection:Math.min(100,p.affection+(command.kind==='play'?25:15)),energy:command.kind==='play'?Math.max(20,p.energy-5):p.energy,bond:Math.min(100,p.bond+3),lastCare:now}}},command.kind==='feed'?'Your Chog enjoyed a fresh bowl of food.':command.kind==='play'?'A little playtime. Your Chog’s bond grew.':'Your Chog leans into your hand. Bond +3.')
+    }
     case 'setProfile': {
       const profile=parseProfile(command.profile)
       return profile?message({...s,profile},'Resident profile saved.'):message(s,'Check the profile fields and try again.')

@@ -14,6 +14,7 @@ import { cityPrice } from '../src/game/zones'
 import { getAllZoneGwei, getZoneGwei } from '../src/game/zones'
 import type { GameState } from '../src/game/types'
 import { parseAbi } from 'viem'
+import {ensureHousehold,freshHousehold} from '../src/game/household'
 export default endpoint(async(req,res)=>{
   const receivedAt=Date.now()
   if(!['GET','POST'].includes(req.method??''))throw new HttpError(405,'Method not allowed')
@@ -39,8 +40,9 @@ export default endpoint(async(req,res)=>{
   if(!existing.length){
     const metadata=await tokenMetadata(tokenId)
     const rank=await verifiedRank(tokenId,metadata)
-    const initial=createNewGameState(wallet,tokenId,metadata.attributes,0,{collection:address,rank})
+    let initial=createNewGameState(wallet,tokenId,metadata.attributes,0,{collection:address,rank})
     initial.appearance={...initial.appearance,sourceImage:metadata.image,sourceName:metadata.name}
+    initial=freshHousehold(initial)
     const result=await sql.transaction([
       sql`INSERT INTO cw_games(identity,state) VALUES(${key},${JSON.stringify(initial)}) ON CONFLICT(identity) DO NOTHING`,
       sql`SELECT cw_ensure_estate(${key})`,
@@ -61,11 +63,12 @@ export default endpoint(async(req,res)=>{
   let state=rows[0].state as GameState
   state={...state,profile:state.profile??{...DEFAULT_PROFILE},home:state.home??estateDefault(state),location:state.location??{...DEFAULT_LOCATION}}
   const revision=Number(rows[0].revision)
-  if(state.appearance.schemaVersion!==2||!state.appearance.sourceImage){
+  if(state.appearance.schemaVersion!==2||!state.appearance.sourceImage||!state.appearance.sourceTier&&!state.household){
     const metadata=await tokenMetadata(tokenId)
     const derived=mapTraitsToCharacter(metadata.attributes,tokenId)
     state={...state,stats:derived.stats,appearance:{...derived.appearance,sourceImage:metadata.image,sourceName:metadata.name}}
   }
+  state=ensureHousehold(state)
   if(req.method==='POST'){
     if(existing[0]?.repeated){send(res,200,{state,revision});return}
     if(input.revision!==revision){send(res,409,{state,revision,error:'Progress changed in another tab. The game has refreshed.'});return}

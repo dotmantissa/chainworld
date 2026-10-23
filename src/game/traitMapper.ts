@@ -185,6 +185,7 @@ export function mapTraitsToCharacter(
   }
 
   const appearance: CharacterAppearance = {
+    sourceTier:get('tier'),
     schemaVersion:2,
     skinTrait:body,bodyTrait:clothes,headTrait:hat,eyeTrait:eyes,mouthTrait:mouth,formTrait:get('form'),sideTrait:get('side'),
     bodyColor,
