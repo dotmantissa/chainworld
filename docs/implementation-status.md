@@ -33,13 +33,13 @@ The browser build now implements the first playable household/city stages of the
 
 ## Verification
 
-52 unit tests and 14 Solidity tests pass. Thirteen desktop/mobile browser scenarios cover housing buy/store/reload, care/work/upgrades, furniture dialogs and modal isolation, jobs across panels, character/profile changes, street services/home return, original NFT previews, café entry/NPC friendship/reload timed inter-city travel/reload/home return, camera gestures/direct furniture selection, public-directory gestures/profile selection, and real two-finger pinch without game movement.
+52 unit tests and 14 Solidity tests pass. Thirteen desktop/mobile browser scenarios cover housing buy/store/reload, care/work/upgrades, furniture dialogs and modal isolation, jobs across panels, character/profile changes, street services/home return, original NFT previews, café entry/NPC friendship/reload timed inter-city travel/reload/home return, camera gestures/direct furniture selection, public-directory gestures/profile selection, and real two-finger pinch without game movement. New acceptance cases additionally cover six-need sink care/reload, physical grocery cooking and saved skill/project progress, queue reorder/remove/reload/completion/autonomy, NPC timed hangout/memory and daily goals, and room partitions/door detection across reload.
 
 The complete 1,969-source household audit verifies budgets, legal reachable layouts, land capacity, no repeated grants and every human presentation's asset files. It finds 678 distinct starting furniture layouts. Real Neon checks cover competing object use/debit rollback, edit locks, replay/cancellation, all five source-tier estate allocations and seeded palettes, property escrow/refunds/atomic transfers, connected estates and social proximity/cooldowns.
 
 A signed browser check with the existing real NFT verified ownership, source Tier, existing onchain lot, household migration, a physical object action and authenticated reload. No new chain transaction was sent during this check. The original claim/registration transaction record remains in [faucet-smoke-monad-testnet.json](../data/deployments/faucet-smoke-monad-testnet.json).
 
-Lint, TypeScript and production build pass. Large wallet/vendor/Phaser chunks produce nonblocking build warnings. Detailed room, sleeping, street and park screenshots were inspected; actor/furniture anchors and sleep proportions were corrected from the rendered review.
+Lint, TypeScript and the local production build pass. The full 18-browser run completed in 6.5 minutes; no push or deployment was performed for this expansion. Large wallet/vendor/Phaser chunks produce nonblocking build warnings. Detailed room, sleeping, street and park screenshots were inspected; actor/furniture anchors and sleep proportions were corrected from the rendered review.
 
 ## Remaining work and release dependencies
 
