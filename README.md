@@ -39,6 +39,14 @@ Set `VITE_SHARED_WORLD=false` for a browser-only prototype. These local saves do
 - Hunger, energy and social decay continuously. One real minute is ten game minutes. Zero funds never destroys a home; rest, social care, Sanctuary and travel home remain free. Emergency rations help residents with critically low food and funds.
 - Offline settlement is capped at eight real hours, upkeep at 25% of departure funds, and passive earnings at 30 minutes (also limited by energy).
 
+## Latest localhost features
+
+The current local build adds six human needs, sink washing and sofa relaxation; a real pantry with groceries, cooking, fresh leftovers and learned skills; three rewarded household projects; a saved six-action queue with reorder/remove controls and optional free-care autonomy; timed NPC hangouts, consumable meal gifts and daily goals; and room detection from walls/doors. These additions have not been pushed or deployed.
+
+Choose **Skills & pantry** to order ingredients, start a project and review learned skills. Select a placed kitchen to cook or eat its prepared meals, a desk to practice coding, or a sofa to sketch. Queue choices while busy; waiting actions survive reload. **Free care autonomy** only uses free activities at home. It never cooks, earns money, purchases goods or accepts trades.
+
+Get to know an NPC before choosing **Spend time together**. A home-cooked gift consumes an actual prepared meal. Three daily household goals reset at 00:00 UTC and pay once per selected goal. In **Build & buy → Walls & doors**, partitions define rooms and door openings keep their routes connected; the floor plan and room summary show the actual geometry.
+
 ## Identity, rarity and test faucet
 
 The live unofficial Test Chog faucet is [`0x9fcC2FB7487A3530809f45DFD9bb419EA2E0aF17`](https://testnet.monadexplorer.com/address/0x9fcC2FB7487A3530809f45DFD9bb419EA2E0aF17) on Monad Testnet, chain 10143. `.env.example` includes its matching browser/server settings. The historical legacy collection `0x32A325b0640594377D0708Ca9081c93da95e1908` remains the code fallback when no collection is configured. Original collection: `0xc96d31f8626c6d03fae5dcd3d61e3fb9f4a73763` on Monad mainnet, chain 143.

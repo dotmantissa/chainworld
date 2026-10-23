@@ -1,8 +1,12 @@
 # Implementation status — 2026-10-23
 
+The current localhost build includes the care, pantry/skills, saved-queue, NPC-goal and room-detection additions committed after the production demo. These additions have not been pushed or deployed.
+
 The browser build now implements the first playable household/city stages of the [life-simulation architecture](life-simulation-architecture.md). The human player and Chog pet are separate. Saved geometry controls the room, furniture and navigation; the art is a detailed painted anime treatment. The complete architecture remains a longer-term specification, with the limits below still open.
 
 ## Implemented
+
+- **Room detection:** partitions and door edges derive architectural rooms independently of walkable routes. Build & Buy shows each room’s area, clear cells, furnishings and connecting doors; its floor plan colors rooms and draws real wall/door boundaries. New structural edits cannot cut through furniture, while older save formats stay compatible.
 
 - **Shared NPC moments and daily purpose:** nearby friends can spend a timed 20-second hangout or receive a real prepared-meal gift. Friendship tiers, memories and hangout cooldowns persist. Venue routine descriptions follow game time. Three deterministic household goals credit actual cooking, practice, NPC social time, pet care or completed transit; bounded rewards are claimable once per UTC day.
 
@@ -41,7 +45,7 @@ Lint, TypeScript and production build pass. Large wallet/vendor/Phaser chunks pr
 
 1. Multi-wallet browser validation, including two people visiting one house and NFT ownership transfer. Production is published at https://chainworld-chog.vercel.app with signed NFT/session/game/neighborhood smoke checks. Database/contract concurrency and transfer permission tests pass; the full two-wallet visual flow is not yet claimed.
 2. The actual game currency and onchain land market: deploy currency/land, configure the quote signer and connect contract events/settlement. Current game balances, furniture, parcels and offers are authoritative Neon records; the economy is NFT-bound but is not fully settled on chain.
-3. Exact parcel-shaped buildings, multiple floors, full room detection and richer structural tools. Current extensions use a rectangle bounded by owned parcel area, rather than merging across the rendered public sidewalks.
+3. Exact parcel-shaped buildings, multiple floors, room utilities/privacy rules and richer structural tools. Current extensions use a rectangle bounded by owned parcel area, rather than merging across the rendered public sidewalks.
 4. Full trait-specific Chog animation coverage beyond the reference and original token 1. Authentic portraits and traits remain available; no claim is made that 1,969 unique animation sets exist.
 5. Richer human relationships/romance, richer NPC schedules, hobbies, player indoor presence and animations for every distinct object. Current NPC relationships are friendship/memory, and player gestures are outdoor proximity interactions.
 6. More distinctive city street geography and activities. The fifteen venue layouts are distinct; the five outdoor street networks still share a logical grid.
