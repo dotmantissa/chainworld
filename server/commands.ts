@@ -6,12 +6,14 @@ import { HOME_STYLES, type HomeStyle } from '../src/game/neighborhood'
 import { parseProfile } from '../src/game/residentProfile'
 import {FURNITURE,type FurnitureType} from '../src/game/housing'
 import {GROCERIES,PROJECTS,type Project} from '../src/game/life'
+import {DAILY_GOALS,type DailyGoal} from '../src/game/dailyGoals'
 import {TOPICS,type Venue} from '../src/game/places'
 export function parseCommand(value:unknown):Command {
   if(!value||typeof value!=='object')throw new HttpError(400,'Missing command')
   const c=value as Record<string,unknown>
   const coordinate=(v:unknown)=>Number.isInteger(v)&&Number(v)>=0&&Number(v)<8
   switch(c.type){
+    case 'claimDaily':if(typeof c.id==='string'&&Object.prototype.hasOwnProperty.call(DAILY_GOALS,c.id))return {type:'claimDaily',id:c.id as DailyGoal};break
     case 'setAutonomy':if(typeof c.enabled==='boolean')return {type:'setAutonomy',enabled:c.enabled};break
     case 'clearQueue':return {type:'clearQueue'}
     case 'removeIntent':if(Number.isSafeInteger(c.id)&&Number(c.id)>0)return {type:c.type,id:Number(c.id)};break

@@ -23,4 +23,4 @@ export function cityNpc(city:CityId,venue:Venue):CityNpc{
 }
 export function npcById(id:string):CityNpc|null{const m=id.match(/^npc:([0-4]):(cafe|work|park)$/);return m?cityNpc(Number(m[1]) as CityId,m[2] as Venue):null}
 export function venueTitle(s:Pick<GameState,'currentZone'|'location'>):string{const v=venueOf(s.location.venue),index=v==='cafe'?0:v==='work'?1:2;return v&&s.currentZone!==5?CITY_INFRASTRUCTURE[s.currentZone].services[index]:''}
-export const TOPICS={introduce:'Introduce yourself',chogs:'Talk about Chogs',hobby:'Ask about their interests',story:'Share a neighborhood story'} as const
+export const TOPICS={introduce:'Introduce yourself',chogs:'Talk about Chogs',hobby:'Ask about their interests',story:'Share a neighborhood story',gift:'Share a home-cooked gift',hangout:'Spend time together'} as const

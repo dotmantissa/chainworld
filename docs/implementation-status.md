@@ -4,6 +4,8 @@ The browser build now implements the first playable household/city stages of the
 
 ## Implemented
 
+- **Shared NPC moments and daily purpose:** nearby friends can spend a timed 20-second hangout or receive a real prepared-meal gift. Friendship tiers, memories and hangout cooldowns persist. Venue routine descriptions follow game time. Three deterministic household goals credit actual cooking, practice, NPC social time, pet care or completed transit; bounded rewards are claimable once per UTC day.
+
 - **Saved queues and autonomy:** six waiting resident actions persist with object/place identity and validated approach paths. Clearing waiting actions keeps the current activity; cancelling stops both. Optional free-care autonomy at home honors queued choices, never works/cooks/buys/trades and stays disabled during offline catch-up.
 
 - **Pantry, meals and learned skills:** bounded groceries repriced by current-city gas; two recipes consume ingredients at physical cooking start, produce expiring prepared meals, and unlock through cooking practice. Programming/creativity practice and three household projects grant single-use completion rewards. Pantry, meals, skills and project claims survive reload and follow NFT identity.

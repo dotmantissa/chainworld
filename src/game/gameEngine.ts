@@ -12,6 +12,8 @@ import {placeKey,venueBlueprint,venueOf,npcById,TOPICS,type Venue} from './place
 import {ADDED_NEEDS,ensureNeeds} from './needs'
 import {newLife,ensureLife,settleMeals,lifeActionReason,consumeLifeAction,completeLifeAction,buyGroceries,projectCommand,GROCERIES,type Project} from './life'
 import {newRoutine,ensureRoutine,enqueueIntent,intentValid,autonomyChoice} from './routine'
+import {newDaily,ensureDaily,recordDaily,claimDaily,type DailyGoal} from './dailyGoals'
+import {hangoutReason,completeHangout} from './social'
 
 export const REAL_HOUR = 3_600_000
 export const SIMULATION_SPEED = 10
@@ -32,8 +34,10 @@ export const ACTIONS: Record<ActionKind, { duration: number; cost: number; label
   eatLeftovers: {duration:6000,cost:0,label:'Eat a prepared meal'},
   practiceCoding: {duration:15000,cost:0,label:'Practice coding'},
   paint: {duration:15000,cost:0,label:'Sketch in your notebook'},
+  npcHangout:{duration:20000,cost:0,label:'Spend time with a friend'},
 }
 export type Command =
+  | {type:'claimDaily';id:DailyGoal}
   | {type:'enqueueAction';objectId:string;kind:ActionKind}
   | {type:'removeIntent';id:number}
   | {type:'reorderIntent';id:number;direction:'up'|'down'}
@@ -80,6 +84,7 @@ export function createNewGameState(walletAddress: string, tokenId: number, trait
   const { stats, appearance, startingZone } = mapTraitsToCharacter(traits, tokenId)
   const unlockedZones = [...new Set<ZoneId>([...tierToUnlockedZones(tier), 5])]
   const fresh:GameState = {
+    daily:newDaily(identity.now??Date.now()),
     routine:newRoutine(),
     life:newLife(),
     home:{...DEFAULT_ESTATE},location:{...DEFAULT_LOCATION},
@@ -130,7 +135,11 @@ function completeAction(s: GameState, at: number): GameState {
       next.action = { ...action, startedAt: at, endsAt: at + 60000 }
     }
   }
-  return completeLifeAction(next,action.kind,action.id,at,action.mealRecipe)
+  next=completeLifeAction(next,action.kind,action.id,at,action.mealRecipe)
+  if(action.kind==='cookBreakfast'||action.kind==='cookStew')next=recordDaily(next,'cook',at)
+  if(action.kind==='practiceCoding'||action.kind==='paint'||action.kind==='unwind')next=recordDaily(next,'practice',at)
+  if(action.kind==='npcHangout'&&action.npcId)next=completeHangout(next,action.npcId,at)
+  return next
 }
 function beginActivity(s:GameState,kind:ActionKind,ctx:EngineContext,objectId?:string):GameState{
  const cost=actionCost(s,kind,ctx.gas),energy=kind==='focus'?20:kind==='work'||kind==='hermit'?10:kind==='paint'||kind==='practiceCoding'?5:0
@@ -167,8 +176,10 @@ function advanceRoutine(s:GameState,ctx:EngineContext,autonomous:boolean):GameSt
 export function settle(state: GameState, ctx: EngineContext, offline = false): GameState {
   if(ctx.now<state.lastSaved)return state
   state=ensureRoutine(ensureLife(ensureNeeds(state)))
+  const trip=state.location.trip,previousZone=state.currentZone
   state=settleLocation(state,ctx.now)
-  if (ctx.now <= state.lastSaved) return ctx.now===state.lastSaved?advanceRoutine(arriveIndoor(state,ctx),ctx,!offline):state
+  if(trip&&!state.location.trip&&state.currentZone!==previousZone)state=recordDaily(state,'travel',trip.endsAt)
+  if (ctx.now <= state.lastSaved) return ctx.now===state.lastSaved?ensureDaily(advanceRoutine(arriveIndoor(state,ctx),ctx,!offline),ctx.now):state
   const end = ctx.now
   let cursor = offline ? Math.max(state.lastSaved, end - 8 * REAL_HOUR) : state.lastSaved
   let s: GameState = { ...state, meters: { ...state.meters } }
@@ -208,7 +219,7 @@ export function settle(state: GameState, ctx: EngineContext, offline = false): G
     s=advanceRoutine(s,{...ctx,now:cursor},!offline)
   }
   if(s.household){const hours=Math.min(ctx.now-state.lastSaved,8*REAL_HOUR)/REAL_HOUR*SIMULATION_SPEED,p=s.household.pet;s={...s,household:{...s.household,pet:{...p,hunger:Math.max(20,p.hunger-hours*2),affection:Math.max(20,p.affection-hours),energy:Math.min(100,p.energy+hours)}}}}
-  return { ...settleMeals(s,end), lastSaved: end }
+  return { ...ensureDaily(settleMeals(s,end),end), lastSaved: end }
 }
 export function blockIsValid(seed: number, index: number): boolean {
   return ((Math.imul(seed ^ (index + 1), 1664525) + 1013904223) >>> 0) % 10 >= 4
@@ -218,6 +229,7 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
   const now = Math.max(ctx.now, s.lastSaved)
   if(s.location.trip&&command.type!=='tick'&&command.type!=='cancel')return message(s,'Enjoy the journey. Your tram is still in transit.')
   switch (command.type) {
+    case 'claimDaily':return claimDaily(s,command.id,now)
     case 'enqueueAction':return advanceRoutine(enqueueIntent(s,command.objectId,command.kind),{...ctx,now},true)
     case 'setAutonomy':return {...s,routine:{...s.routine!,autonomy:command.enabled,nextAutonomyAt:now},lastMessage:command.enabled?'Autonomy on: free care at home; your queued choices go first.':'Autonomy off. You decide what happens next.'}
     case 'clearQueue':return {...s,routine:{...s.routine!,queue:[],nextAutonomyAt:now+30000},lastMessage:'Waiting intentions cleared. Your current activity continues.'}
@@ -237,8 +249,18 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
       if(!npc||!h||s.currentZone!==npc.city||venueOf(s.location.venue)!==npc.venue||s.action||s.job||h.journey||distance(h.humanTile,npc)>2)return message(s,'Walk closer to this person inside their venue first.')
       const previous=h.relationships[npc.id],repeat=previous&&now-previous.lastMet<15000
       if(repeat)return message(s,`${npc.name} is enjoying the moment. Try another activity together first.`)
+      if(command.topic==='hangout'){
+        const reason=hangoutReason(s,npc.id,now);if(reason)return message(s,reason)
+        return {...s,sequence:s.sequence+1,action:{id:s.sequence+1,kind:'npcHangout',npcId:npc.id,startedAt:now,endsAt:now+ACTIONS.npcHangout.duration},lastMessage:`Spending a little time with ${npc.name}…`}
+      }
+      if(command.topic==='gift'){
+        const reason=lifeActionReason(s,'eatLeftovers',now);if(reason)return message(s,'Cook a fresh meal before sharing a gift.')
+        s=consumeLifeAction(s,'eatLeftovers',now).state
+        const friendship=Math.min(100,(previous?.friendship??0)+12)
+        return recordDaily({...s,meters:{...s.meters,social:Math.min(100,s.meters.social+10)},household:{...h,relationships:{...h.relationships,[npc.id]:{friendship,meetings:(previous?.meetings??0)+1,lastMet:now,memory:'gift'}}},lastMessage:`${npc.name} loved your home-cooked gift. Friendship ${friendship}/100.`},'social',now)
+      }
       const friendship=Math.min(100,(previous?.friendship??0)+(previous?.memory===command.topic?3:8)),memory=command.topic
-      return message({...s,xp:s.xp+(previous?0:5),meters:{...s.meters,social:Math.min(100,s.meters.social+8)},household:{...h,relationships:{...h.relationships,[npc.id]:{friendship,meetings:(previous?.meetings??0)+1,lastMet:now,memory}}}},`${npc.name}: ${command.topic==='hobby'?`I love ${npc.interest}.`:command.topic==='chogs'?'Your Chog is welcome here anytime.':command.topic==='story'?'We should meet here again.':'It’s lovely to meet you!'} Friendship ${friendship}/100.`)
+      return message(recordDaily({...s,xp:s.xp+(previous?0:5),meters:{...s.meters,social:Math.min(100,s.meters.social+8)},household:{...h,relationships:{...h.relationships,[npc.id]:{friendship,meetings:(previous?.meetings??0)+1,lastMet:now,memory}}}},'social',now),`${npc.name}: ${command.topic==='hobby'?`I love ${npc.interest}.`:command.topic==='chogs'?'Your Chog is welcome here anytime.':command.topic==='story'?'We should meet here again.':'It’s lovely to meet you!'} Friendship ${friendship}/100.`)
     }
     case 'moveIndoor':if(s.location.kind==='street')return message(s,'Enter a building before walking inside.');return queueIndoor(s,command.target,now)
     case 'useObject':if(s.location.kind==='street')return message(s,'Enter the building before using its objects.');return arriveIndoor(queueObject(s,command.objectId,command.kind,now),{...ctx,now})
@@ -254,7 +276,7 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
       if(s.location.kind==='street'&&distance(s.location.tile,SERVICES[2].approach)>1)return message(s,'Walk to the park to care for your Chog outside.')
       const cost=command.kind==='feed'?cityPrice(8,s.currentZone,ctx.gas[s.currentZone]):0
       if(s.gChog<cost)return message(s,'Not enough household gCHOG for pet food.')
-      return message({...s,gChog:s.gChog-cost,household:{...h,pet:{...p,hunger:command.kind==='feed'?Math.min(100,p.hunger+35):p.hunger,affection:Math.min(100,p.affection+(command.kind==='play'?25:15)),energy:command.kind==='play'?Math.max(20,p.energy-5):p.energy,bond:Math.min(100,p.bond+3),lastCare:now}}},command.kind==='feed'?'Your Chog enjoyed a fresh bowl of food.':command.kind==='play'?'A little playtime. Your Chog’s bond grew.':'Your Chog leans into your hand. Bond +3.')
+      return message(recordDaily({...s,meters:{...s.meters,fun:command.kind==='play'?Math.min(100,s.meters.fun+15):s.meters.fun},gChog:s.gChog-cost,household:{...h,pet:{...p,hunger:command.kind==='feed'?Math.min(100,p.hunger+35):p.hunger,affection:Math.min(100,p.affection+(command.kind==='play'?25:15)),energy:command.kind==='play'?Math.max(20,p.energy-5):p.energy,bond:Math.min(100,p.bond+3),lastCare:now}}},'pet',now),command.kind==='feed'?'Your Chog enjoyed a fresh bowl of food.':command.kind==='play'?'A little playtime. Your Chog’s bond grew.':'Your Chog leans into your hand. Bond +3.')
     }
     case 'setProfile': {
       const profile=parseProfile(command.profile)

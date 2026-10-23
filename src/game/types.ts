@@ -23,14 +23,15 @@ export interface Zone {
 export interface GameMeters {
   hunger: number; energy: number; social: number; hygiene: number; fun: number; comfort: number; reputation: number; housingTier: number
 }
-export type ActionKind = 'eat' | 'snack' | 'rest' | 'sleep' | 'socialize' | 'unwind' | 'work' | 'focus' | 'hermit' | 'wash' | 'relax' | 'cookBreakfast' | 'cookStew' | 'eatLeftovers' | 'practiceCoding' | 'paint'
+export type ActionKind = 'eat' | 'snack' | 'rest' | 'sleep' | 'socialize' | 'unwind' | 'work' | 'focus' | 'hermit' | 'wash' | 'relax' | 'cookBreakfast' | 'cookStew' | 'eatLeftovers' | 'practiceCoding' | 'paint' | 'npcHangout'
 export type JobKind = 'validator' | 'grifter'
-export interface ActiveAction { id: number; kind: ActionKind; startedAt: number; endsAt: number;objectId?:string;mealRecipe?:import('./life').Recipe }
+export interface ActiveAction { id: number; kind: ActionKind; startedAt: number; endsAt: number;objectId?:string;npcId?:string;mealRecipe?:import('./life').Recipe }
 export interface JobSession {
   id: number; kind: JobKind; startedAt: number; endsAt: number; zone: ZoneId
   seed: number; score: number; clicked: number[]; openingWei?: string; openingAt?: number; prediction?: 'up' | 'down'
 }
 export interface GameState {
+  daily?:import('./dailyGoals').DailyState
   routine?:import('./routine').RoutineState
   life?:import('./life').LifeState
   household?:import('./household').Household

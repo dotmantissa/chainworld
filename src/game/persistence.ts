@@ -2,6 +2,7 @@ import type { GameState, ZoneId } from './types'
 import {parseLife,newLife,RECIPES} from './life'
 import {ADDED_NEEDS} from './needs'
 import {parseRoutine,newRoutine} from './routine'
+import {parseDaily,newDaily,DAY_MS} from './dailyGoals'
 import { ACTIONS } from './gameEngine'
 import { parseEstate, DEFAULT_LOCATION, frontDoor, streetWalkable } from './neighborhood'
 import { DEFAULT_PROFILE, parseProfile } from './residentProfile'
@@ -26,11 +27,12 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
     const v2 = p.version === 2
     if (v2 && (!finite(p.meters.energy, 0, 100) || !finite(p.xp, 0, 1e9) || !finite(p.sequence, 0, Number.MAX_SAFE_INTEGER) || !finite(p.upkeepCarry, 0, 1) || !Array.isArray(p.quests) || !p.cooldowns)) return null
     const cooldowns: Record<string, number> = {}
-    if (v2) for (const key of ['socialize', 'ration', 'validator']) if (finite(p.cooldowns[key], 0, Number.MAX_SAFE_INTEGER)) cooldowns[key] = p.cooldowns[key]
+    if (v2) for (const key of Object.keys(p.cooldowns).filter(k=>['socialize','ration','validator'].includes(k)||/^hangout:npc:[0-4]:(cafe|work|park)$/.test(k))) if (finite(p.cooldowns[key], 0, Number.MAX_SAFE_INTEGER)) cooldowns[key] = p.cooldowns[key]
     const life=p.life===undefined?newLife():parseLife(p.life);if(!life)return null
     const routine=p.routine===undefined?newRoutine():parseRoutine(p.routine,v2?p.sequence:0);if(!routine)return null
+    const daily=p.daily===undefined?newDaily(p.lastSaved):parseDaily(p.daily);if(!daily||daily.day>Math.floor(p.lastSaved/DAY_MS))return null
     const s: GameState = {
-      ...identity, life, routine, household:undefined,home:parseEstate(p.home)??identity.home,location:{...DEFAULT_LOCATION,tile:frontDoor(parseEstate(p.home)??identity.home)}, profile:parseProfile(p.profile)??{...DEFAULT_PROFILE}, gChog: Math.floor(p.gChog), lastSaved: p.lastSaved, upkeepCarry: v2 ? p.upkeepCarry : 0,
+      ...identity, life, routine, daily, household:undefined,home:parseEstate(p.home)??identity.home,location:{...DEFAULT_LOCATION,tile:frontDoor(parseEstate(p.home)??identity.home)}, profile:parseProfile(p.profile)??{...DEFAULT_PROFILE}, gChog: Math.floor(p.gChog), lastSaved: p.lastSaved, upkeepCarry: v2 ? p.upkeepCarry : 0,
       meters: { hygiene:p.meters.hygiene??ADDED_NEEDS.hygiene,fun:p.meters.fun??ADDED_NEEDS.fun,comfort:p.meters.comfort??ADDED_NEEDS.comfort, hunger: p.meters.hunger, social: p.meters.social, energy: v2 ? p.meters.energy : 100, reputation: p.meters.reputation, housingTier: Math.floor(p.meters.housingTier) },
       currentZone: [0,1,2,3,4,5].includes(p.currentZone) ? p.currentZone : 0,
       xp: v2 ? p.xp : 0, sequence: v2 ? p.sequence : 0, cooldowns,
@@ -60,7 +62,7 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
     if(p.location?.kind==='street'&&Number.isInteger(p.location.tile?.x)&&Number.isInteger(p.location.tile?.y)){const tile=p.location.tile;if(streetWalkable(tile))s.location={kind:'street',tile,journey:null}}
     const trip=p.location?.trip
     if(trip&&[0,1,2,3,4,5].includes(trip.zone)&&finite(trip.startedAt,0,s.lastSaved)&&finite(trip.endsAt,trip.startedAt,trip.startedAt+60000)&&finite(trip.fare,0,1e9))s.location={kind:'street',tile:{x:29,y:3},district:p.location.district??0,journey:null,trip}
-    if (v2 && p.action && Object.prototype.hasOwnProperty.call(ACTIONS,p.action.kind) && finite(p.action.id, 1, s.sequence) && finite(p.action.startedAt, 0, s.lastSaved) && finite(p.action.endsAt, p.action.startedAt, p.action.startedAt + 60000) && (p.action.mealRecipe===undefined||p.action.kind==='eatLeftovers'&&Object.prototype.hasOwnProperty.call(RECIPES,p.action.mealRecipe)) && p.action.endsAt-p.action.startedAt === ACTIONS[p.action.kind as keyof typeof ACTIONS].duration) s.action = p.action
+    if (v2 && p.action && Object.prototype.hasOwnProperty.call(ACTIONS,p.action.kind) && finite(p.action.id, 1, s.sequence) && finite(p.action.startedAt, 0, s.lastSaved) && finite(p.action.endsAt, p.action.startedAt, p.action.startedAt + 60000) && (p.action.kind!=='npcHangout'||typeof p.action.npcId==='string'&&npcById(p.action.npcId)!==null) && (p.action.mealRecipe===undefined||p.action.kind==='eatLeftovers'&&Object.prototype.hasOwnProperty.call(RECIPES,p.action.mealRecipe)) && p.action.endsAt-p.action.startedAt === ACTIONS[p.action.kind as keyof typeof ACTIONS].duration) s.action = p.action
     const j = p.job
     if (v2 && j && ['validator','grifter'].includes(j.kind) && finite(j.id, 1, s.sequence) && finite(j.startedAt, 0, s.lastSaved) && finite(j.endsAt, j.startedAt, j.startedAt + 20000) && finite(j.seed, 0, 2147483647) && finite(j.score, 0, 330) && Array.isArray(j.clicked) && j.clicked.every((i: unknown) => Number.isInteger(i) && Number(i) >= 0 && Number(i) < 33) && j.zone === s.currentZone) {
       if (j.kind === 'validator' || (typeof j.openingWei === 'string' && /^\d+$/.test(j.openingWei) && finite(j.openingAt, 0, j.startedAt) && ['up','down'].includes(j.prediction))) s.job = j
