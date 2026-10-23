@@ -4,6 +4,8 @@ The browser build now implements the first playable household/city stages of the
 
 ## Implemented
 
+- **Pantry, meals and learned skills:** bounded groceries repriced by current-city gas; two recipes consume ingredients at physical cooking start, produce expiring prepared meals, and unlock through cooking practice. Programming/creativity practice and three household projects grant single-use completion rewards. Pantry, meals, skills and project claims survive reload and follow NFT identity.
+
 - **Human care:** six independently settling needs (hunger, energy, hygiene, fun, comfort and social), free physical sink washing, sofa relaxation and meaningful reading/rest benefits. Older saves receive only missing care meters and retain funds/property.
 
 - **NFT household:** ownership follows chain/collection/token, independent of wallet. Sex/gender is selected on signup or edited later; NFT identity and original traits seed human appearance. Six painted human identities, four garment palettes and six poses per identity provide 24 stable presentations. Human presentation never changes the pet's traits or household wealth.

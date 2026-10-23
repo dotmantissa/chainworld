@@ -10,6 +10,7 @@ import {activeBlueprint,queueIndoor,queueObject,editHousing,stopIndoor,type Hous
 import {FURNITURE,entryTile,houseWalkable,validBlueprint} from './housing'
 import {placeKey,venueBlueprint,venueOf,npcById,TOPICS,type Venue} from './places'
 import {ADDED_NEEDS,ensureNeeds} from './needs'
+import {newLife,ensureLife,settleMeals,lifeActionReason,consumeLifeAction,completeLifeAction,buyGroceries,projectCommand,GROCERIES,type Project} from './life'
 
 export const REAL_HOUR = 3_600_000
 export const SIMULATION_SPEED = 10
@@ -25,8 +26,15 @@ export const ACTIONS: Record<ActionKind, { duration: number; cost: number; label
   hermit: { duration: 60000, cost: 0, label: 'Provide liquidity' },
   wash: { duration: 8000, cost: 0, label: 'Wash at the sink' },
   relax: { duration: 12000, cost: 0, label: 'Relax on the sofa' },
+  cookBreakfast: {duration:15000,cost:0,label:'Cook fruit porridge'},
+  cookStew: {duration:20000,cost:0,label:'Cook garden stew'},
+  eatLeftovers: {duration:6000,cost:0,label:'Eat a prepared meal'},
+  practiceCoding: {duration:15000,cost:0,label:'Practice coding'},
+  paint: {duration:15000,cost:0,label:'Sketch in your notebook'},
 }
 export type Command =
+  | {type:'buyGroceries';pack:keyof typeof GROCERIES}
+  | {type:'startProject'|'claimProject';id:Project}
   | {type:'enterVenue';venue:Venue}
   | {type:'talkNpc';npcId:string;topic:keyof typeof TOPICS}
   | HousingEdit
@@ -66,6 +74,7 @@ export function createNewGameState(walletAddress: string, tokenId: number, trait
   const { stats, appearance, startingZone } = mapTraitsToCharacter(traits, tokenId)
   const unlockedZones = [...new Set<ZoneId>([...tierToUnlockedZones(tier), 5])]
   const fresh:GameState = {
+    life:newLife(),
     home:{...DEFAULT_ESTATE},location:{...DEFAULT_LOCATION},
     profile:{...DEFAULT_PROFILE},
     version: 2, chainId: identity.chainId ?? 10143, collection: (identity.collection ?? '0x32a325b0640594377d0708ca9081c93da95e1908').toLowerCase(), walletAddress, tokenId,
@@ -114,14 +123,16 @@ function completeAction(s: GameState, at: number): GameState {
       next.action = { ...action, startedAt: at, endsAt: at + 60000 }
     }
   }
-  return next
+  return completeLifeAction(next,action.kind,action.id,at,action.mealRecipe)
 }
 function beginActivity(s:GameState,kind:ActionKind,ctx:EngineContext,objectId?:string):GameState{
- const cost=actionCost(s,kind,ctx.gas),energy=kind==='focus'?20:kind==='work'||kind==='hermit'?10:0
+ const cost=actionCost(s,kind,ctx.gas),energy=kind==='focus'?20:kind==='work'||kind==='hermit'?10:kind==='paint'||kind==='practiceCoding'?5:0
  if(s.gChog<cost)return message(s,'Not enough gCHOG for this activity.')
  if(s.meters.energy<energy)return message(s,'Rest before working. You need more energy.')
  if((s.cooldowns[kind]??0)>ctx.now)return message(s,'This action is cooling down.')
- return {...s,gChog:s.gChog-cost,sequence:s.sequence+1,meters:{...s.meters,energy:s.meters.energy-energy},action:{id:s.sequence+1,kind,objectId,startedAt:ctx.now,endsAt:ctx.now+ACTIONS[kind].duration},lastMessage:`${ACTIONS[kind].label}…`}
+ const reason=lifeActionReason(s,kind,ctx.now);if(reason)return message(s,reason)
+ const consumed=consumeLifeAction(s,kind,ctx.now);s=consumed.state
+ return {...s,gChog:s.gChog-cost,sequence:s.sequence+1,meters:{...s.meters,energy:s.meters.energy-energy},action:{id:s.sequence+1,kind,objectId,mealRecipe:consumed.mealRecipe,startedAt:ctx.now,endsAt:ctx.now+ACTIONS[kind].duration},lastMessage:`${ACTIONS[kind].label}…`}
 }
 function arriveIndoor(s:GameState,ctx:EngineContext):GameState{
  const h=s.household;if(!h)return s
@@ -133,7 +144,7 @@ function arriveIndoor(s:GameState,ctx:EngineContext):GameState{
 // One settlement clock, segmented at event and completion boundaries. Saving never changes it.
 export function settle(state: GameState, ctx: EngineContext, offline = false): GameState {
   if(ctx.now<state.lastSaved)return state
-  state=ensureNeeds(state)
+  state=ensureLife(ensureNeeds(state))
   state=settleLocation(state,ctx.now)
   if (ctx.now <= state.lastSaved) return ctx.now===state.lastSaved?arriveIndoor(state,ctx):state
   const end = ctx.now
@@ -173,7 +184,7 @@ export function settle(state: GameState, ctx: EngineContext, offline = false): G
     s=arriveIndoor(s,{...ctx,now:cursor})
   }
   if(s.household){const hours=Math.min(ctx.now-state.lastSaved,8*REAL_HOUR)/REAL_HOUR*SIMULATION_SPEED,p=s.household.pet;s={...s,household:{...s.household,pet:{...p,hunger:Math.max(20,p.hunger-hours*2),affection:Math.max(20,p.affection-hours),energy:Math.min(100,p.energy+hours)}}}}
-  return { ...s, lastSaved: end }
+  return { ...settleMeals(s,end), lastSaved: end }
 }
 export function blockIsValid(seed: number, index: number): boolean {
   return ((Math.imul(seed ^ (index + 1), 1664525) + 1013904223) >>> 0) % 10 >= 4
@@ -183,6 +194,8 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
   const now = Math.max(ctx.now, s.lastSaved)
   if(s.location.trip&&command.type!=='tick'&&command.type!=='cancel')return message(s,'Enjoy the journey. Your tram is still in transit.')
   switch (command.type) {
+    case 'buyGroceries':return buyGroceries(s,command.pack,cityPrice(GROCERIES[command.pack].price,s.currentZone,ctx.gas[s.currentZone]))
+    case 'startProject':case 'claimProject':return projectCommand(s,command.id,command.type==='claimProject')
     case 'enterVenue':{
       if(s.location.kind!=='street'||s.currentZone===5||s.location.journey||s.action||s.job)return message(s,'Finish your walk before entering a venue.')
       const index=command.venue==='cafe'?0:command.venue==='work'?1:2
@@ -252,14 +265,11 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
       if (s.action || s.job) return message(s, 'Finish or cancel your current activity first.')
       if(s.location?.journey)return message(s,'Finish walking before starting an activity.')
       if(s.location?.kind==='street'&&!SERVICES.some(service=>service.actions.includes(command.kind)&&distance(s.location.tile,service.approach)<=1))return message(s,'Walk to the appropriate city service first.')
-      const spec = ACTIONS[command.kind]
       const cost=actionCost(s,command.kind,ctx.gas)
       if ((s.cooldowns[command.kind] ?? 0) > now) return message(s, 'This action is cooling down.')
       if ((command.kind === 'work' || command.kind === 'focus' || command.kind === 'hermit') && s.meters.energy < (command.kind==='focus'?20:10)) return message(s, `Rest before working. You need ${command.kind==='focus'?20:10} energy.`)
       if (s.gChog < cost) return message(s, 'Not enough gCHOG. Emergency rations are available below 20 hunger.')
-      return { ...s, gChog: s.gChog - cost, sequence: s.sequence + 1,
-        meters: { ...s.meters, energy: s.meters.energy - (command.kind === 'work' || command.kind === 'focus' || command.kind === 'hermit' ? (command.kind==='focus'?20:10) : 0) },
-        action: { id: s.sequence + 1, kind: command.kind, startedAt: now, endsAt: now + spec.duration }, lastMessage: `${spec.label}…` }
+      return beginActivity(s,command.kind,{...ctx,now})
     }
     case 'travel': {
       if(s.household){

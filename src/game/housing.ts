@@ -2,9 +2,9 @@ import type {GameState} from './types'
 import type {Tile} from '../world/navigation'
 export const FURNITURE={
  bed:{label:'Cloud bed',price:45,w:2,h:3,family:'rest',actions:['rest','sleep']},
- kitchen:{label:'Little kitchen',price:60,w:2,h:1,family:'eat',actions:['eat','snack','wash']},
- desk:{label:'Study desk',price:65,w:2,h:1,family:'work',actions:['work','focus','hermit']},
- sofa:{label:'Reading sofa',price:35,w:2,h:1,family:'socialize',actions:['socialize','unwind','relax']},
+ kitchen:{label:'Little kitchen',price:60,w:2,h:1,family:'eat',actions:['eat','snack','wash','cookBreakfast','cookStew','eatLeftovers']},
+ desk:{label:'Study desk',price:65,w:2,h:1,family:'work',actions:['work','focus','hermit','practiceCoding']},
+ sofa:{label:'Reading sofa',price:35,w:2,h:1,family:'socialize',actions:['socialize','unwind','relax','paint']},
  bowl:{label:'Chog food bowl',price:15,w:1,h:1,family:'pet',actions:[]},
  plant:{label:'Window fern',price:12,w:1,h:1,family:'decor',actions:[]},
  lamp:{label:'Paper lantern',price:18,w:1,h:1,family:'decor',actions:[]},

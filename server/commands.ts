@@ -5,12 +5,15 @@ import { HttpError } from './http'
 import { HOME_STYLES, type HomeStyle } from '../src/game/neighborhood'
 import { parseProfile } from '../src/game/residentProfile'
 import {FURNITURE,type FurnitureType} from '../src/game/housing'
+import {GROCERIES,PROJECTS,type Project} from '../src/game/life'
 import {TOPICS,type Venue} from '../src/game/places'
 export function parseCommand(value:unknown):Command {
   if(!value||typeof value!=='object')throw new HttpError(400,'Missing command')
   const c=value as Record<string,unknown>
   const coordinate=(v:unknown)=>Number.isInteger(v)&&Number(v)>=0&&Number(v)<8
   switch(c.type){
+    case 'buyGroceries':if(typeof c.pack==='string'&&Object.prototype.hasOwnProperty.call(GROCERIES,c.pack))return {type:'buyGroceries',pack:c.pack as keyof typeof GROCERIES};break
+    case 'startProject':case 'claimProject':if(typeof c.id==='string'&&Object.prototype.hasOwnProperty.call(PROJECTS,c.id))return {type:c.type,id:c.id as Project};break
     case 'enterVenue':if(['cafe','work','park'].includes(String(c.venue)))return {type:'enterVenue',venue:c.venue as Venue};break
     case 'talkNpc':if(typeof c.npcId==='string'&&/^npc:[0-4]:(cafe|work|park)$/.test(c.npcId)&&typeof c.topic==='string'&&Object.prototype.hasOwnProperty.call(TOPICS,c.topic))return {type:'talkNpc',npcId:c.npcId,topic:c.topic as keyof typeof TOPICS};break
     case 'moveIndoor':{const t=c.target as Record<string,unknown>|undefined;if(t&&Number.isInteger(t.x)&&Number.isInteger(t.y)&&Number(t.x)>=0&&Number(t.x)<12&&Number(t.y)>=0&&Number(t.y)<12)return {type:'moveIndoor',target:{x:Number(t.x),y:Number(t.y)}};break}
