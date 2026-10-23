@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest'
 import {createNewGameState,reduceGame,settle} from '../src/game/gameEngine'
 import {ensureHousehold,freshHousehold,SOURCE_PACKAGES} from '../src/game/household'
 import {validBlueprint,housePath,entryTile,FURNITURE,starterBlueprint} from '../src/game/housing'
-import {humanFor} from '../src/world/human'
+import {humanArtwork} from '../src/world/artwork'
 import {restoreSave} from '../src/game/persistence'
 const initial=(tier='Common',id=1)=>createNewGameState('wallet',id,[{trait_type:'Tier',value:tier},{trait_type:'Skin',value:'Pink'}],0,{rank:169,now:0})
 describe('NFT household identity, source-tier grants and pet care',()=>{
@@ -12,6 +12,11 @@ describe('NFT household identity, source-tier grants and pet care',()=>{
  it('migrates once without regranting money or changing owned land',()=>{
   const old=initial();old.gChog=73;const s=ensureHousehold(old);expect(s.gChog).toBe(73);expect(s.home).toBe(old.home);expect(s.household?.grant).toBe('legacy-rank-v1');expect(ensureHousehold(s)).toBe(s)
  })
+ it('keeps new parcel entitlements tied to source Tier and never repeats the move-in grant',()=>{
+  const common=freshHousehold(initial('Common')),legendary=freshHousehold(initial('Legendary'))
+  expect(common.home.plots).toHaveLength(1);expect(legendary.home.plots).toHaveLength(3)
+  const spent={...common,gChog:17};expect(freshHousehold(spent).gChog).toBe(17);expect(freshHousehold(spent).home).toBe(spent.home)
+ })
  it('generates stable valid houses independent of the wallet and character sex',()=>{
   const s=freshHousehold(initial('Rare'));expect(freshHousehold({...initial('Rare'),walletAddress:'other',profile:{name:'Alex',gender:'female',genderLabel:'',pronouns:''}}).household?.blueprint).toEqual(s.household?.blueprint)
   for(let i=0;i<16;i++){const b=starterBlueprint(i,i%5);expect(validBlueprint(b)).toBe(true);for(const o of b.objects)expect(o.id).toBeTruthy()}
@@ -19,7 +24,7 @@ describe('NFT household identity, source-tier grants and pet care',()=>{
  })
  it('changes human presentation without changing the pet or household assets',()=>{
   const s=freshHousehold(initial('Uncommon'));const other={...s,profile:{...s.profile,gender:'female' as const}}
-  expect(humanFor(s)).not.toBe(humanFor(other));expect(other.appearance).toBe(s.appearance);expect(other.household).toBe(s.household)
+  expect(humanArtwork(s)[0].url).not.toBe(humanArtwork(other)[0].url);expect(other.appearance).toBe(s.appearance);expect(other.household).toBe(s.household)
  })
  it('persists validated household state and rejects impossible furniture layouts',()=>{
   const s=freshHousehold(initial('Rare'));expect(restoreSave(JSON.stringify(s),s)?.household?.blueprint).toEqual(s.household?.blueprint)

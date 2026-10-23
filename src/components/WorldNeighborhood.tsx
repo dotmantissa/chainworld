@@ -7,7 +7,6 @@ import type { Tile } from '../world/navigation'
 import type { StreetScene } from '../world/StreetScene'
 import ChogAvatar from './ChogAvatar'
 import { cityPrice } from '../game/zones'
-import {humanFor} from '../world/human'
 export interface NeighborhoodHandle {requestAction(kind:ActionKind):void;requestJob(command:Command):void;requestTravel(zone:ZoneId):void}
 interface Props {state:GameState;snapshot:NeighborhoodSnapshot;dispatch(command:Command):void;pending:boolean;blocked:boolean;gas:Partial<Record<ZoneId,number|null>>;onTravel():void}
 type Selection={type:'plot';tile:Tile}|{type:'service';index:number}|{type:'neighbor';neighbor:Neighbor}
@@ -40,12 +39,11 @@ const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeigh
    scene.current=new StreetScene({state:()=>latest.current.state,snapshot:()=>latest.current.snapshot,blocked:()=>latest.current.pending||latest.current.blocked||selectionRef.current!==null,
     walk:tile=>{setGoal(null);latest.current.dispatch({type:'walk',target:tile})},selectPlot:tile=>{setSelection({type:'plot',tile});setError('')},selectService:index=>{setSelection({type:'service',index});setError('')},selectNeighbor:neighbor=>{setSelection({type:'neighbor',neighbor});setError('')},
     avatarSvg:neighbor=>{const s=latest.current.state;const html=renderToStaticMarkup(<ChogAvatar appearance={neighbor?.appearance??s.appearance} tier={s.rarityTier} size={128} portrait={false}/>);return html.slice(html.indexOf('<svg'),html.indexOf('</svg>')+6)},
-    humanSvg:neighbor=>{const s=latest.current.state;return humanFor(neighbor?{appearance:neighbor.appearance,profile:neighbor.profile,collection:neighbor.identity.split(':')[1],tokenId:neighbor.tokenId}:s)},
    })
    game=new Phaser.Game({type:Phaser.AUTO,parent:host.current,width:800,height:500,scene:scene.current,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},fps:{target:30},render:{antialias:true}})
   }).catch(()=>setError('The street could not load. Refresh to try again.'))
   return()=>{disposed=true;game?.destroy(true);scene.current=undefined}
- },[props.state.currentZone])
+ },[props.state.currentZone,props.state.profile.gender])
  const s=props.state,myIdentity=identityOf(s)
  const parcel=selection?.type==='plot'?props.snapshot.parcels.find(p=>p.x===selection.tile.x&&p.y===selection.tile.y):undefined
  const neighbor=parcel?props.snapshot.neighbors.find(n=>n.identity===parcel.identity):undefined

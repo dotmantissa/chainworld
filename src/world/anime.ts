@@ -2,37 +2,42 @@ import Phaser from 'phaser'
 import type {Tile} from './navigation'
 import type {Blueprint,Furniture} from '../game/housing'
 import {FURNITURE} from '../game/housing'
-export const houseIso=(t:Tile)=>({x:400+(t.x-t.y)*25,y:105+(t.x+t.y)*13})
-export const houseFromIso=(x:number,y:number):Tile=>({x:Math.round((x-400)/50+(y-105)/26),y:Math.round((y-105)/26-(x-400)/50)})
-export function box(g:Phaser.GameObjects.Graphics,x:number,y:number,w:number,h:number,z:number,color:number,top=color){
- const a=houseIso({x:x-.5,y:y-.5}),b=houseIso({x:x+w-.5,y:y-.5}),c=houseIso({x:x+w-.5,y:y+h-.5}),d=houseIso({x:x-.5,y:y+h-.5}),up=(p:{x:number;y:number})=>({x:p.x,y:p.y-z})
- g.lineStyle(1.5,0x4b4352,1).fillStyle(color).fillPoints([b,c,up(c),up(b)],true).strokePoints([b,c,up(c),up(b)],true)
- g.fillStyle(Phaser.Display.Color.ValueToColor(color).darken(12).color).fillPoints([c,d,up(d),up(c)],true).strokePoints([c,d,up(d),up(c)],true)
- g.fillStyle(top).fillPoints([up(a),up(b),up(c),up(d)],true).strokePoints([up(a),up(b),up(c),up(d)],true)
-}
-export function drawRoom(scene:Phaser.Scene,b:Blueprint,style:string){
- const g=scene.add.graphics().setDepth(-500),a=houseIso({x:-.5,y:-.5}),left=houseIso({x:-.5,y:b.height-.5}),right=houseIso({x:b.width-.5,y:-.5})
- const palettes:Record<string,number>={linen:0xf1e7dd,sage:0xdce9d9,lavender:0xe5def0,terracotta:0xf0dbcb,midnight:0xc3d1e1}
- if(b.environment==='park'){
-  for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){const p=houseIso({x,y});g.lineStyle(.7,0xa8bf88).fillStyle((x+y)%2?0xc8dba7:0xbdd29e).fillPoints([{x:p.x,y:p.y-13},{x:p.x+25,y:p.y},{x:p.x,y:p.y+13},{x:p.x-25,y:p.y}],true).strokePoints([{x:p.x,y:p.y-13},{x:p.x+25,y:p.y},{x:p.x,y:p.y+13},{x:p.x-25,y:p.y}],true);if((x*3+y)%7===0)g.fillStyle(0xffe6d7).fillCircle(p.x+4,p.y-2,2).fillStyle(0xf6d885).fillCircle(p.x-6,p.y,2)}
-  return g
+import {furnitureArtwork,materialArtwork,outdoorArtwork,architectureArtwork} from './artwork'
+export const houseIso=(t:Tile)=>({x:400+(t.x-t.y)*25,y:115+(t.x+t.y)*13})
+export const houseFromIso=(x:number,y:number):Tile=>({x:Math.round((x-400)/50+(y-115)/26),y:Math.round((y-115)/26-(x-400)/50)})
+export function drawRoom(scene:Phaser.Scene,b:Blueprint,style:string):Phaser.GameObjects.Container{
+ const room=scene.add.container(0,0).setDepth(-500),g=scene.add.graphics(),a=houseIso({x:-.5,y:-.5}),left=houseIso({x:-.5,y:b.height-.5}),right=houseIso({x:b.width-.5,y:-.5}),wallHeight=127
+ room.add(g)
+ const palettes:Record<string,number>={linen:0xe8dfce,sage:0xc9d4c0,lavender:0xd7ccdf,terracotta:0xe3c7ae,midnight:0xb9c8d0}
+ const bottom=houseIso({x:b.width-.5,y:b.height-.5})
+ g.fillStyle(0xb5a084).fillPoints([left,bottom,right,{x:right.x,y:right.y+10},{x:bottom.x,y:bottom.y+10},{x:left.x,y:left.y+10}],true)
+ g.lineStyle(1,0x877762,.7).strokePoints([left,bottom,right],false)
+ if(b.environment!=='park'){
+  g.fillGradientStyle(palettes[style]??palettes.linen,0xf8f3e6,0xc5b6a2,0xf3eadb,1).fillPoints([a,left,{x:left.x,y:left.y-wallHeight},{x:a.x,y:a.y-wallHeight}],true)
+  g.fillGradientStyle(0xfff9e9,0xf5e8d6,0xf2e6d2,0xd8c6ae,1).fillPoints([a,right,{x:right.x,y:right.y-wallHeight},{x:a.x,y:a.y-wallHeight}],true)
+  g.lineStyle(4,0xfaf1e0).lineBetween(a.x,a.y-wallHeight,left.x,left.y-wallHeight).lineBetween(a.x,a.y-wallHeight,right.x,right.y-wallHeight)
+  g.lineStyle(5,0x9c846c).lineBetween(a.x,a.y,left.x,left.y).lineBetween(a.x,a.y,right.x,right.y)
+  g.lineStyle(1,0x8e806c,.6).lineBetween(a.x,a.y-wallHeight,a.x,a.y)
  }
- g.lineStyle(2,0x686172).fillStyle(palettes[style]??palettes.linen).fillPoints([a,left,{x:left.x,y:left.y-100},{x:a.x,y:a.y-100}],true).strokePoints([a,left,{x:left.x,y:left.y-100},{x:a.x,y:a.y-100}],true)
- g.fillStyle(0xf9f1df).fillPoints([a,right,{x:right.x,y:right.y-100},{x:a.x,y:a.y-100}],true).strokePoints([a,right,{x:right.x,y:right.y-100},{x:a.x,y:a.y-100}],true)
- for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){const p=houseIso({x,y});g.lineStyle(.65,0xbda68b,.5).fillStyle((x+y)%2?0xe5c69e:0xf0d5af).fillPoints([{x:p.x,y:p.y-13},{x:p.x+25,y:p.y},{x:p.x,y:p.y+13},{x:p.x-25,y:p.y}],true).strokePoints([{x:p.x,y:p.y-13},{x:p.x+25,y:p.y},{x:p.x,y:p.y+13},{x:p.x-25,y:p.y}],true)}
- for(const t of [2,Math.min(5,b.width-2)]){const p=houseIso({x:t,y:-.5});g.lineStyle(3,0x7c7580).fillStyle(0xb5d7e5).fillPoints([{x:p.x-17,y:p.y-69},{x:p.x+15,y:p.y-53},{x:p.x+15,y:p.y-20},{x:p.x-17,y:p.y-36}],true).strokePoints([{x:p.x-17,y:p.y-69},{x:p.x+15,y:p.y-53},{x:p.x+15,y:p.y-20},{x:p.x-17,y:p.y-36}],true);g.lineStyle(2,0xfff8e9).lineBetween(p.x-1,p.y-61,p.x-1,p.y-28).lineBetween(p.x-17,p.y-52,p.x+15,p.y-36)}
- return g
+ const material=b.environment==='park'?3:b.environment==='cafe'?5:style==='midnight'?1:style==='terracotta'?2:0
+ for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){const p=houseIso({x,y}),tile=scene.add.image(p.x,p.y,materialArtwork[material].key).setDisplaySize(50.8,26.5);if((x+y)%3===0)tile.setTint(0xf4f0e8);room.add(tile)}
+ if(b.environment==='park')return room
+ const details=scene.add.graphics();room.add(details)
+ for(const t of [1.5,Math.min(5,b.width-2)]){
+  const p=houseIso({x:t,y:-.5}),art=architectureArtwork[0],window=scene.add.image(p.x,p.y-75,art.key).setDisplaySize(61,61*art.height/art.width)
+  room.add(window)
+ }
+ const light=scene.add.graphics();room.add(light);const w=houseIso({x:b.width-3,y:1})
+ light.fillStyle(0xfff4cc,.16).fillPoints([{x:w.x-45,y:w.y-12},{x:w.x+3,y:w.y+12},{x:w.x-60,y:w.y+82},{x:w.x-116,y:w.y+53}],true)
+ return room
 }
-export function drawFurniture(scene:Phaser.Scene,o:Furniture):Phaser.GameObjects.Graphics{
- const d=FURNITURE[o.type],w=o.rotation?d.h:d.w,h=o.rotation?d.w:d.h,g=scene.add.graphics(),p=houseIso({x:o.x+(w-1)/2,y:o.y+(h-1)/2}),x=o.x,y=o.y
- if(o.type==='bed'){box(g,x,y,w,h,12,0xa48668,0xc6a37c);box(g,x,y,w,h,20,0xe8ddea,0xf7f0e7);box(g,x,y+.65,w,Math.max(.5,h-.65),23,0x9f98c3,0xb9b2d8);const pillow=houseIso({x:x+(w-1)/2,y:y-.1});g.lineStyle(1,0x8f899e).fillStyle(0xf7efdd).fillEllipse(pillow.x,pillow.y-24,38,13).strokeEllipse(pillow.x,pillow.y-24,38,13)}
- if(o.type==='kitchen'){box(g,x,y,w,h,35,0x86aaa3,0xf5e9d5);g.lineStyle(2,0x526d6b).lineBetween(p.x,p.y-25,p.x,p.y);g.fillStyle(0x6c7b84).fillEllipse(p.x-12,p.y-35,18,8);g.lineStyle(2,0x68637b).beginPath().arc(p.x-10,p.y-42,5,Math.PI,0).strokePath();g.fillStyle(0x464357).fillCircle(p.x+20,p.y-28,5).fillCircle(p.x+7,p.y-34,4)}
- if(o.type==='desk'){box(g,x,y,w,h,30,0xa68069,0xd4ae83);g.lineStyle(2,0x494557).fillStyle(0x566382).fillRect(p.x-11,p.y-58,25,22).strokeRect(p.x-11,p.y-58,25,22);g.fillStyle(0xb7c9d7).fillRect(p.x-8,p.y-55,19,15);g.fillStyle(0xefebdd).fillEllipse(p.x+15,p.y-25,10,5)}
- if(o.type==='sofa'){box(g,x,y,w,h,18,0xb08191,0xd8aabb);box(g,x,y-.05,w,.3,39,0xaf8096,0xc797ab);g.lineStyle(1,0x95677e).lineBetween(p.x,p.y-20,p.x,p.y-7)}
- if(o.type==='bowl'){g.lineStyle(2,0x6a5264).fillStyle(0xc995aa).fillEllipse(p.x,p.y,26,12).strokeEllipse(p.x,p.y,26,12);g.fillStyle(0x806349).fillEllipse(p.x,p.y-3,20,7);g.fillStyle(0xe6c48d).fillCircle(p.x-4,p.y-4,2).fillCircle(p.x+3,p.y-3,2)}
- if(o.type==='plant'){g.lineStyle(1.5,0x74594f).fillStyle(0xd2a38c).fillTriangle(p.x-10,p.y-10,p.x+10,p.y-10,p.x,p.y+7).fillEllipse(p.x,p.y-10,20,7);g.lineStyle(3,0x558365).lineBetween(p.x,p.y-10,p.x,p.y-34);g.fillStyle(0x7fad82).fillEllipse(p.x-8,p.y-29,16,8).fillEllipse(p.x+8,p.y-38,18,9).fillEllipse(p.x-4,p.y-46,12,10)}
- if(o.type==='lamp'){g.lineStyle(3,0x6e6573).lineBetween(p.x,p.y,p.x,p.y-49);g.fillStyle(0x81788a).fillEllipse(p.x,p.y,20,7);g.lineStyle(1.5,0xa18c6d).fillStyle(0xf7dcb1).fillEllipse(p.x,p.y-52,33,27).strokeEllipse(p.x,p.y-52,33,27)}
- if(o.type==='shelf'){box(g,x,y,w,h,54,0x997963,0xc19c7b);for(let i=0;i<5;i++){g.fillStyle([0xa99acb,0xc98a8b,0x96b6af,0xe0c28b,0x8299b2][i]).fillRect(p.x-20+i*8,p.y-43+i*3,6,23);g.lineStyle(1,0x776173).strokeRect(p.x-20+i*8,p.y-43+i*3,6,23)}}
- g.setDepth(houseIso({x:x+w-1,y:y+h-1}).y+2)
- const poly=new Phaser.Geom.Polygon([{x:p.x-(w+h)*13-8,y:p.y-78},{x:p.x+(w+h)*13+8,y:p.y-45},{x:p.x+(w+h)*13+8,y:p.y+18},{x:p.x-(w+h)*13-8,y:p.y+18}]);g.setInteractive(poly,Phaser.Geom.Polygon.Contains);return g
+export function drawFurniture(scene:Phaser.Scene,o:Furniture,environment?:Blueprint['environment']):Phaser.GameObjects.Container{
+ const d=FURNITURE[o.type],w=o.rotation?d.h:d.w,h=o.rotation?d.w:d.h,p=houseIso({x:o.x+(w-1)/2,y:o.y+(h-1)/2}),outdoor=environment==='park',asset=outdoor&&o.type==='sofa'?outdoorArtwork[o.rotation]:outdoor&&o.type==='plant'?outdoorArtwork[(o.x+o.y)%3===0?4+o.rotation:2+o.rotation]:furnitureArtwork(o.type,o.rotation)
+ const widths={bed:118,kitchen:85,desk:91,sofa:91,bowl:28,plant:44,lamp:24,shelf:75},width=outdoor&&o.type==='plant'?asset===outdoorArtwork[2]||asset===outdoorArtwork[3]?76:46:widths[o.type],height=width*asset.height/asset.width
+ const shadow=scene.add.ellipse(0,2,Math.min((w+h)*21,width*.8),Math.min((w+h)*8,20),0x3b3029,.13)
+ const image=scene.add.image(0,(w+h)*6.5+2,asset.key).setDisplaySize(width,height).setOrigin(.5,1).setFlipX(o.type==='bed'&&o.rotation===1)
+ const container=scene.add.container(p.x,p.y,[shadow,image]).setDepth(houseIso({x:o.x+w-1,y:o.y+h-1}).y+2)
+ image.setInteractive({pixelPerfect:true,alphaTolerance:70,useHandCursor:true})
+ image.on('pointerdown',(pointer:Phaser.Input.Pointer,x:number,y:number,event:Phaser.Types.Input.EventData)=>container.emit('pointerdown',pointer,x,y,event))
+ return container
 }

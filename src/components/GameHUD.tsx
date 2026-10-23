@@ -38,7 +38,7 @@ export default function GameHUD({gameState,revision,traits,preview,onExit}:Props
   useEffect(()=>{if(travelRequest===null||!outdoors||pending)return;let alive=true;const destination=travelRequest;queueMicrotask(()=>{if(alive){setTravelRequest(null);street.current?.requestTravel(destination)}});return()=>{alive=false}},[travelRequest,outdoors,pending])
   const travelTo=(zone:import('../game/types').ZoneId)=>{if(s.action||s.job||s.household?.journey)return;if(outdoors)street.current?.requestTravel(zone);else{setTravelRequest(zone);dispatch({type:'leaveHome'})}}
   const host=s.location?.host?neighborhood.neighbors.find(n=>n.identity===s.location.host):undefined
-  const roomState=host?{...s,home:host.home,meters:{...s.meters,housingTier:host.housingTier}}:s
+  const roomState=host?{...s,home:host.home,meters:{...s.meters,housingTier:host.housingTier}}:s.location.venue?{...s,home:{...s.home,style:HOME_STYLES[s.currentZone%5]}}:s
   const requestAction=(kind:Parameters<RoomHandle['request']>[0],id?:string)=>{if(outdoors)street.current?.requestAction(kind);else room.current?.request(kind,id)}
   const dispatchJob=useCallback((command:Command)=>{if(command.type==='startJob'){if(s.location?.kind==='street')street.current?.requestJob(command);else room.current?.requestJob(command)}else dispatch(command)},[dispatch,s.location.kind])
   const event=getTodaysEvent(s.lastSaved)
@@ -79,7 +79,7 @@ export default function GameHUD({gameState,revision,traits,preview,onExit}:Props
       <details className="panel"><summary>NFT traits & abilities</summary>{traits.length?traits.map(t=><p key={t.trait_type} className="trait-row"><span>{t.trait_type}</span><strong>{t.value}</strong></p>):<p className="muted">Neutral preview. No NFT traits are assigned.</p>}<p className="muted mt-3">Income ×{s.stats.incomeMultiplier.toFixed(2)} · Decay ×{s.stats.meterDecayMultiplier.toFixed(2)} · Social +{s.stats.socialGainRate}</p><p className="muted">Unsupported visual traits use a neutral rendering; original traits remain listed here.</p></details>
       <p className="preview-note">{shared?'Progress is stored for your NFT in the shared world.':'Progress is stored in this browser for this NFT. Shared persistence requires the game service.'} 1 real minute = 10 game minutes. gCHOG is game currency.</p>
     </aside></div>
-    {selectedObject&&<ObjectDialog key={selectedObject.id??selectedObject.family} object={selectedObject.family} state={s} gas={gas} onChoose={kind=>{requestAction(kind,selectedObject.id);setSelectedObject(null)}} onClose={()=>setSelectedObject(null)} onPetCare={kind=>{dispatch({type:'carePet',kind});setSelectedObject(null)}} onStartValidator={()=>{dispatchJob({type:'startJob',kind:'validator'});setTab('jobs');setSelectedObject(null)}}/>}
+    {selectedObject&&<ObjectDialog key={selectedObject.id??selectedObject.family} object={selectedObject.family} objectId={selectedObject.id} state={s} gas={gas} onChoose={kind=>{requestAction(kind,selectedObject.id);setSelectedObject(null)}} onClose={()=>setSelectedObject(null)} onPetCare={kind=>{dispatch({type:'carePet',kind});setSelectedObject(null)}} onStartValidator={()=>{dispatchJob({type:'startJob',kind:'validator'});setTab('jobs');setSelectedObject(null)}}/>}
     {selectedNpc&&<NpcDialog id={selectedNpc} state={s} onClose={()=>setSelectedNpc(null)} onTalk={topic=>{room.current?.requestNpc(selectedNpc,topic);setSelectedNpc(null)}}/>}
   </main>
 }

@@ -1,0 +1,516 @@
+{
+  "humans": {
+    "female": [
+      {
+        "key": "human-female-v1-0",
+        "url": "/art/anime/assets/human-female-v1-0.webp",
+        "width": 137,
+        "height": 376
+      },
+      {
+        "key": "human-female-v1-1",
+        "url": "/art/anime/assets/human-female-v1-1.webp",
+        "width": 218,
+        "height": 371
+      },
+      {
+        "key": "human-female-v1-2",
+        "url": "/art/anime/assets/human-female-v1-2.webp",
+        "width": 126,
+        "height": 372
+      },
+      {
+        "key": "human-female-v1-3",
+        "url": "/art/anime/assets/human-female-v1-3.webp",
+        "width": 227,
+        "height": 355
+      },
+      {
+        "key": "human-female-v1-4",
+        "url": "/art/anime/assets/human-female-v1-4.webp",
+        "width": 186,
+        "height": 325
+      },
+      {
+        "key": "human-female-v1-5",
+        "url": "/art/anime/assets/human-female-v1-5.webp",
+        "width": 402,
+        "height": 109
+      },
+      {
+        "key": "human-female-v1-6",
+        "url": "/art/anime/assets/human-female-v1-6.webp",
+        "width": 151,
+        "height": 383
+      },
+      {
+        "key": "human-female-v1-7",
+        "url": "/art/anime/assets/human-female-v1-7.webp",
+        "width": 231,
+        "height": 379
+      },
+      {
+        "key": "human-female-v1-8",
+        "url": "/art/anime/assets/human-female-v1-8.webp",
+        "width": 132,
+        "height": 383
+      },
+      {
+        "key": "human-female-v1-9",
+        "url": "/art/anime/assets/human-female-v1-9.webp",
+        "width": 238,
+        "height": 333
+      },
+      {
+        "key": "human-female-v1-10",
+        "url": "/art/anime/assets/human-female-v1-10.webp",
+        "width": 215,
+        "height": 318
+      },
+      {
+        "key": "human-female-v1-11",
+        "url": "/art/anime/assets/human-female-v1-11.webp",
+        "width": 412,
+        "height": 110
+      }
+    ],
+    "male": [
+      {
+        "key": "human-male-v1-0",
+        "url": "/art/anime/assets/human-male-v1-0.webp",
+        "width": 151,
+        "height": 442
+      },
+      {
+        "key": "human-male-v1-1",
+        "url": "/art/anime/assets/human-male-v1-1.webp",
+        "width": 234,
+        "height": 413
+      },
+      {
+        "key": "human-male-v1-2",
+        "url": "/art/anime/assets/human-male-v1-2.webp",
+        "width": 152,
+        "height": 432
+      },
+      {
+        "key": "human-male-v1-3",
+        "url": "/art/anime/assets/human-male-v1-3.webp",
+        "width": 226,
+        "height": 406
+      },
+      {
+        "key": "human-male-v1-4",
+        "url": "/art/anime/assets/human-male-v1-4.webp",
+        "width": 186,
+        "height": 333
+      },
+      {
+        "key": "human-male-v1-5",
+        "url": "/art/anime/assets/human-male-v1-5.webp",
+        "width": 285,
+        "height": 96
+      },
+      {
+        "key": "human-male-v1-6",
+        "url": "/art/anime/assets/human-male-v1-6.webp",
+        "width": 169,
+        "height": 495
+      },
+      {
+        "key": "human-male-v1-7",
+        "url": "/art/anime/assets/human-male-v1-7.webp",
+        "width": 252,
+        "height": 468
+      },
+      {
+        "key": "human-male-v1-8",
+        "url": "/art/anime/assets/human-male-v1-8.webp",
+        "width": 179,
+        "height": 491
+      },
+      {
+        "key": "human-male-v1-9",
+        "url": "/art/anime/assets/human-male-v1-9.webp",
+        "width": 253,
+        "height": 462
+      },
+      {
+        "key": "human-male-v1-10",
+        "url": "/art/anime/assets/human-male-v1-10.webp",
+        "width": 217,
+        "height": 370
+      },
+      {
+        "key": "human-male-v1-11",
+        "url": "/art/anime/assets/human-male-v1-11.webp",
+        "width": 449,
+        "height": 136
+      }
+    ],
+    "neutral": [
+      {
+        "key": "human-neutral-v1-0",
+        "url": "/art/anime/assets/human-neutral-v1-0.webp",
+        "width": 137,
+        "height": 375
+      },
+      {
+        "key": "human-neutral-v1-1",
+        "url": "/art/anime/assets/human-neutral-v1-1.webp",
+        "width": 234,
+        "height": 370
+      },
+      {
+        "key": "human-neutral-v1-2",
+        "url": "/art/anime/assets/human-neutral-v1-2.webp",
+        "width": 145,
+        "height": 372
+      },
+      {
+        "key": "human-neutral-v1-3",
+        "url": "/art/anime/assets/human-neutral-v1-3.webp",
+        "width": 243,
+        "height": 332
+      },
+      {
+        "key": "human-neutral-v1-4",
+        "url": "/art/anime/assets/human-neutral-v1-4.webp",
+        "width": 222,
+        "height": 312
+      },
+      {
+        "key": "human-neutral-v1-5",
+        "url": "/art/anime/assets/human-neutral-v1-5.webp",
+        "width": 380,
+        "height": 110
+      },
+      {
+        "key": "human-neutral-v1-6",
+        "url": "/art/anime/assets/human-neutral-v1-6.webp",
+        "width": 148,
+        "height": 375
+      },
+      {
+        "key": "human-neutral-v1-7",
+        "url": "/art/anime/assets/human-neutral-v1-7.webp",
+        "width": 244,
+        "height": 374
+      },
+      {
+        "key": "human-neutral-v1-8",
+        "url": "/art/anime/assets/human-neutral-v1-8.webp",
+        "width": 159,
+        "height": 374
+      },
+      {
+        "key": "human-neutral-v1-9",
+        "url": "/art/anime/assets/human-neutral-v1-9.webp",
+        "width": 248,
+        "height": 332
+      },
+      {
+        "key": "human-neutral-v1-10",
+        "url": "/art/anime/assets/human-neutral-v1-10.webp",
+        "width": 220,
+        "height": 310
+      },
+      {
+        "key": "human-neutral-v1-11",
+        "url": "/art/anime/assets/human-neutral-v1-11.webp",
+        "width": 365,
+        "height": 115
+      }
+    ]
+  },
+  "furniture": {
+    "bed": [
+      {
+        "key": "furniture-v1-0",
+        "url": "/art/anime/assets/furniture-v1-0.webp",
+        "width": 313,
+        "height": 287
+      },
+      {
+        "key": "furniture-v1-1",
+        "url": "/art/anime/assets/furniture-v1-1.webp",
+        "width": 307,
+        "height": 287
+      }
+    ],
+    "kitchen": [
+      {
+        "key": "furniture-v1-2",
+        "url": "/art/anime/assets/furniture-v1-2.webp",
+        "width": 268,
+        "height": 289
+      },
+      {
+        "key": "furniture-v1-3",
+        "url": "/art/anime/assets/furniture-v1-3.webp",
+        "width": 264,
+        "height": 288
+      }
+    ],
+    "desk": [
+      {
+        "key": "furniture-v1-4",
+        "url": "/art/anime/assets/furniture-v1-4.webp",
+        "width": 295,
+        "height": 284
+      },
+      {
+        "key": "furniture-v1-5",
+        "url": "/art/anime/assets/furniture-v1-5.webp",
+        "width": 269,
+        "height": 281
+      }
+    ],
+    "sofa": [
+      {
+        "key": "furniture-v1-6",
+        "url": "/art/anime/assets/furniture-v1-6.webp",
+        "width": 339,
+        "height": 275
+      },
+      {
+        "key": "furniture-v1-7",
+        "url": "/art/anime/assets/furniture-v1-7.webp",
+        "width": 300,
+        "height": 262
+      }
+    ],
+    "bowl": [
+      {
+        "key": "furniture-v1-8",
+        "url": "/art/anime/assets/furniture-v1-8.webp",
+        "width": 212,
+        "height": 156
+      },
+      {
+        "key": "furniture-v1-9",
+        "url": "/art/anime/assets/furniture-v1-9.webp",
+        "width": 201,
+        "height": 151
+      }
+    ],
+    "plant": [
+      {
+        "key": "furniture-v1-10",
+        "url": "/art/anime/assets/furniture-v1-10.webp",
+        "width": 279,
+        "height": 269
+      },
+      {
+        "key": "furniture-v1-11",
+        "url": "/art/anime/assets/furniture-v1-11.webp",
+        "width": 288,
+        "height": 263
+      }
+    ],
+    "lamp": [
+      {
+        "key": "furniture-v1-12",
+        "url": "/art/anime/assets/furniture-v1-12.webp",
+        "width": 115,
+        "height": 283
+      },
+      {
+        "key": "furniture-v1-13",
+        "url": "/art/anime/assets/furniture-v1-13.webp",
+        "width": 122,
+        "height": 282
+      }
+    ],
+    "shelf": [
+      {
+        "key": "furniture-v1-14",
+        "url": "/art/anime/assets/furniture-v1-14.webp",
+        "width": 218,
+        "height": 296
+      },
+      {
+        "key": "furniture-v1-15",
+        "url": "/art/anime/assets/furniture-v1-15.webp",
+        "width": 213,
+        "height": 294
+      }
+    ]
+  },
+  "buildings": [
+    {
+      "key": "city-buildings-v1-0",
+      "url": "/art/anime/assets/city-buildings-v1-0.webp",
+      "width": 499,
+      "height": 499
+    },
+    {
+      "key": "city-buildings-v1-1",
+      "url": "/art/anime/assets/city-buildings-v1-1.webp",
+      "width": 517,
+      "height": 505
+    },
+    {
+      "key": "city-buildings-v1-2",
+      "url": "/art/anime/assets/city-buildings-v1-2.webp",
+      "width": 480,
+      "height": 514
+    },
+    {
+      "key": "city-buildings-v1-3",
+      "url": "/art/anime/assets/city-buildings-v1-3.webp",
+      "width": 509,
+      "height": 472
+    },
+    {
+      "key": "city-buildings-v1-4",
+      "url": "/art/anime/assets/city-buildings-v1-4.webp",
+      "width": 501,
+      "height": 493
+    },
+    {
+      "key": "city-buildings-v1-5",
+      "url": "/art/anime/assets/city-buildings-v1-5.webp",
+      "width": 508,
+      "height": 506
+    }
+  ],
+  "materials": [
+    {
+      "key": "material-v1-0",
+      "url": "/art/anime/assets/material-v1-0.webp",
+      "width": 507,
+      "height": 330
+    },
+    {
+      "key": "material-v1-1",
+      "url": "/art/anime/assets/material-v1-1.webp",
+      "width": 512,
+      "height": 330
+    },
+    {
+      "key": "material-v1-2",
+      "url": "/art/anime/assets/material-v1-2.webp",
+      "width": 506,
+      "height": 331
+    },
+    {
+      "key": "material-v1-3",
+      "url": "/art/anime/assets/material-v1-3.webp",
+      "width": 507,
+      "height": 342
+    },
+    {
+      "key": "material-v1-4",
+      "url": "/art/anime/assets/material-v1-4.webp",
+      "width": 509,
+      "height": 341
+    },
+    {
+      "key": "material-v1-5",
+      "url": "/art/anime/assets/material-v1-5.webp",
+      "width": 506,
+      "height": 349
+    }
+  ],
+  "outdoor": [
+    {
+      "key": "outdoor-v1-0",
+      "url": "/art/anime/assets/outdoor-v1-0.webp",
+      "width": 349,
+      "height": 319
+    },
+    {
+      "key": "outdoor-v1-1",
+      "url": "/art/anime/assets/outdoor-v1-1.webp",
+      "width": 358,
+      "height": 319
+    },
+    {
+      "key": "outdoor-v1-2",
+      "url": "/art/anime/assets/outdoor-v1-2.webp",
+      "width": 375,
+      "height": 486
+    },
+    {
+      "key": "outdoor-v1-3",
+      "url": "/art/anime/assets/outdoor-v1-3.webp",
+      "width": 357,
+      "height": 468
+    },
+    {
+      "key": "outdoor-v1-4",
+      "url": "/art/anime/assets/outdoor-v1-4.webp",
+      "width": 396,
+      "height": 314
+    },
+    {
+      "key": "outdoor-v1-5",
+      "url": "/art/anime/assets/outdoor-v1-5.webp",
+      "width": 395,
+      "height": 311
+    },
+    {
+      "key": "outdoor-v1-6",
+      "url": "/art/anime/assets/outdoor-v1-6.webp",
+      "width": 167,
+      "height": 491
+    },
+    {
+      "key": "outdoor-v1-7",
+      "url": "/art/anime/assets/outdoor-v1-7.webp",
+      "width": 171,
+      "height": 493
+    }
+  ],
+  "architecture": [
+    {
+      "key": "architecture-v1-0",
+      "url": "/art/anime/assets/architecture-v1-0.webp",
+      "width": 326,
+      "height": 533
+    },
+    {
+      "key": "architecture-v1-1",
+      "url": "/art/anime/assets/architecture-v1-1.webp",
+      "width": 313,
+      "height": 541
+    },
+    {
+      "key": "architecture-v1-2",
+      "url": "/art/anime/assets/architecture-v1-2.webp",
+      "width": 252,
+      "height": 380
+    },
+    {
+      "key": "architecture-v1-3",
+      "url": "/art/anime/assets/architecture-v1-3.webp",
+      "width": 247,
+      "height": 374
+    },
+    {
+      "key": "architecture-v1-4",
+      "url": "/art/anime/assets/architecture-v1-4.webp",
+      "width": 359,
+      "height": 439
+    },
+    {
+      "key": "architecture-v1-5",
+      "url": "/art/anime/assets/architecture-v1-5.webp",
+      "width": 338,
+      "height": 403
+    },
+    {
+      "key": "architecture-v1-6",
+      "url": "/art/anime/assets/architecture-v1-6.webp",
+      "width": 207,
+      "height": 266
+    },
+    {
+      "key": "architecture-v1-7",
+      "url": "/art/anime/assets/architecture-v1-7.webp",
+      "width": 192,
+      "height": 275
+    }
+  ]
+}

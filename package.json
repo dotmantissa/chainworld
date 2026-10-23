@@ -25,7 +25,9 @@
     "faucet:enable": "tsx --env-file=.env scripts/enable-faucet.ts",
     "faucet:check": "tsx --env-file=.env scripts/enable-faucet.ts --check",
     "faucet:configure": "tsx --env-file=.env scripts/enable-faucet.ts --configure",
-    "test:indoor-database": "tsx --env-file=.env scripts/test-indoor-database.ts"
+    "test:indoor-database": "tsx --env-file=.env scripts/test-indoor-database.ts",
+    "households:audit": "tsx scripts/audit-households.ts",
+    "test:household-database": "tsx --env-file=.env scripts/test-household-database.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",

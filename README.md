@@ -1,8 +1,8 @@
 # Chain World
 
-A Chog NFT life simulator on Monad Testnet. Explore five blockchain cities, live as your Chog NFT, interact with furniture and neighbors, earn gCHOG, customize your home and expand your estate.
+A browser life simulator on Monad Testnet. Play a human resident with a separate Chog pet, build a home, visit five blockchain cities and form friendships. The Chog NFT owns the household's identity, property, balance and progression.
 
-The proposed next architecture is documented in [Households, Chog pets and a playable living world](docs/life-simulation-architecture.md). It changes the player model to a human with a separate Chog pet and specifies anime-inspired modular graphics, real Build/Buy housing, place-based interactions, inhabited cities, travel and relationships around the NFT household. These changes are planned; the runnable build described below still uses the Chog as its controlled resident.
+The current build implements the human/pet household, editable modular homes, physical object interactions, enterable city venues, timed travel and persistent NPC friendships described in the [life-simulation architecture](docs/life-simulation-architecture.md). See [implementation status](docs/implementation-status.md) for verified behavior and remaining work. Graphics use detailed painted anime characters, independent furniture and city assets, with layouts and collision driven by saved game geometry.
 
 ## Run locally
 
@@ -18,19 +18,21 @@ npm run dev
 
 Open **http://localhost:5175** and choose **Explore a local preview**. The preview requires no wallet or database and uses the supplied purple spiky Chog reference. Use **Explore the collection** to browse the original 1,969 Chogs and try a specific NFT locally. It saves locally and is separate from NFT progression.
 
-For shared NFT play, set `VITE_SHARED_WORLD=true`, connect an injected wallet on Monad Testnet, click **Claim free Test Chog**, confirm the gas transaction, then choose **Verify wallet & enter**. The newly minted resident is selected automatically. Existing owners can select their NFT, including token 0, and sign the login challenge. The backend reads original traits, checks current NFT ownership, and stores progression by chain, collection and token. It never accepts a client balance, reward, clock or gas quote as authority. Keep `DATABASE_URL` server-side. Set `APP_ORIGIN` to the exact public origin when hosting.
+For shared NFT play, set `VITE_SHARED_WORLD=true`, connect an injected wallet on Monad Testnet, click **Claim free Test Chog**, confirm the gas transaction, then choose **Verify wallet & enter**. The newly minted Chog is selected automatically. Choose a human name and sex/gender during signup; NFT traits seed the character’s presentation. Existing owners can select their NFT, including token 0, and sign the login challenge. The backend reads original traits, checks current NFT ownership, and stores progression by chain, collection and token. It never accepts a client balance, reward, clock or gas quote as authority. Keep `DATABASE_URL` server-side. Set `APP_ORIGIN` to the exact public origin when hosting.
 
 Set `VITE_SHARED_WORLD=false` for a browser-only prototype. These local saves do not synchronize across devices and are never imported into the authoritative economy.
 
 ## Play
 
 - Click/tap furniture to open its action dialog, or use the corresponding controls below the room. Opening a dialog costs nothing.
-- The resident walks around furniture before acting. Beds support rest and sleep; kitchens support meals and snacks; the workstation supports shifts, projects and liquidity work; the reading nook supports calls and quiet reading.
-- Activities show seated, eating or sleeping poses. Up to three future actions can be queued. Canceling before an interaction starts costs nothing; consumed resources are not refunded.
-- Choose **Customize resident** to set a name, sex/gender and optional pronouns. These are editable and never alter NFT rarity, appearance or starting wealth.
+- The human walks around furniture and walls before acting. The separate Chog follows on walkable routes. Beds support rest and sleep; kitchens support meals and snacks; the workstation supports shifts, projects and liquidity work; the reading nook supports calls and quiet reading.
+- Desks and sofas use sitting poses, beds use a lying sleeping pose, and kitchens/bookcases use standing interactions. Up to three future actions can be queued. Canceling before an interaction starts costs nothing; consumed resources are not refunded.
+- Choose **Customize resident** to set a name, sex/gender and optional pronouns. These are editable. Sex/gender selects the human presentation family and never changes the Chog, rarity or household wealth.
 - Choose **Leave home & explore** for timed, collision-aware street walking. Select a café, coworking club, park, tram station, home or resident to choose an interaction. City services require the resident to reach them.
 - In shared play, visit open homes, wave/chat/high-five nearby online residents, purchase adjacent available parcels, or fund an offer to their owner. Accepting transfers land and pays its seller atomically; rejecting/canceling refunds held funds once. Home parcels and estate connectivity are protected.
-- Select an interior palette and visitor access in **Your life**. Land and home state follow the resident NFT.
+- Open **Build & buy** to purchase, place, move, rotate, store or sell furniture; add partitions and doors; and extend usable floor within owned land capacity. Placement preserves reachable floors and object access. Set the interior palette and visitor access in **Your life**.
+- Enter cafés, workplaces and parks from their entrances. Meet each city’s local NPCs and build persistent friendships through conversations. Park benches support free reading and social recovery.
+- Use **Travel** to walk to the tram station and board a timed trip. Trips survive reload and charge once. Your Chog and household identity travel together; your home stays where you built it.
 - Work earns gCHOG, XP and reputation. Claim completed milestones and spend earnings on home upgrades. Better beds restore more energy.
 - Jobs include a timed Block Validator challenge, fresh-quote Gwei Grifter predictions, and Liquidity Hermit income. Sessions and cooldowns survive tabs/reloads. Tied or unavailable gas observations pay nothing.
 - Hunger, energy and social decay continuously. One real minute is ten game minutes. Zero funds never destroys a home; rest, social care, Sanctuary and travel home remain free. Emergency rations help residents with critically low food and funds.
@@ -42,7 +44,7 @@ The live unofficial Test Chog faucet is [`0x9fcC2FB7487A3530809f45DFD9bb419EA2E0
 
 All 1,969 original metadata records were fetched from contract tokenURI mappings at Monad mainnet block **115722652**. The original IDs are 1–1969; filenames are shuffled (token 1 references `1462.json`). The source, all 13 trait categories, hashes, rarity ranks and proofs are committed in the generated artifacts. Run `npm run metadata:audit` to reproduce every hash and proof. See [source provenance](docs/chog-source.md).
 
-Characters retain original portraits and raw traits; Skin controls color and Body controls clothing. The reference resident and original token 1 have distinct rendered directional/action sprites; remaining residents use a trait-based interpretation with their authentic portrait. Shared verified rarity is assigned only after the configured source-mapped faucet and manifest root match. Legacy unverified test NFTs still receive a labeled basic package.
+Chog pets retain authentic portraits and raw traits; Skin controls color and Body controls clothing. The reference and original token 1 have detailed directional pet sprites; other Chogs use a trait-based interpretation. Humans are separate, with NFT-seeded choices across six painted identities and four clothing palettes, plus standing, walking, sitting and sleeping poses. New verified households use the original metadata **Tier** for starting funds, furniture and land. Cash plus initial furniture value shares one move-in budget; Common homes can start empty. Existing households keep their earned assets without another grant. Shared verified rarity is assigned only after the configured source-mapped faucet and manifest root match. Legacy unverified test NFTs still receive a labeled basic package.
 
 `ChainWorldTestChog.sol` implements an **unofficial testnet spinoff**, one lifetime claim per wallet, transferable enumerated tokens, a maximum supply of 1,969, and exact original-token/URI mapping committed by an immutable Merkle root. Assignment is deterministic; it is not secure randomness or Sybil protection. Claims require test MON for network gas.
 
@@ -70,7 +72,7 @@ The live deployment is recorded in [faucet-monad-testnet.json](data/deployments/
 
 All five read mainnet gas; NFTs and registration currently use Monad Testnet. Sanctuary is a free recovery space. Meals, upgrades, fares, land and upkeep use a bounded per-chain gas-to-gCHOG game index. Baselines normalize native-chain gas units; this is a game exchange rule, not a quoted ERC20 market price. Unavailable quotes use a visible nominal baseline; stale observations retain their timestamp.
 
-Shared parcels, offers, presence and social events currently use Neon transactions. `ChainWorldLand.sol` separately implements NFT-bound onchain parcels, rarity proofs, signed price quotes, ERC20 offer escrow/refunds and connected-estate checks. It is tested but **not deployed or connected as the current property authority**. Activation requires the actual currency contract, an operator quote signer, deployment and event indexing. An unrestricted build editor, structural room extensions and full trait animation coverage remain unfinished.
+Shared parcels, offers, presence and social events currently use Neon transactions. `ChainWorldLand.sol` separately implements NFT-bound onchain parcels, rarity proofs, signed price quotes, ERC20 offer escrow/refunds and connected-estate checks. It is tested but **not deployed or connected as the current property authority**. Activation requires the actual currency contract, an operator quote signer, deployment and event indexing. Editable furniture, partitions/doors and floor extensions are implemented. Exact parcel-shaped building footprints, multiple floors, full human relationship simulation and complete Chog trait animation coverage remain future work.
 
 ## Registry and deployment
 

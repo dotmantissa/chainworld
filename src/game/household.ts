@@ -1,6 +1,7 @@
 import type {GameState} from './types'
 import type {Tile} from '../world/navigation'
 import {entryTile,houseSeed,starterBlueprint,type Blueprint} from './housing'
+import {estateDefault,HOME_STYLES,frontDoor} from './neighborhood'
 export interface IndoorJourney {from:Tile;path:Tile[];startedAt:number;endsAt:number}
 export interface Household {
  schema:1;seed:number;sourceTier:string;grant:'legacy-rank-v1'|'source-tier-v1';blueprint:Blueprint;humanTile:Tile
@@ -15,9 +16,10 @@ export function ensureHousehold(s:GameState):GameState{
  return {...s,unlockedZones:[0,1,2,3,4,5],household:{schema:1,seed,sourceTier:s.appearance.sourceTier??'Unverified',grant:'legacy-rank-v1',blueprint,humanTile:entryTile(blueprint),journey:null,pendingUse:null,pet:{hunger:90,energy:90,affection:70,bond:0,following:true,lastCare:0},relationships:{}}}
 }
 export function freshHousehold(s:GameState):GameState{
+ if(s.household)return ensureHousehold(s)
  const tier=s.appearance.sourceTier as keyof typeof SOURCE_PACKAGES,pack=s.rarityVerified?SOURCE_PACKAGES[tier]:undefined
  if(!pack)return ensureHousehold(s)
- const seed=houseSeed(s),blueprint=starterBlueprint(seed,pack.level),next=ensureHousehold({...s,meters:{...s.meters,housingTier:pack.level}})
+ const seed=houseSeed(s),blueprint=starterBlueprint(seed,pack.level),meters={...s.meters,housingTier:pack.level},home={...estateDefault({...s,meters}),style:HOME_STYLES[(seed>>>16)%HOME_STYLES.length]},next=ensureHousehold({...s,meters,home,location:{...s.location,tile:frontDoor(home)}})
  const value=blueprint.objects.reduce((sum,o)=>sum+({bed:45,kitchen:60,desk:65,sofa:35,bowl:15,plant:12,lamp:18,shelf:30})[o.type],0)
  return {...next,gChog:pack.funds-value,household:{...next.household!,sourceTier:tier,grant:'source-tier-v1',blueprint,humanTile:entryTile(blueprint)}}
 }

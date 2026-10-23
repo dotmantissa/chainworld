@@ -43,7 +43,7 @@ BEGIN
  IF n>=3 THEN
   INSERT INTO cw_parcels VALUES(c,d,px,py+1,game_key);pads=pads||jsonb_build_array(jsonb_build_object('x',px,'y',py+1));
  END IF;
- UPDATE cw_games SET state=jsonb_set(jsonb_set(state,'{home}',jsonb_build_object('city',c,'district',d,'x',px,'y',py,'plots',pads,'style','linen','open',true)),'{location}',jsonb_build_object('kind','home','tile',jsonb_build_object('x',3+px*4,'y',7+py*4),'journey',null)),revision=revision+1 WHERE identity=game_key;
+ UPDATE cw_games SET state=jsonb_set(jsonb_set(state,'{home}',jsonb_build_object('city',c,'district',d,'x',px,'y',py,'plots',pads,'style',CASE WHEN g.state->'home'->>'style' IN ('linen','sage','lavender','terracotta','midnight') THEN g.state->'home'->>'style' ELSE 'linen' END,'open',true)),'{location}',jsonb_build_object('kind','home','tile',jsonb_build_object('x',3+px*4,'y',7+py*4),'journey',null)),revision=revision+1 WHERE identity=game_key;
 END; $$;
 `
 export const worldCommitFunction=`
