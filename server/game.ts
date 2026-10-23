@@ -70,6 +70,7 @@ export default endpoint(async(req,res)=>{
     state={...state,stats:derived.stats,appearance:{...derived.appearance,sourceImage:metadata.image,sourceName:metadata.name}}
   }
   state=ensureHousehold(state)
+  state={...state,location:{...state.location,district:state.location.district??(state.currentZone===state.home.city?state.home.district:0)}}
   if(state.location.kind==='visit'&&state.location.host){
     const hosts=await sql`SELECT state FROM cw_games WHERE identity=${state.location.host}`
     const host=hosts[0]?.state as GameState|undefined
@@ -91,9 +92,9 @@ export default endpoint(async(req,res)=>{
     const hosts=await sql`SELECT state FROM cw_games WHERE identity=${command.host}`
     const host=hosts[0]?.state as GameState|undefined
     if(!host?.home?.open)throw new HttpError(400,'This resident’s home is closed to visitors.')
-    if(state.location.kind!=='street'||state.location.journey||state.action||state.job||state.currentZone!==host.home.city||state.home.district!==host.home.district||distance(state.location.tile,frontDoor(host.home))>1)throw new HttpError(400,'Walk to this resident’s front door first.')
+    if(state.location.kind!=='street'||state.location.journey||state.action||state.job||state.currentZone!==host.home.city||state.location.district!==host.home.district||distance(state.location.tile,frontDoor(host.home))>1)throw new HttpError(400,'Walk to this resident’s front door first.')
     const hostState=ensureHousehold(host),blueprint={...hostState.household!.blueprint,objects:hostState.household!.blueprint.objects.filter(o=>!o.stored)}
-    state={...state,household:{...state.household!,humanTile:entryTile(blueprint),journey:null,pendingUse:null},location:{kind:'visit',tile:frontDoor(host.home),host:command.host,journey:null,interior:blueprint},lastMessage:`Visiting ${host.profile?.name||`Chog #${host.tokenId}`}.`}
+    state={...state,household:{...state.household!,humanTile:entryTile(blueprint),journey:null,pendingUse:null},location:{kind:'visit',tile:frontDoor(host.home),district:host.home.district,host:command.host,journey:null,interior:blueprint},lastMessage:`Visiting ${host.profile?.name||`Chog #${host.tokenId}`}.`}
     command={type:'tick'}
   }
   state=unlockEarnedZones(reduceGame(state,command,{now:command.type==='clickBlock'?receivedAt:Date.now(),gas}))
@@ -110,7 +111,7 @@ export default endpoint(async(req,res)=>{
     else{
       const pending=state.household?.pendingUse,objectId=pending?.objectId??state.action?.objectId??null
       const place=state.location.host??state.location.venue??key,until=pending?pending.arrivesAt+65000:state.action?.endsAt??Date.now()
-      committed=await sql`SELECT * FROM cw_commit_home(${key},${revision},${JSON.stringify(state)}::jsonb,${commandId}::uuid,${place},${objectId},${until+2000},${['buyFurniture','moveFurniture','storeFurniture','sellFurniture','expandRoom','editWall'].includes(command.type)})`
+      committed=await sql`SELECT * FROM cw_commit_home(${key},${revision},${JSON.stringify(state)}::jsonb,${commandId}::uuid,${place},${objectId},${until+2000},${['buyFurniture','moveFurniture','storeFurniture','sellFurniture','expandRoom','editWall','upgrade'].includes(command.type)})`
     }
   }catch(error){
     const text=error instanceof Error?error.message:''

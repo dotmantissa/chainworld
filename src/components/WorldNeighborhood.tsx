@@ -7,7 +7,8 @@ import type { Tile } from '../world/navigation'
 import type { StreetScene } from '../world/StreetScene'
 import ChogAvatar from './ChogAvatar'
 import { cityPrice } from '../game/zones'
-export interface NeighborhoodHandle {requestAction(kind:ActionKind):void;requestJob(command:Command):void}
+import {humanFor} from '../world/human'
+export interface NeighborhoodHandle {requestAction(kind:ActionKind):void;requestJob(command:Command):void;requestTravel(zone:ZoneId):void}
 interface Props {state:GameState;snapshot:NeighborhoodSnapshot;dispatch(command:Command):void;pending:boolean;blocked:boolean;gas:Partial<Record<ZoneId,number|null>>;onTravel():void}
 type Selection={type:'plot';tile:Tile}|{type:'service';index:number}|{type:'neighbor';neighbor:Neighbor}
 const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeighborhood(props,ref){
@@ -17,13 +18,13 @@ const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeigh
  useLayoutEffect(()=>{latest.current=props},[props]);useLayoutEffect(()=>{selectionRef.current=selection},[selection])
  const request=(tile:Tile,command:Command)=>{
   const s=latest.current.state
-  if(s.action||s.job||s.location.journey||latest.current.pending){setError('Finish your current activity or walk first.');return}
+  if(s.action||s.job||s.location.journey||s.location.trip||latest.current.pending){setError('Finish your current activity or walk first.');return}
   if(distance(s.location.tile,tile)<=1){props.dispatch(command);setSelection(null);return}
   if(streetPath(s.location.tile,tile)===null){setError('There is no walkable route to that spot.');return}
   setGoal({tile,command});props.dispatch({type:'walk',target:tile});setSelection(null);setError('')
  }
  const requestAction=(kind:ActionKind)=>{const service=SERVICES.find(s=>s.actions.includes(kind));if(service)request(service.approach,{type:'startAction',kind})}
- useImperativeHandle(ref,()=>({requestAction,requestJob:command=>request(SERVICES[1].approach,command)}))
+ useImperativeHandle(ref,()=>({requestAction,requestJob:command=>request(SERVICES[1].approach,command),requestTravel:zone=>request(SERVICES[3].approach,{type:'travel',zone})}))
  const {state:currentState,pending:currentPending,dispatch:sendCommand}=props
  useEffect(()=>{
   if(!goal||currentPending||currentState.location.journey)return
@@ -39,6 +40,7 @@ const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeigh
    scene.current=new StreetScene({state:()=>latest.current.state,snapshot:()=>latest.current.snapshot,blocked:()=>latest.current.pending||latest.current.blocked||selectionRef.current!==null,
     walk:tile=>{setGoal(null);latest.current.dispatch({type:'walk',target:tile})},selectPlot:tile=>{setSelection({type:'plot',tile});setError('')},selectService:index=>{setSelection({type:'service',index});setError('')},selectNeighbor:neighbor=>{setSelection({type:'neighbor',neighbor});setError('')},
     avatarSvg:neighbor=>{const s=latest.current.state;const html=renderToStaticMarkup(<ChogAvatar appearance={neighbor?.appearance??s.appearance} tier={s.rarityTier} size={128} portrait={false}/>);return html.slice(html.indexOf('<svg'),html.indexOf('</svg>')+6)},
+    humanSvg:neighbor=>{const s=latest.current.state;return humanFor(neighbor?{appearance:neighbor.appearance,profile:neighbor.profile,collection:neighbor.identity.split(':')[1],tokenId:neighbor.tokenId}:s)},
    })
    game=new Phaser.Game({type:Phaser.AUTO,parent:host.current,width:800,height:500,scene:scene.current,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},fps:{target:30},render:{antialias:true}})
   }).catch(()=>setError('The street could not load. Refresh to try again.'))
@@ -52,7 +54,7 @@ const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeigh
   <div className="street-controls"><button onClick={()=>request(frontDoor(s.home),{type:'enterHome'})} disabled={s.currentZone!==s.home.city||props.pending}>Walk home</button>{SERVICES.slice(0,3).map((service,index)=><button key={service.id} onClick={()=>setSelection({type:'service',index})}>{serviceName(s.currentZone,index)}</button>)}<button onClick={props.onTravel}>Tram & city travel</button></div>
   {error&&<p role="alert" className="notice">{error}</p>}
   {selection&&<StreetDialog onClose={()=>setSelection(null)}><>
-   {selection.type==='service'&&<><p className="eyebrow">AROUND THE NEIGHBORHOOD</p><h2>{serviceName(s.currentZone,selection.index)}</h2><p className="muted">Your resident walks here before the activity begins.</p>{SERVICES[selection.index].actions.map(kind=><button key={kind} disabled={s.gChog<actionCost(s,kind,props.gas)} onClick={()=>requestAction(kind)}>{ACTIONS[kind].label} · {actionCost(s,kind,props.gas)?`${actionCost(s,kind,props.gas)} gCHOG`:'Free'}</button>)}{selection.index===1&&<button onClick={()=>request(SERVICES[1].approach,{type:'startJob',kind:'validator'})}>Play Block Validator</button>}{selection.index===3&&<button onClick={()=>{setSelection(null);props.onTravel()}}>Choose a city</button>}</>}
+   {selection.type==='service'&&<><p className="eyebrow">AROUND THE NEIGHBORHOOD</p><h2>{serviceName(s.currentZone,selection.index)}</h2><p className="muted">Walk to the entrance, explore inside, meet someone, or use a service.</p>{selection.index<3&&<button className="primary" onClick={()=>request(SERVICES[selection.index].approach,{type:'enterVenue',venue:(['cafe','work','park']as const)[selection.index]})}>{selection.index===2?'Enter the park':'Go inside'}</button>}{SERVICES[selection.index].actions.map(kind=><button key={kind} disabled={s.gChog<actionCost(s,kind,props.gas)} onClick={()=>requestAction(kind)}>{ACTIONS[kind].label} · {actionCost(s,kind,props.gas)?`${actionCost(s,kind,props.gas)} gCHOG`:'Free'}</button>)}{selection.index===1&&<button onClick={()=>request(SERVICES[1].approach,{type:'startJob',kind:'validator'})}>Play Block Validator</button>}{selection.index===3&&<button onClick={()=>{setSelection(null);props.onTravel()}}>Choose a city</button>}</>}
    {selection.type==='plot'&&<><p className="eyebrow">PARCEL {selection.tile.x+1}, {selection.tile.y+1}</p><h2>{parcel?.identity===myIdentity?'Your estate':neighbor?`${neighbor.name}’s property`:'A little room to grow'}</h2><p className="muted">{parcel?'Owned land follows its resident NFT.':'This fenced parcel is available. Add land next to any parcel in your estate.'}</p>
     {parcel?.identity===myIdentity&&<button onClick={()=>request(frontDoor(s.home),{type:'enterHome'})}>Walk home & enter</button>}
     {neighbor&&parcel?.identity!==myIdentity&&<button disabled={!neighbor.home.open} onClick={()=>request(frontDoor(neighbor.home),{type:'enterHome',host:neighbor.identity})}>{neighbor.home.open?'Visit this home':'Home closed to visitors'}</button>}

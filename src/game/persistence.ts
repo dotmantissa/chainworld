@@ -2,7 +2,8 @@ import type { GameState, ZoneId } from './types'
 import { ACTIONS } from './gameEngine'
 import { parseEstate, DEFAULT_LOCATION, frontDoor, streetWalkable } from './neighborhood'
 import { DEFAULT_PROFILE, parseProfile } from './residentProfile'
-import {validBlueprint,houseWalkable} from './housing'
+import {validBlueprint,houseWalkable,entryTile} from './housing'
+import {venueOf,venueBlueprint,placeKey,npcById} from './places'
 
 export interface StorageLike { getItem(key: string): string | null; setItem(key: string, value: string): void }
 export function storageKey(s: Pick<GameState, 'chainId' | 'collection' | 'tokenId'>): string {
@@ -33,9 +34,17 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
       streak: v2 && finite(p.streak, 0, 1e9) ? p.streak : 0,
       unlockedZones: [...new Set<ZoneId>([...identity.unlockedZones, ...(Array.isArray(p.unlockedZones) ? p.unlockedZones.filter((z: unknown) => typeof z === 'number' && [0,1,2,3,4,5].includes(z)) : [])])],
     }
+    const venue=venueOf(p.location?.venue)
+    if(venue&&s.currentZone!==5)s.location={kind:'home',tile:p.location.tile??{x:5,y:3},journey:null,district:0,venue:placeKey(s.currentZone,venue),interior:venueBlueprint(s.currentZone,venue)}
     const h=p.household
-    if(h?.schema===1&&Number.isInteger(h.seed)&&['legacy-rank-v1','source-tier-v1'].includes(h.grant)&&typeof h.sourceTier==='string'&&h.blueprint&&validBlueprint(h.blueprint)&&houseWalkable(h.blueprint,h.humanTile)&&h.pet&&[h.pet.hunger,h.pet.energy,h.pet.affection,h.pet.bond].every((n:unknown)=>finite(n,0,100))&&typeof h.pet.following==='boolean'&&finite(h.pet.lastCare,0,Date.now()+300000)&&h.relationships&&typeof h.relationships==='object')s.household={...h,journey:null,pendingUse:null}
+    if(h?.schema===1&&Number.isInteger(h.seed)&&['legacy-rank-v1','source-tier-v1'].includes(h.grant)&&typeof h.sourceTier==='string'&&h.blueprint&&validBlueprint(h.blueprint)&&h.pet&&[h.pet.hunger,h.pet.energy,h.pet.affection,h.pet.bond].every((n:unknown)=>finite(n,0,100))&&typeof h.pet.following==='boolean'&&finite(h.pet.lastCare,0,Date.now()+300000)&&h.relationships&&typeof h.relationships==='object'){
+      const b=s.location.interior??h.blueprint,relationships:typeof h.relationships={}
+      for(const[id,r]of Object.entries(h.relationships) as [string,{friendship:number;meetings:number;lastMet:number;memory:string}][])if(npcById(id)&&finite(r.friendship,0,100)&&finite(r.meetings,0,1e9)&&finite(r.lastMet,0,Date.now()+300000)&&typeof r.memory==='string'&&r.memory.length<80)relationships[id]=r
+      s.household={...h,relationships,humanTile:h.humanTile&&houseWalkable(b,h.humanTile)?h.humanTile:entryTile(b),journey:null,pendingUse:null}
+    }
     if(p.location?.kind==='street'&&Number.isInteger(p.location.tile?.x)&&Number.isInteger(p.location.tile?.y)){const tile=p.location.tile;if(streetWalkable(tile))s.location={kind:'street',tile,journey:null}}
+    const trip=p.location?.trip
+    if(trip&&[0,1,2,3,4,5].includes(trip.zone)&&finite(trip.startedAt,0,s.lastSaved)&&finite(trip.endsAt,trip.startedAt,trip.startedAt+60000)&&finite(trip.fare,0,1e9))s.location={kind:'street',tile:{x:29,y:3},district:p.location.district??0,journey:null,trip}
     if (v2 && p.action && ['eat','snack','rest','sleep','socialize','unwind','work','focus','hermit'].includes(p.action.kind) && finite(p.action.id, 1, s.sequence) && finite(p.action.startedAt, 0, s.lastSaved) && finite(p.action.endsAt, p.action.startedAt, p.action.startedAt + 60000) && p.action.endsAt-p.action.startedAt === ACTIONS[p.action.kind as keyof typeof ACTIONS].duration) s.action = p.action
     const j = p.job
     if (v2 && j && ['validator','grifter'].includes(j.kind) && finite(j.id, 1, s.sequence) && finite(j.startedAt, 0, s.lastSaved) && finite(j.endsAt, j.startedAt, j.startedAt + 20000) && finite(j.seed, 0, 2147483647) && finite(j.score, 0, 330) && Array.isArray(j.clicked) && j.clicked.every((i: unknown) => Number.isInteger(i) && Number(i) >= 0 && Number(i) < 33) && j.zone === s.currentZone) {

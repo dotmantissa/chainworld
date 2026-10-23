@@ -8,6 +8,7 @@ import { DEFAULT_PROFILE, parseProfile, type ResidentProfile } from './residentP
 import {ensureHousehold} from './household'
 import {activeBlueprint,queueIndoor,queueObject,editHousing,stopIndoor,type HousingEdit} from './indoor'
 import {FURNITURE,entryTile,houseWalkable,validBlueprint} from './housing'
+import {placeKey,venueBlueprint,venueOf,npcById,TOPICS,type Venue} from './places'
 
 export const REAL_HOUR = 3_600_000
 export const SIMULATION_SPEED = 10
@@ -23,6 +24,8 @@ export const ACTIONS: Record<ActionKind, { duration: number; cost: number; label
   hermit: { duration: 60000, cost: 0, label: 'Provide liquidity' },
 }
 export type Command =
+  | {type:'enterVenue';venue:Venue}
+  | {type:'talkNpc';npcId:string;topic:keyof typeof TOPICS}
   | HousingEdit
   | {type:'moveIndoor';target:Tile}
   | {type:'useObject';objectId:string;kind:ActionKind}
@@ -166,7 +169,23 @@ export function blockIsValid(seed: number, index: number): boolean {
 export function reduceGame(state: GameState, command: Command, ctx: EngineContext): GameState {
   let s = settle(state, ctx)
   const now = Math.max(ctx.now, s.lastSaved)
+  if(s.location.trip&&command.type!=='tick'&&command.type!=='cancel')return message(s,'Enjoy the journey. Your tram is still in transit.')
   switch (command.type) {
+    case 'enterVenue':{
+      if(s.location.kind!=='street'||s.currentZone===5||s.location.journey||s.action||s.job)return message(s,'Finish your walk before entering a venue.')
+      const index=command.venue==='cafe'?0:command.venue==='work'?1:2
+      if(distance(s.location.tile,SERVICES[index].approach)>1)return message(s,'Walk to the venue entrance first.')
+      s=ensureHousehold(s);const blueprint=venueBlueprint(s.currentZone as Exclude<ZoneId,5>,command.venue)
+      return message({...s,household:{...s.household!,humanTile:entryTile(blueprint),journey:null,pendingUse:null},location:{...s.location,kind:'home',venue:placeKey(s.currentZone,command.venue),interior:blueprint,journey:null}},'Step inside. Select an object or meet someone nearby.')
+    }
+    case 'talkNpc':{
+      const npc=npcById(command.npcId),h=s.household
+      if(!npc||!h||s.currentZone!==npc.city||venueOf(s.location.venue)!==npc.venue||s.action||s.job||h.journey||distance(h.humanTile,npc)>2)return message(s,'Walk closer to this person inside their venue first.')
+      const previous=h.relationships[npc.id],repeat=previous&&now-previous.lastMet<15000
+      if(repeat)return message(s,`${npc.name} is enjoying the moment. Try another activity together first.`)
+      const friendship=Math.min(100,(previous?.friendship??0)+(previous?.memory===command.topic?3:8)),memory=command.topic
+      return message({...s,xp:s.xp+(previous?0:5),meters:{...s.meters,social:Math.min(100,s.meters.social+8)},household:{...h,relationships:{...h.relationships,[npc.id]:{friendship,meetings:(previous?.meetings??0)+1,lastMet:now,memory}}}},`${npc.name}: ${command.topic==='hobby'?`I love ${npc.interest}.`:command.topic==='chogs'?'Your Chog is welcome here anytime.':command.topic==='story'?'We should meet here again.':'It’s lovely to meet you!'} Friendship ${friendship}/100.`)
+    }
     case 'moveIndoor':if(s.location.kind==='street')return message(s,'Enter a building before walking inside.');return queueIndoor(s,command.target,now)
     case 'useObject':if(s.location.kind==='street')return message(s,'Enter the building before using its objects.');return arriveIndoor(queueObject(s,command.objectId,command.kind,now),{...ctx,now})
     case 'buyFurniture':case 'moveFurniture':case 'storeFurniture':case 'sellFurniture':case 'expandRoom':case 'editWall':return editHousing(s,command,n=>cityPrice(n,s.home.city,ctx.gas[s.home.city]))
@@ -175,8 +194,9 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
       if(command.kind==='follow')return message({...s,household:{...h,pet:{...p,following:!p.following}}},p.following?'Your Chog is resting at home.':'Your Chog will follow you.')
       if(s.action||s.job||s.location.journey||h.journey)return message(s,'Finish your activity before caring for your Chog.')
       if(p.lastCare&&now-p.lastCare<12000)return message(s,'Give your Chog a moment before another activity.')
-      if(command.kind==='feed'&&s.location.kind==='home'&&!h.blueprint.objects.some(o=>o.type==='bowl'&&!o.stored))return message(s,'Place a Chog bowl at home, or use the communal pet care in a city park.')
+      if(command.kind==='feed'&&s.location.kind==='home'&&!s.location.venue&&!h.blueprint.objects.some(o=>o.type==='bowl'&&!o.stored))return message(s,'Place a Chog bowl at home, or use the communal pet care in a city park.')
       if(s.location.kind==='visit')return message(s,'Care for your Chog at home or in the park.')
+      if(s.location.venue&&venueOf(s.location.venue)!=='park')return message(s,'Take your Chog home or to the park for pet care.')
       if(s.location.kind==='street'&&distance(s.location.tile,SERVICES[2].approach)>1)return message(s,'Walk to the park to care for your Chog outside.')
       const cost=command.kind==='feed'?cityPrice(8,s.currentZone,ctx.gas[s.currentZone]):0
       if(s.gChog<cost)return message(s,'Not enough household gCHOG for pet food.')
@@ -190,7 +210,7 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
     case 'leaveHome': {
       if(s.action||s.job||s.household?.journey)return message(s,'Finish or cancel your activity before going outside.')
       if(s.location?.kind==='street')return s
-      return message({...s,location:{kind:'street',tile:s.location?.kind==='visit'?s.location.tile:frontDoor(s.home),journey:null}},'Fresh air. Tap the pavement to walk, or select a building.')
+      return message({...s,location:{kind:'street',tile:s.location?.kind==='visit'||s.location.venue?s.location.tile:frontDoor(s.home),district:s.location.venue||s.location.kind==='visit'?s.location.district??0:s.home.district,journey:null}},'Fresh air. Tap the pavement to walk, or select a building.')
     }
     case 'walk': {
       if(s.location?.kind!=='street'||s.action||s.job||s.location.journey)return message(s,'Finish your current activity or walk first.')
@@ -211,7 +231,10 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
     }
     case 'buyLand':case 'offerLand':case 'respondOffer':case 'gesture':return message(s,'Connect your NFT to use the shared property and social service.')
     case 'registration': return { ...s, registeredLot: command.lot, registeredOnChain: command.lot !== null }
-    case 'cancel': return message({ ...stopIndoor(s,now), action: null, job: null, location:s.location?.journey?{...s.location,tile:journeyTile(s.location,now),journey:null}:s.location }, 'Action canceled. Consumed food and energy are not refunded.')
+    case 'cancel':{
+      if(s.location.trip){if(now-s.location.trip.startedAt>2000)return message(s,'The tram has departed. You will arrive shortly.');return message({...s,gChog:s.gChog+s.location.trip.fare,location:{...s.location,trip:undefined}},'Journey cancelled before boarding. Your fare was returned.')}
+      return message({ ...stopIndoor(s,now), action: null, job: null, location:s.location?.journey?{...s.location,tile:journeyTile(s.location,now),journey:null}:s.location }, 'Action canceled. Consumed food and energy are not refunded.')
+    }
     case 'startAction': {
       if(s.household&&s.location.kind!=='street')return message(s,'Select an actual object in this room to start an activity.')
       if (s.action || s.job) return message(s, 'Finish or cancel your current activity first.')
@@ -227,6 +250,14 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
         action: { id: s.sequence + 1, kind: command.kind, startedAt: now, endsAt: now + spec.duration }, lastMessage: `${spec.label}…` }
     }
     case 'travel': {
+      if(s.household){
+        if(s.action||s.job||s.location.journey||s.household.journey)return message(s,'Finish your current activity before traveling.')
+        if(command.zone===s.currentZone)return message(s,'You are already in this city.')
+        if(command.zone!==s.home.city&&command.zone!==5&&(s.location.kind!=='street'||distance(s.location.tile,SERVICES[3].approach)>1))return message(s,'Walk to the tram station before traveling to another city.')
+        const fare=command.zone===s.home.city||command.zone===5?0:travelCost(s.currentZone,command.zone,ctx.gas[command.zone])
+        if(s.gChog<fare)return message(s,`This trip costs ${fare} gCHOG. Returning home is free.`)
+        return message({...s,gChog:s.gChog-fare,location:{kind:'street',district:s.location.district??s.home.district,tile:{x:29,y:3},journey:null,trip:{zone:command.zone,startedAt:now,endsAt:now+10000+Math.abs(command.zone-s.currentZone)*1000,fare}}},`Boarding for ${ZONES[command.zone].name}. Your Chog’s household travels with you.`)
+      }
       if (s.action || s.job || s.location?.journey) return message(s, 'Finish or cancel your activity before traveling.')
       if (!s.unlockedZones.includes(command.zone)) return message(s, 'Earn XP to unlock this district.')
       const cost = command.zone===s.home.city?0:travelCost(s.currentZone, command.zone,ctx.gas[command.zone])

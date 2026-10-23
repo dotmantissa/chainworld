@@ -43,9 +43,9 @@ test('selecting real furniture opens choices without spending; selected action s
   await page.route('https://**/*',async route=>{if(route.request().postData()?.includes('eth_gasPrice'))await route.fulfill({json:{jsonrpc:'2.0',id:1,result:'0xba43b7400'}});else await route.abort()})
   await page.goto('/');await page.getByRole('button',{name:'Explore a local preview'}).click()
   await expect(page.locator('canvas')).toBeVisible();await page.waitForTimeout(1000)
-  const canvas=await page.locator('canvas').boundingBox();if(!canvas)throw new Error('Missing room canvas')
   const balanceBefore=await page.locator('.header-balance strong').innerText()
-  await page.mouse.click(canvas.x+285*canvas.width/800,canvas.y+180*canvas.height/500)
+  await page.getByText('Objects in this place',{exact:true}).click()
+  await page.getByRole('button',{name:'Little kitchen',exact:true}).click()
   await expect(page.getByRole('dialog')).toBeVisible()
   await expect(page.getByRole('heading',{name:'The kitchen',exact:true})).toBeVisible()
   await expect(page.locator('.header-balance strong')).toHaveText(balanceBefore)
@@ -115,7 +115,7 @@ test('resident identity persists and the character can leave home, walk to a caf
   expect(errors).toEqual([])
 })
 
-test('original collection previews use real traits and a distinct resident sprite',async({page})=>{
+test('original collection previews preserve the NFT pet and generate a separate human',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
   await page.route('https://**/*',async route=>{
     if(route.request().url().endsWith('/1462.webp'))await route.fulfill({path:'public/art/chog/source-1.webp',contentType:'image/webp'})
@@ -124,9 +124,10 @@ test('original collection previews use real traits and a distinct resident sprit
   })
   await page.goto('/');await page.getByRole('button',{name:'Explore the collection',exact:true}).click()
   await expect(page.locator('.collection-card')).toHaveCount(8)
-  const spriteLoaded=page.waitForResponse(response=>response.url().endsWith('/art/chog/source-1-resident-v1.webp'))
   await page.locator('.collection-card').first().getByRole('button',{name:'Try this resident'}).click()
-  expect((await spriteLoaded).ok()).toBe(true)
+  await expect(page.locator('.human-avatar')).toBeVisible()
+  await expect(page.locator('.pet-card')).toContainText('CHOG #1462')
+  await expect(page.locator('.resident-card')).toContainText('Uncommon Chog household')
   await expect(page.getByRole('heading',{name:'CHOG #1462',exact:true})).toBeVisible()
   await expect(page.locator('canvas')).toBeVisible()
   await page.getByText('NFT traits & abilities',{exact:true}).click()

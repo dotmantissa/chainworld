@@ -13,6 +13,10 @@ export function box(g:Phaser.GameObjects.Graphics,x:number,y:number,w:number,h:n
 export function drawRoom(scene:Phaser.Scene,b:Blueprint,style:string){
  const g=scene.add.graphics().setDepth(-500),a=houseIso({x:-.5,y:-.5}),left=houseIso({x:-.5,y:b.height-.5}),right=houseIso({x:b.width-.5,y:-.5})
  const palettes:Record<string,number>={linen:0xf1e7dd,sage:0xdce9d9,lavender:0xe5def0,terracotta:0xf0dbcb,midnight:0xc3d1e1}
+ if(b.environment==='park'){
+  for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){const p=houseIso({x,y});g.lineStyle(.7,0xa8bf88).fillStyle((x+y)%2?0xc8dba7:0xbdd29e).fillPoints([{x:p.x,y:p.y-13},{x:p.x+25,y:p.y},{x:p.x,y:p.y+13},{x:p.x-25,y:p.y}],true).strokePoints([{x:p.x,y:p.y-13},{x:p.x+25,y:p.y},{x:p.x,y:p.y+13},{x:p.x-25,y:p.y}],true);if((x*3+y)%7===0)g.fillStyle(0xffe6d7).fillCircle(p.x+4,p.y-2,2).fillStyle(0xf6d885).fillCircle(p.x-6,p.y,2)}
+  return g
+ }
  g.lineStyle(2,0x686172).fillStyle(palettes[style]??palettes.linen).fillPoints([a,left,{x:left.x,y:left.y-100},{x:a.x,y:a.y-100}],true).strokePoints([a,left,{x:left.x,y:left.y-100},{x:a.x,y:a.y-100}],true)
  g.fillStyle(0xf9f1df).fillPoints([a,right,{x:right.x,y:right.y-100},{x:a.x,y:a.y-100}],true).strokePoints([a,right,{x:right.x,y:right.y-100},{x:a.x,y:a.y-100}],true)
  for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){const p=houseIso({x,y});g.lineStyle(.65,0xbda68b,.5).fillStyle((x+y)%2?0xe5c69e:0xf0d5af).fillPoints([{x:p.x,y:p.y-13},{x:p.x+25,y:p.y},{x:p.x,y:p.y+13},{x:p.x-25,y:p.y}],true).strokePoints([{x:p.x,y:p.y-13},{x:p.x+25,y:p.y},{x:p.x,y:p.y+13},{x:p.x-25,y:p.y}],true)}

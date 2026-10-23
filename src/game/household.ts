@@ -10,9 +10,9 @@ export interface Household {
 }
 export const SOURCE_PACKAGES={Common:{level:0,funds:200},Uncommon:{level:1,funds:500},Rare:{level:2,funds:1200},Epic:{level:3,funds:2500},Legendary:{level:4,funds:5000}} as const
 export function ensureHousehold(s:GameState):GameState{
- if(s.household?.schema===1)return s
+ if(s.household?.schema===1)return s.unlockedZones.length===6?s:{...s,unlockedZones:[0,1,2,3,4,5]}
  const seed=houseSeed(s),blueprint=starterBlueprint(seed,s.meters.housingTier,true)
- return {...s,household:{schema:1,seed,sourceTier:s.appearance.sourceTier??'Unverified',grant:'legacy-rank-v1',blueprint,humanTile:entryTile(blueprint),journey:null,pendingUse:null,pet:{hunger:90,energy:90,affection:70,bond:0,following:true,lastCare:0},relationships:{}}}
+ return {...s,unlockedZones:[0,1,2,3,4,5],household:{schema:1,seed,sourceTier:s.appearance.sourceTier??'Unverified',grant:'legacy-rank-v1',blueprint,humanTile:entryTile(blueprint),journey:null,pendingUse:null,pet:{hunger:90,energy:90,affection:70,bond:0,following:true,lastCare:0},relationships:{}}}
 }
 export function freshHousehold(s:GameState):GameState{
  const tier=s.appearance.sourceTier as keyof typeof SOURCE_PACKAGES,pack=s.rarityVerified?SOURCE_PACKAGES[tier]:undefined

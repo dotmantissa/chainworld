@@ -13,12 +13,12 @@ export const FURNITURE={
 export type FurnitureType=keyof typeof FURNITURE
 export interface Furniture {id:string;type:FurnitureType;x:number;y:number;rotation:0|1;stored:boolean;paid?:number}
 export interface Partition {x:number;y:number;axis:'x'|'y';door:boolean}
-export interface Blueprint {width:number;height:number;version:number;objects:Furniture[];walls:Partition[]}
+export interface Blueprint {width:number;height:number;version:number;objects:Furniture[];walls:Partition[];environment?:'cafe'|'work'|'park';npcTiles?:Tile[]}
 export const ROOM_STEP=200
 export const tileKey=(t:Tile)=>`${t.x},${t.y}`
 export const entryTile=(b:Blueprint):Tile=>({x:Math.floor(b.width/2),y:b.height-1})
 export function footprint(o:Furniture):Tile[]{const d=FURNITURE[o.type],w=o.rotation?d.h:d.w,h=o.rotation?d.w:d.h;return Array.from({length:w*h},(_,i)=>({x:o.x+i%w,y:o.y+Math.floor(i/w)}))}
-export function houseWalkable(b:Blueprint,t:Tile):boolean{return Number.isInteger(t.x)&&Number.isInteger(t.y)&&t.x>=0&&t.y>=0&&t.x<b.width&&t.y<b.height&&!b.objects.some(o=>!o.stored&&footprint(o).some(p=>p.x===t.x&&p.y===t.y))}
+export function houseWalkable(b:Blueprint,t:Tile):boolean{return Number.isInteger(t.x)&&Number.isInteger(t.y)&&t.x>=0&&t.y>=0&&t.x<b.width&&t.y<b.height&&!b.npcTiles?.some(p=>p.x===t.x&&p.y===t.y)&&!b.objects.some(o=>!o.stored&&footprint(o).some(p=>p.x===t.x&&p.y===t.y))}
 export function wallBlocks(b:Blueprint,a:Tile,z:Tile):boolean{return b.walls.some(w=>!w.door&&(w.axis==='x'?a.y===z.y&&a.y===w.y&&Math.min(a.x,z.x)===w.x:a.x===z.x&&a.x===w.x&&Math.min(a.y,z.y)===w.y))}
 export function housePath(b:Blueprint,start:Tile,goal:Tile):Tile[]|null{
  if(!houseWalkable(b,start)||!houseWalkable(b,goal))return null
@@ -36,6 +36,7 @@ export function validBlueprint(b:Blueprint):boolean{
  const occupied=new Set<string>(),ids=new Set<string>()
  for(const o of b.objects){if(!o||!Object.prototype.hasOwnProperty.call(FURNITURE,o.type)||typeof o.id!=='string'||o.id.length>80||ids.has(o.id)||![0,1].includes(o.rotation)||typeof o.stored!=='boolean'||!Number.isInteger(o.x)||!Number.isInteger(o.y)||o.paid!==undefined&&(!Number.isSafeInteger(o.paid)||o.paid<0||o.paid>1e9))return false;ids.add(o.id);if(o.stored)continue;for(const p of footprint(o)){const k=tileKey(p);if(p.x<0||p.y<0||p.x>=b.width||p.y>=b.height||occupied.has(k))return false;occupied.add(k)}}
  const edges=new Set<string>()
+ for(const p of b.npcTiles??[]){const k=tileKey(p);if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||p.x<0||p.y<0||p.x>=b.width||p.y>=b.height||occupied.has(k))return false;occupied.add(k)}
  for(const w of b.walls){if(!w||!['x','y'].includes(w.axis)||typeof w.door!=='boolean'||!Number.isInteger(w.x)||!Number.isInteger(w.y)||w.x<0||w.y<0||w.x>=b.width-(w.axis==='x'?1:0)||w.y>=b.height-(w.axis==='y'?1:0))return false;const k=`${w.axis}:${w.x}:${w.y}`;if(edges.has(k))return false;edges.add(k)}
  const entry=entryTile(b);if(!houseWalkable(b,entry))return false
  // Every floor tile and every object's usable perimeter must remain reachable.

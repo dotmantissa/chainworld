@@ -4,11 +4,14 @@ import { HttpError } from './http'
 import { HOME_STYLES, type HomeStyle } from '../src/game/neighborhood'
 import { parseProfile } from '../src/game/residentProfile'
 import {FURNITURE,type FurnitureType} from '../src/game/housing'
+import {TOPICS,type Venue} from '../src/game/places'
 export function parseCommand(value:unknown):Command {
   if(!value||typeof value!=='object')throw new HttpError(400,'Missing command')
   const c=value as Record<string,unknown>
   const coordinate=(v:unknown)=>Number.isInteger(v)&&Number(v)>=0&&Number(v)<8
   switch(c.type){
+    case 'enterVenue':if(['cafe','work','park'].includes(String(c.venue)))return {type:'enterVenue',venue:c.venue as Venue};break
+    case 'talkNpc':if(typeof c.npcId==='string'&&/^npc:[0-4]:(cafe|work|park)$/.test(c.npcId)&&typeof c.topic==='string'&&Object.prototype.hasOwnProperty.call(TOPICS,c.topic))return {type:'talkNpc',npcId:c.npcId,topic:c.topic as keyof typeof TOPICS};break
     case 'moveIndoor':{const t=c.target as Record<string,unknown>|undefined;if(t&&Number.isInteger(t.x)&&Number.isInteger(t.y)&&Number(t.x)>=0&&Number(t.x)<12&&Number(t.y)>=0&&Number(t.y)<12)return {type:'moveIndoor',target:{x:Number(t.x),y:Number(t.y)}};break}
     case 'useObject':if(typeof c.objectId==='string'&&c.objectId.length<80&&['eat','snack','rest','sleep','socialize','unwind','work','focus','hermit'].includes(String(c.kind)))return {type:'useObject',objectId:c.objectId,kind:c.kind as ActionKind};break
     case 'buyFurniture':case 'moveFurniture':if(Number.isSafeInteger(c.version)&&Number.isInteger(c.x)&&Number.isInteger(c.y)&&Number(c.x)>=0&&Number(c.y)>=0&&Number(c.x)<12&&Number(c.y)<12&&[0,1].includes(Number(c.rotation))){const position={x:Number(c.x),y:Number(c.y),rotation:Number(c.rotation) as 0|1,version:Number(c.version)};if(c.type==='buyFurniture'&&typeof c.furniture==='string'&&Object.prototype.hasOwnProperty.call(FURNITURE,c.furniture))return {type:c.type,furniture:c.furniture as FurnitureType,...position};if(c.type==='moveFurniture'&&typeof c.id==='string'&&c.id.length<80)return {type:c.type,id:c.id,...position}}break

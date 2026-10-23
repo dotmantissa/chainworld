@@ -6,7 +6,7 @@ export const HOME_STYLES=['linen','sage','lavender','terracotta','midnight'] as 
 export type HomeStyle=typeof HOME_STYLES[number]
 export interface Estate {city:CityId;district:number;x:number;y:number;plots:Tile[];style:HomeStyle;open:boolean}
 export interface StreetJourney {from:Tile;path:Tile[];startedAt:number;endsAt:number}
-export interface WorldLocation {kind:'home'|'street'|'visit';tile:Tile;host?:string;journey:StreetJourney|null;interior?:import('./housing').Blueprint;venue?:string;district?:number}
+export interface WorldLocation {kind:'home'|'street'|'visit';tile:Tile;host?:string;journey:StreetJourney|null;interior?:import('./housing').Blueprint;venue?:string;district?:number;trip?:{zone:ZoneId;startedAt:number;endsAt:number;fare:number}}
 export interface Neighbor {identity:string;tokenId:number;name:string;image?:string;appearance:GameState['appearance'];profile:GameState['profile'];home:Estate;housingTier:number;location:WorldLocation;online:boolean}
 export interface LandOffer {id:string;buyer:string;seller:string;city:CityId;district:number;x:number;y:number;amount:number;expiresAt:number;status:string}
 export interface NeighborhoodSnapshot {neighbors:Neighbor[];parcels:{x:number;y:number;identity:string}[];offers:LandOffer[];messages:{id:string;sender:string;recipient:string;gesture:string;at:number}[]}
@@ -63,6 +63,7 @@ export function journeyTile(location:WorldLocation,now:number):Tile {
 }
 export function settleLocation(s:GameState,now:number):GameState {
   const location=s.location??DEFAULT_LOCATION
+  if(location.trip&&now>=location.trip.endsAt)return {...s,currentZone:location.trip.zone,location:{kind:'street',tile:{x:29,y:3},district:location.trip.zone===s.home.city?s.home.district:0,journey:null},lastMessage:'Your tram has arrived. A new neighborhood awaits.'}
   return location.journey&&now>=location.journey.endsAt?{...s,location:{...location,tile:location.journey.path[location.journey.path.length-1],journey:null}}:s
 }
 export function estateDefault(s:GameState):Estate {
