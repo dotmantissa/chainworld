@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useReadContract } from 'wagmi'
 import { CHAIN_WORLD_REGISTRY_ABI as abi } from '../contracts/chainWorldRegistryAbi'
-import { REGISTRY_ADDRESS } from '../contracts/addresses'
+import { REGISTRY_ADDRESS,CHOG_CONTRACT } from '../contracts/addresses'
 import type { GameState } from '../game/types'
 import { ZONES } from '../game/zones'
 import { HOUSING_LABELS } from '../game/gameEngine'
+import PanZoomMap from './PanZoomMap'
 function Profile({tokenId,onClose}:{tokenId:bigint;onClose():void}) {
   const profile=useReadContract({address:REGISTRY_ADDRESS,abi,functionName:'getPlayer',args:[tokenId],chainId:10143})
   const p=profile.data
@@ -22,11 +23,12 @@ export default function WorldMap({gameState:s}:{gameState:GameState}) {
   if(!REGISTRY_ADDRESS)return <section className="panel"><h2>Meet the neighborhood</h2><p className="muted">The token-bound world directory is awaiting deployment.</p></section>
   return <div className="space-y-3"><section className="panel space-y-3"><div className="flex justify-between"><h2>The neighborhood</h2><span>Page {page+1}</span></div>
     <p className="muted">Select a resident to read their published profile.</p>
-    {lots.error?<p role="alert">Could not load the map. <button onClick={()=>void lots.refetch()}>Retry</button></p>:lots.isLoading?<p>Loading neighborhood…</p>:<div className="grid grid-cols-6 gap-2">{Array.from({length:36},(_,i)=>{
+    {lots.error?<p role="alert">Could not load resident records. <button onClick={()=>void lots.refetch()}>Retry</button></p>:lots.isLoading?<p>Loading neighborhood…</p>:null}
+    <PanZoomMap>{Array.from({length:36},(_,i)=>{
       const owner=lots.data?.[0][i],token=lots.data?.[1][i],empty=!owner||/^0x0{40}$/.test(owner)
-      const own=token!==undefined&&Number(token)===s.tokenId&&!empty
-      return <button key={i} className={`lot-cell ${own?'own':''}`} disabled={empty} aria-label={empty?`Empty lot ${page*36+i}`:`Visit Chog ${token}`} title={owner} onClick={()=>setSelected(token!)}>{empty?'·':own?'⌂':`#${token}`}</button>
-    })}</div>}
+      const own=s.chainId===10143&&s.collection.toLowerCase()===CHOG_CONTRACT.toLowerCase()&&token!==undefined&&Number(token)===s.tokenId&&!empty
+      return <button key={i} className={`lot-cell ${own?'own':''}`} disabled={empty} aria-label={!lots.data?`Unloaded lot ${page*36+i}`:empty?`Empty lot ${page*36+i}`:`View Chog ${token}`} title={owner} onClick={()=>setSelected(token!)}>{!lots.data?'?':empty?'·':<><span className="map-house-label">{own?'Your home':`Chog #${token}`}</span><span aria-hidden="true">⌂</span></>}</button>
+    })}</PanZoomMap>
     <div className="flex justify-between"><button disabled={page===0} onClick={()=>setPage(p=>p-1)}>Previous</button><button disabled={!count.data||BigInt((page+1)*36)>=count.data} onClick={()=>setPage(p=>p+1)}>Next</button></div>
   </section>{selected!==null&&<Profile tokenId={selected} onClose={()=>setSelected(null)}/>}</div>
 }

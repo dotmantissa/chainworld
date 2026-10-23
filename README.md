@@ -24,6 +24,7 @@ Set `VITE_SHARED_WORLD=false` for a browser-only prototype. These local saves do
 
 ## Play
 
+- Zoom with the mouse wheel, trackpad pinch, touch pinch or **+ / −** controls in homes, streets and the world map. Drag to pan; **Pan** mode makes every drag/tap a camera gesture. Arrow controls/keys pan, **+ / −** zoom, and **0 / Center view** refits the home or follows your resident outdoors. House labels stay above roofs, readable and clickable while zooming.
 - Click/tap furniture to open its action dialog, or use the corresponding controls below the room. Opening a dialog costs nothing.
 - The human walks around furniture and walls before acting. The separate Chog follows on walkable routes. Beds support rest and sleep; kitchens support meals and snacks; the workstation supports shifts, projects and liquidity work; the reading nook supports calls and quiet reading.
 - Desks and sofas use sitting poses, beds use a lying sleeping pose, and kitchens/bookcases use standing interactions. Up to three future actions can be queued. Canceling before an interaction starts costs nothing; consumed resources are not refunded.

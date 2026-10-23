@@ -7,6 +7,8 @@ import type { Tile } from '../world/navigation'
 import type { StreetScene } from '../world/StreetScene'
 import ChogAvatar from './ChogAvatar'
 import { cityPrice } from '../game/zones'
+import CameraControls from './CameraControls'
+import type {CameraView} from '../world/cameraControls'
 export interface NeighborhoodHandle {requestAction(kind:ActionKind):void;requestJob(command:Command):void;requestTravel(zone:ZoneId):void}
 interface Props {state:GameState;snapshot:NeighborhoodSnapshot;dispatch(command:Command):void;pending:boolean;blocked:boolean;gas:Partial<Record<ZoneId,number|null>>;onTravel():void}
 type Selection={type:'plot';tile:Tile}|{type:'service';index:number}|{type:'neighbor';neighbor:Neighbor}
@@ -14,6 +16,7 @@ const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeigh
  const host=useRef<HTMLDivElement>(null),latest=useRef(props),scene=useRef<StreetScene>(),selectionRef=useRef<Selection|null>(null)
  const [selection,setSelection]=useState<Selection|null>(null),[error,setError]=useState(''),[amount,setAmount]=useState('100')
  const [goal,setGoal]=useState<{tile:Tile;command:Command}|null>(null)
+ const [camera,setCamera]=useState<CameraView>({zoom:1.3,panMode:false})
  useLayoutEffect(()=>{latest.current=props},[props]);useLayoutEffect(()=>{selectionRef.current=selection},[selection])
  const request=(tile:Tile,command:Command)=>{
   const s=latest.current.state
@@ -39,8 +42,9 @@ const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeigh
    scene.current=new StreetScene({state:()=>latest.current.state,snapshot:()=>latest.current.snapshot,blocked:()=>latest.current.pending||latest.current.blocked||selectionRef.current!==null,
     walk:tile=>{setGoal(null);latest.current.dispatch({type:'walk',target:tile})},selectPlot:tile=>{setSelection({type:'plot',tile});setError('')},selectService:index=>{setSelection({type:'service',index});setError('')},selectNeighbor:neighbor=>{setSelection({type:'neighbor',neighbor});setError('')},
     avatarSvg:neighbor=>{const s=latest.current.state;const html=renderToStaticMarkup(<ChogAvatar appearance={neighbor?.appearance??s.appearance} tier={s.rarityTier} size={128} portrait={false}/>);return html.slice(html.indexOf('<svg'),html.indexOf('</svg>')+6)},
+    onCameraChange:view=>{if(!disposed)setCamera(view)},
    })
-   game=new Phaser.Game({type:Phaser.AUTO,parent:host.current,width:800,height:500,scene:scene.current,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},fps:{target:30},render:{antialias:true}})
+   game=new Phaser.Game({type:Phaser.AUTO,parent:host.current,width:800,height:500,scene:scene.current,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},fps:{target:30},render:{antialias:true},input:{activePointers:2}})
   }).catch(()=>setError('The street could not load. Refresh to try again.'))
   return()=>{disposed=true;game?.destroy(true);scene.current=undefined}
  },[props.state.currentZone,props.state.profile.gender])
@@ -48,7 +52,7 @@ const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeigh
  const parcel=selection?.type==='plot'?props.snapshot.parcels.find(p=>p.x===selection.tile.x&&p.y===selection.tile.y):undefined
  const neighbor=parcel?props.snapshot.neighbors.find(n=>n.identity===parcel.identity):undefined
  const canExpand=selection?.type==='plot'&&s.home.city===s.currentZone&&s.home.plots.some(p=>adjacent(p,selection.tile))
- return <section className="room-card" aria-label="Interactive neighborhood"><div ref={host} className="room-canvas" role="img" aria-label="Walkable city with homes, parks, cafe, coworking club and tram station"/><div className="room-caption">{goal?'Walking to your selected interaction…':'Tap the pavement to walk. Select a building, parcel or resident to interact.'}{s.location.journey&&<button onClick={()=>{setGoal(null);props.dispatch({type:'cancel'})}}>Stop walking</button>}</div>
+ return <section className="room-card" aria-label="Interactive neighborhood"><div ref={host} className="room-canvas" role="img" aria-label="Walkable city with homes, parks, cafe, coworking club and tram station"/><CameraControls label="Neighborhood camera controls" view={camera} onCommand={command=>scene.current?.cameraCommand(command)}/><div className="room-caption">{goal?'Walking to your selected interaction…':'Tap the pavement to walk. Select a building, parcel or resident to interact.'}{s.location.journey&&<button onClick={()=>{setGoal(null);props.dispatch({type:'cancel'})}}>Stop walking</button>}</div>
   <div className="street-controls"><button onClick={()=>request(frontDoor(s.home),{type:'enterHome'})} disabled={s.currentZone!==s.home.city||props.pending}>Walk home</button>{SERVICES.slice(0,3).map((service,index)=><button key={service.id} onClick={()=>setSelection({type:'service',index})}>{serviceName(s.currentZone,index)}</button>)}<button onClick={props.onTravel}>Tram & city travel</button></div>
   {error&&<p role="alert" className="notice">{error}</p>}
   {selection&&<StreetDialog onClose={()=>setSelection(null)}><>
