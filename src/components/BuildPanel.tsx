@@ -5,8 +5,8 @@ import {FURNITURE,footprint,validBlueprint,type FurnitureType,type Furniture} fr
 import {cityPrice} from '../game/zones'
 import {detectRooms,ROOM_COLORS,roomContents} from '../game/rooms'
 import {furnitureArtwork} from '../world/artwork'
-export default function BuildPanel({state:s,dispatch,pending,gas}:{state:GameState;dispatch(c:Command):void;pending:boolean;gas:number|null|undefined}){
- const [open,setOpen]=useState(false),[type,setType]=useState<FurnitureType>('bed'),[selected,setSelected]=useState<string|null>(null),[x,setX]=useState(0),[y,setY]=useState(0),[rotation,setRotation]=useState<0|1>(0),[wall,setWall]=useState(false),[axis,setAxis]=useState<'x'|'y'>('x'),[door,setDoor]=useState(false)
+export default function BuildPanel({state:s,dispatch,pending,gas,initiallyOpen=false}:{state:GameState;dispatch(c:Command):void;pending:boolean;gas:number|null|undefined;initiallyOpen?:boolean}){
+ const [open,setOpen]=useState(initiallyOpen),[type,setType]=useState<FurnitureType>('bed'),[selected,setSelected]=useState<string|null>(null),[x,setX]=useState(0),[y,setY]=useState(0),[rotation,setRotation]=useState<0|1>(0),[wall,setWall]=useState(false),[axis,setAxis]=useState<'x'|'y'>('x'),[door,setDoor]=useState(false)
  const b=s.household?.blueprint
  const rooms=useMemo(()=>b?detectRooms(b):[],[b])
  const candidate=useMemo(()=>{if(!b)return null;const o:Furniture={id:selected??'preview',type:selected?b.objects.find(o=>o.id===selected)?.type??type:type,x,y,rotation,stored:false};return {object:o,blueprint:{...b,objects:[...b.objects.filter(i=>i.id!==o.id),o]}}},[b,type,selected,x,y,rotation])

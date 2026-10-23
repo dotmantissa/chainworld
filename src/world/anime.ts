@@ -38,6 +38,7 @@ export function drawFurniture(scene:Phaser.Scene,o:Furniture,environment?:Bluepr
  const image=scene.add.image(0,(w+h)*6.5+2,asset.key).setDisplaySize(width,height).setOrigin(.5,1).setFlipX(o.type==='bed'&&o.rotation===1)
  const container=scene.add.container(p.x,p.y,[shadow,image]).setDepth(houseIso({x:o.x+w-1,y:o.y+h-1}).y+2)
  image.setInteractive({pixelPerfect:true,alphaTolerance:70,useHandCursor:true})
+ for(const event of ['pointerover','pointerout'])image.on(event,()=>container.emit(event))
  image.on('pointerup',(pointer:Phaser.Input.Pointer,x:number,y:number,event:Phaser.Types.Input.EventData)=>container.emit('pointerup',pointer,x,y,event))
  return container
 }

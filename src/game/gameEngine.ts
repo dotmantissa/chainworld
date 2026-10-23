@@ -289,11 +289,12 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
       return message({...s,location:{kind:'street',tile:s.location?.kind==='visit'||s.location.venue?s.location.tile:frontDoor(s.home),district:s.location.venue||s.location.kind==='visit'?s.location.district??0:s.home.district,journey:null}},'Fresh air. Tap the pavement to walk, or select a building.')
     }
     case 'walk': {
-      if(s.location?.kind!=='street'||s.action||s.job||s.location.journey)return message(s,'Finish your current activity or walk first.')
-      const path=streetPath(s.location.tile,command.target)
+      if(s.location?.kind!=='street'||s.action||s.job||s.location.trip)return message(s,'Finish your current activity or walk first.')
+      const origin=journeyTile(s.location,now)
+      const path=streetPath(origin,command.target)
       if(!path)return message(s,'That place is blocked. Choose a sidewalk or a front door.')
-      if(!path.length)return s
-      return {...s,location:{...s.location,journey:{from:s.location.tile,path,startedAt:now,endsAt:now+path.length*STEP_MS}},lastMessage:'Walking through the neighborhood…'}
+      if(!path.length)return {...s,location:{...s.location,tile:origin,journey:null}}
+      return {...s,location:{...s.location,tile:origin,journey:{from:origin,path,startedAt:now,endsAt:now+path.length*STEP_MS}},lastMessage:'Walking through the neighborhood…'}
     }
     case 'enterHome': {
       if(s.location?.kind!=='street'||s.location.journey||s.action||s.job)return message(s,'Finish walking before entering a home.')

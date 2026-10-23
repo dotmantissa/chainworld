@@ -23,6 +23,7 @@ Baseline at 1440 × 1000: the default page is 2,292 px tall with 38 buttons. Bas
 | Travel / venues | Map, street services, city travel and venue entry overlap. Travel panel can remain open after a trip is selected. | P1: world tool groups travel/neighbors; close it when departing so the actual journey stays visible. |
 | NPCs / pet | NPC conversations are real, timed and persistent, but NPCs stay anchored and pet care is instant. | P1/P2: contextual social affordances now; walking NPC schedules, richer reactions and staged pet interaction need further animation/simulation work. |
 | Progression | Daily goals, milestones and projects compete for attention; rewards require finding their panel. | P1: one first-loop suggestion and visible claimable reward count, with goals available from the household tool. |
+| Shared input latency | `server/game.ts` awaits ownership, gas and registry RPC reads before commands, then rechecks ownership before committing. `useGameController.ts` serializes writes and polls shared state every 5 seconds. Local fluidity does not establish responsive shared WASD or the 20-second validator challenge. | Release P0: isolate movement from unrelated registry/gas reads, implement reconciled input feedback and measure authenticated input-to-feedback under realistic latency without weakening economic ownership checks. |
 | Persistence / errors | Local token-bound saves and authoritative shared play are different modes. Shared polls can delay visible starts; browser save errors must stay visible. | P0: retain errors, cancellation, idempotent engine and server clock; do not claim new shared/live validation from local browser checks. |
 | Accessibility / mobile | Canvas is an image role; fallback furniture buttons exist. Large permanent sidebars push care below the fold. | P0: focusable labelled play surface, keyboard walking, accessible matching furniture controls, Escape/close/focus restoration and viewport-fitting tools. |
 | Performance | Large Phaser/vendor chunks; snapshots rebuild visuals based on serialized geometry. Existing art has directional poses, not full walk cycles. | P1/P2: retain lazy scene loading; measure production build. Procedural gait improves feedback but does not create anatomical sprite animation. |
@@ -34,11 +35,15 @@ Enter preview → click a floor or use WASD → select desk → work a shift →
 
 ## Remediation / verification
 
-- [ ] World-first HUD and optional tools; contextual guidance, actionable needs and accessible alternatives.
-- [ ] Responsive legal walk redirection, destination/path feedback, affordances and animated activity.
-- [ ] Automated regression for real play flows, mobile fit, keyboard/modal isolation, retargeting and persistence.
-- [ ] Production build and source checks; screenshots inspected; measured default-screen reduction.
+- [x] World-first HUD and optional tools; contextual guidance, actionable needs and accessible alternatives.
+- [x] Responsive legal walk redirection, destination/path feedback, affordances and animated activity.
+- [x] Automated regression for real play flows, mobile fit, keyboard/modal isolation, retargeting and persistence.
+- [x] Production build and source checks; screenshots inspected; measured default-screen reduction.
+
+Final local evidence: 81 unit tests, TypeScript and lint pass; the full 24-scenario browser run passes, as does an additional outdoor energy/sink-care scenario. Three camera/gesture scenarios were repeated after the canvas-centering correction and pass. Desktop default height is now 1,004 px at 1440 × 1000, versus 2,292 px before (56% less scrolling). The new default has 29 buttons in the DOM and 16 visible; the original 38 was a total DOM count, not a separately recorded visible count. All three main tools are visible in the first desktop viewport and fixed within reach on mobile.
+
+The pass also fixes an indoor liquidity entry point that bypassed physical desk use, empty outdoor bed choices, and missing guidance from street hygiene care to an indoor sink. It preserves the existing save/economy format and authority model. Browser checks block external requests and use isolated local preview state; they do not validate live wallets, RPC latency, Neon or contract deployments. The final-source `npm run build` passes; the emitted bundle was checked for the new tools, outdoor sink-care routing and canvas-centering correction. Known large wallet/vendor/Phaser chunks still produce nonblocking warnings. Desktop/mobile and object-choice screenshots were inspected. No push or deployment was performed.
 
 ## Further work after this pass
 
-Full multi-frame human walk/use animation, physical pet care, wandering NPC schedules, direct placement in the rendered room, sound design and a fresh-player usability session remain separate follow-ups. Financial/onchain and multi-wallet release gates require dedicated live-environment verification. No local test should be reported as proving those gates.
+Full multi-frame human walk/use animation, physical pet care, wandering NPC schedules, direct placement in the rendered room, sound design and a fresh-player usability session remain separate follow-ups. Shared-input latency, financial/onchain and multi-wallet release gates require dedicated live-environment verification. Advanced job/NPC approach intentions are scene-held before they start; reloading that approach may require choosing it again, while established jobs and saved furniture queues persist. No local test should be reported as proving those gates.

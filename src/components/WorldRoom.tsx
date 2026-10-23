@@ -24,7 +24,7 @@ const WorldRoom = forwardRef<RoomHandle, Props>(function WorldRoom({ state, disp
   const sceneKey=`${state.profile.gender}:${state.location.venue??''}:${state.location.host??''}`
   const [readyScene,setReadyScene]=useState<string|null>(null)
   const loading=readyScene!==sceneKey
-  const [message,setMessage]=useState('Tap a floor tile to walk. Tap furniture to interact.')
+  const [message,setMessage]=useState('Click to walk · WASD to move · E for nearby objects.')
   useImperativeHandle(ref,()=>({request:(kind,id)=>scene.current?.request(kind,id),requestJob:command=>scene.current?.requestJob(command),requestNpc:(id,topic)=>scene.current?.requestNpc(id,topic),cancel:()=>scene.current?.cancel()}),[])
   useEffect(()=>{
     let disposed=false
@@ -40,7 +40,7 @@ const WorldRoom = forwardRef<RoomHandle, Props>(function WorldRoom({ state, disp
   },[dispatch,onObjectSelect,onNpcSelect,sceneKey])
   const venue=venueOf(state.location.venue),npc=venue&&state.currentZone!==5?cityNpc(state.currentZone,venue):null
   return <section className="room-card" aria-label="Interactive home">
-    <div ref={host} className="room-canvas" role="img" aria-busy={loading} aria-label="Isometric home with your human and Chog. Accessible furniture controls follow below.">{loading&&<div className="room-loading"><span/><p>Opening your little world…</p></div>}</div>
+    <div ref={host} className="room-canvas" role="group" aria-busy={loading} aria-label="Isometric home. Click the floor or use WASD to walk. Press E for nearby furniture. Accessible furniture controls follow below.">{loading&&<div className="room-loading"><span/><p>Opening your little world…</p></div>}</div>
     <CameraControls label="House camera controls" view={camera} onCommand={command=>scene.current?.cameraCommand(command)}/>
     <div className="room-caption">{message}</div>
     <QueueControls state={state} dispatch={dispatch} pending={pending}/>

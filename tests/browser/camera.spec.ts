@@ -1,3 +1,4 @@
+import {world} from './playTools'
 import {test,expect,type Page,type Locator} from '@playwright/test'
 import {readFileSync} from 'node:fs'
 import {decodeFunctionData,encodeFunctionResult,type Hex} from 'viem'
@@ -36,7 +37,7 @@ test('neighborhood and world directory both support zoom/pan without a walk comm
  const x=await canvas.getAttribute('data-camera-x');await drag(page,canvas);expect(await canvas.getAttribute('data-camera-x')).not.toBe(x);expect((await saved(page)).location.tile).toEqual(before.location.tile);expect((await saved(page)).location.journey).toBeNull()
  await page.locator('.room-card').screenshot({path:'/tmp/chainworld-camera-neighborhood.png'})
  await controls.getByRole('button',{name:'Reset view',exact:true}).click();expect(await zoom(canvas)).toBe(1.3)
- await page.getByRole('button',{name:'Neighbors',exact:true}).click();const map=page.getByLabel('Zoomable world map'),mapControls=page.getByRole('group',{name:'World map controls'})
+ await world(page);await page.getByRole('button',{name:'Neighbors',exact:true}).click();const map=page.getByLabel('Zoomable world map'),mapControls=page.getByRole('group',{name:'World map controls'})
  await mapControls.getByRole('button',{name:'Zoom in',exact:true}).click();expect(await zoom(map)).toBeGreaterThan(1)
  await drag(page,map);expect(Number(await map.getAttribute('data-camera-x'))).not.toBe(0)
  await mapControls.getByRole('button',{name:'Reset view',exact:true}).click();expect(await zoom(map)).toBe(1);expect(await map.getAttribute('data-camera-x')).toBe('0.00')

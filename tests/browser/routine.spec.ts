@@ -13,6 +13,6 @@ test('queued actions can be reordered and removed, survive reload and finish in 
  await expect(page.getByRole('list',{name:'Waiting actions'})).toContainText('Wash at the sink')
  await expect(page.getByRole('status')).toContainText('Wash at the sink complete',{timeout:50000})
  await expect(page.locator('.queue-panel')).toContainText('Next up · 0/6')
- await page.getByRole('checkbox',{name:'Free care autonomy',exact:true}).check();await page.reload();await page.getByRole('button',{name:'Explore a local preview'}).click();await expect(page.getByRole('checkbox',{name:'Free care autonomy',exact:true})).toBeChecked()
+ await page.locator('.queue-panel summary').click();await page.getByRole('checkbox',{name:'Free care autonomy',exact:true}).check();await page.reload();await page.getByRole('button',{name:'Explore a local preview'}).click();await page.locator('.queue-panel summary').click();await expect(page.getByRole('checkbox',{name:'Free care autonomy',exact:true})).toBeChecked()
  expect(errors).toEqual([])
 })

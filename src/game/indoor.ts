@@ -6,11 +6,12 @@ import {partitionCutsFurniture} from './rooms'
 export function activeBlueprint(s:GameState):Blueprint{return s.location.interior??ensureHousehold(s).household!.blueprint}
 export function queueIndoor(s:GameState,target:Tile,now:number,use?:{objectId:string;kind:ActionKind}):GameState{
  s=ensureHousehold(s);const h=s.household!,b=activeBlueprint(s)
- if(s.action||s.job||h.journey||s.location.journey)return {...s,lastMessage:'Finish or cancel your current activity first.'}
- const path=housePath(b,h.humanTile,target)
+ if(s.action||s.job||h.pendingUse||s.location.journey)return {...s,lastMessage:'Finish or cancel your current activity first.'}
+ const origin=indoorTile(h,now)
+ const path=housePath(b,origin,target)
  if(path===null)return {...s,lastMessage:'That route is blocked by furniture or a wall.'}
  const end=now+path.length*ROOM_STEP
- return {...s,household:{...h,journey:path.length?{from:h.humanTile,path,startedAt:now,endsAt:end}:null,pendingUse:use?{...use,arrivesAt:end,layoutVersion:b.version}:null},lastMessage:use?'Walking to your selected object…':'Walking through your home…'}
+ return {...s,household:{...h,humanTile:origin,journey:path.length?{from:origin,path,startedAt:now,endsAt:end}:null,pendingUse:use?{...use,arrivesAt:end,layoutVersion:b.version}:null},lastMessage:use?'Walking to your selected object…':'Walking through your home…'}
 }
 export function queueObject(s:GameState,id:string,kind:ActionKind,now:number):GameState{
  s=ensureHousehold(s);const b=activeBlueprint(s),o=b.objects.find(o=>o.id===id&&!o.stored)

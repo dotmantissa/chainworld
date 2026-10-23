@@ -1,7 +1,7 @@
 import { forwardRef,useEffect,useImperativeHandle,useLayoutEffect,useRef,useState } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { ACTIONS,actionCost,type Command } from '../game/gameEngine'
-import { adjacent,distance,frontDoor,identityOf,SERVICES,serviceName,streetPath,type Neighbor,type NeighborhoodSnapshot } from '../game/neighborhood'
+import { adjacent,distance,journeyTile,frontDoor,identityOf,SERVICES,serviceName,streetPath,type Neighbor,type NeighborhoodSnapshot } from '../game/neighborhood'
 import type { ActionKind,GameState,ZoneId } from '../game/types'
 import type { Tile } from '../world/navigation'
 import type { StreetScene } from '../world/StreetScene'
@@ -9,7 +9,7 @@ import ChogAvatar from './ChogAvatar'
 import { cityPrice } from '../game/zones'
 import CameraControls from './CameraControls'
 import type {CameraView} from '../world/cameraControls'
-export interface NeighborhoodHandle {requestAction(kind:ActionKind):void;requestJob(command:Command):void;requestTravel(zone:ZoneId):void}
+export interface NeighborhoodHandle {requestAction(kind:ActionKind):void;requestJob(command:Command):void;requestTravel(zone:ZoneId):void;requestVenue(index:number):void}
 interface Props {state:GameState;snapshot:NeighborhoodSnapshot;dispatch(command:Command):void;pending:boolean;blocked:boolean;gas:Partial<Record<ZoneId,number|null>>;onTravel():void}
 type Selection={type:'plot';tile:Tile}|{type:'service';index:number}|{type:'neighbor';neighbor:Neighbor}
 const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeighborhood(props,ref){
@@ -20,13 +20,13 @@ const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeigh
  useLayoutEffect(()=>{latest.current=props},[props]);useLayoutEffect(()=>{selectionRef.current=selection},[selection])
  const request=(tile:Tile,command:Command)=>{
   const s=latest.current.state
-  if(s.action||s.job||s.location.journey||s.location.trip||latest.current.pending){setError('Finish your current activity or walk first.');return}
-  if(distance(s.location.tile,tile)<=1){props.dispatch(command);setSelection(null);return}
-  if(streetPath(s.location.tile,tile)===null){setError('There is no walkable route to that spot.');return}
+  if(s.action||s.job||s.location.trip||latest.current.pending){setError('Finish your current activity or walk first.');return}
+  if(!s.location.journey&&distance(s.location.tile,tile)<=1){props.dispatch(command);setSelection(null);return}
+  if(streetPath(journeyTile(s.location,Date.now()),tile)===null){setError('There is no walkable route to that spot.');return}
   setGoal({tile,command});props.dispatch({type:'walk',target:tile});setSelection(null);setError('')
  }
  const requestAction=(kind:ActionKind)=>{const service=SERVICES.find(s=>s.actions.includes(kind));if(service)request(service.approach,{type:'startAction',kind})}
- useImperativeHandle(ref,()=>({requestAction,requestJob:command=>request(SERVICES[1].approach,command),requestTravel:zone=>request(SERVICES[3].approach,{type:'travel',zone})}))
+ useImperativeHandle(ref,()=>({requestAction,requestJob:command=>request(SERVICES[1].approach,command),requestTravel:zone=>request(SERVICES[3].approach,{type:'travel',zone}),requestVenue:index=>request(SERVICES[index].approach,{type:'enterVenue',venue:(['cafe','work','park'] as const)[index]})}))
  const {state:currentState,pending:currentPending,dispatch:sendCommand}=props
  useEffect(()=>{
   if(!goal||currentPending||currentState.location.journey)return
@@ -52,7 +52,7 @@ const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeigh
  const parcel=selection?.type==='plot'?props.snapshot.parcels.find(p=>p.x===selection.tile.x&&p.y===selection.tile.y):undefined
  const neighbor=parcel?props.snapshot.neighbors.find(n=>n.identity===parcel.identity):undefined
  const canExpand=selection?.type==='plot'&&s.home.city===s.currentZone&&s.home.plots.some(p=>adjacent(p,selection.tile))
- return <section className="room-card" aria-label="Interactive neighborhood"><div ref={host} className="room-canvas" role="img" aria-label="Walkable city with homes, parks, cafe, coworking club and tram station"/><CameraControls label="Neighborhood camera controls" view={camera} onCommand={command=>scene.current?.cameraCommand(command)}/><div className="room-caption">{goal?'Walking to your selected interaction…':'Tap the pavement to walk. Select a building, parcel or resident to interact.'}{s.location.journey&&<button onClick={()=>{setGoal(null);props.dispatch({type:'cancel'})}}>Stop walking</button>}</div>
+ return <section className="room-card" aria-label="Interactive neighborhood"><div ref={host} className="room-canvas" role="group" aria-label="Walkable city with homes, parks, cafe, coworking club and tram station"/><CameraControls label="Neighborhood camera controls" view={camera} onCommand={command=>scene.current?.cameraCommand(command)}/><div className="room-caption">{goal?'Walking to your selected interaction…':'Click pavement or use WASD to walk · E for nearby services.'}{s.location.journey&&<button onClick={()=>{setGoal(null);props.dispatch({type:'cancel'})}}>Stop walking</button>}</div>
   <div className="street-controls"><button onClick={()=>request(frontDoor(s.home),{type:'enterHome'})} disabled={s.currentZone!==s.home.city||props.pending}>Walk home</button>{SERVICES.slice(0,3).map((service,index)=><button key={service.id} onClick={()=>setSelection({type:'service',index})}>{serviceName(s.currentZone,index)}</button>)}<button onClick={props.onTravel}>Tram & city travel</button></div>
   {error&&<p role="alert" className="notice">{error}</p>}
   {selection&&<StreetDialog onClose={()=>setSelection(null)}><>
