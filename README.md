@@ -2,6 +2,8 @@
 
 A Chog NFT life simulator on Monad Testnet. Explore five blockchain cities, live as your Chog NFT, interact with furniture and neighbors, earn gCHOG, customize your home and expand your estate.
 
+The proposed next architecture is documented in [Households, Chog pets and a playable living world](docs/life-simulation-architecture.md). It changes the player model to a human with a separate Chog pet and specifies anime-inspired modular graphics, real Build/Buy housing, place-based interactions, inhabited cities, travel and relationships around the NFT household. These changes are planned; the runnable build described below still uses the Chog as its controlled resident.
+
 ## Run locally
 
 Use Node.js 22.12 or newer.

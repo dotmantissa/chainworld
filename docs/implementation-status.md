@@ -1,5 +1,7 @@
 # Implementation status — 2026-10-23
 
+The [revised life-simulation architecture](life-simulation-architecture.md) is the current proposed direction: a human player with a separate Chog pet, NFT-bound household economics, modular anime graphics, editable homes and deeper place/social simulation. It includes an audit of the gaps in this build, including fixed furniture, repeated city layouts and the source-Tier/computed-rank mismatch. The items below describe the existing implementation; the proposed replacement systems are not implemented yet.
+
 The original indoor slice has been expanded with the user's Chog reference, the complete original NFT source, player identity settings and physical neighborhoods.
 
 ## Implemented
