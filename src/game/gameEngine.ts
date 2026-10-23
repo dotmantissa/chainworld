@@ -11,6 +11,7 @@ import {FURNITURE,entryTile,houseWalkable,validBlueprint} from './housing'
 import {placeKey,venueBlueprint,venueOf,npcById,TOPICS,type Venue} from './places'
 import {ADDED_NEEDS,ensureNeeds} from './needs'
 import {newLife,ensureLife,settleMeals,lifeActionReason,consumeLifeAction,completeLifeAction,buyGroceries,projectCommand,GROCERIES,type Project} from './life'
+import {newRoutine,ensureRoutine,enqueueIntent,intentValid,autonomyChoice} from './routine'
 
 export const REAL_HOUR = 3_600_000
 export const SIMULATION_SPEED = 10
@@ -33,6 +34,11 @@ export const ACTIONS: Record<ActionKind, { duration: number; cost: number; label
   paint: {duration:15000,cost:0,label:'Sketch in your notebook'},
 }
 export type Command =
+  | {type:'enqueueAction';objectId:string;kind:ActionKind}
+  | {type:'removeIntent';id:number}
+  | {type:'reorderIntent';id:number;direction:'up'|'down'}
+  | {type:'clearQueue'}
+  | {type:'setAutonomy';enabled:boolean}
   | {type:'buyGroceries';pack:keyof typeof GROCERIES}
   | {type:'startProject'|'claimProject';id:Project}
   | {type:'enterVenue';venue:Venue}
@@ -74,6 +80,7 @@ export function createNewGameState(walletAddress: string, tokenId: number, trait
   const { stats, appearance, startingZone } = mapTraitsToCharacter(traits, tokenId)
   const unlockedZones = [...new Set<ZoneId>([...tierToUnlockedZones(tier), 5])]
   const fresh:GameState = {
+    routine:newRoutine(),
     life:newLife(),
     home:{...DEFAULT_ESTATE},location:{...DEFAULT_LOCATION},
     profile:{...DEFAULT_PROFILE},
@@ -141,15 +148,31 @@ function arriveIndoor(s:GameState,ctx:EngineContext):GameState{
  if(pending&&pending.arrivesAt<=ctx.now){const b=activeBlueprint(s),o=b.objects.find(o=>o.id===pending.objectId&&!o.stored);s={...s,household:{...s.household!,pendingUse:null}};if(!o||b.version!==pending.layoutVersion||!(FURNITURE[o.type].actions as readonly string[]).includes(pending.kind))return message(s,'The selected object changed. Choose another activity.');return beginActivity(s,pending.kind,ctx,o.id)}
  return s
 }
+function advanceRoutine(s:GameState,ctx:EngineContext,autonomous:boolean):GameState{
+ s=ensureRoutine(s)
+ if(s.action||s.job||s.household?.journey||s.household?.pendingUse||s.location.journey||s.location.trip)return s
+ let queue=[...s.routine!.queue]
+ while(queue.length){
+  const q=queue.shift()!;s={...s,routine:{...s.routine!,queue}}
+  if(!intentValid(s,q)){s=message(s,'A queued object moved or your location changed. That intention was removed.');continue}
+  return arriveIndoor(queueObject(s,q.objectId,q.kind,ctx.now),ctx)
+ }
+ if(autonomous){
+  const q=autonomyChoice(s,ctx.now)
+  if(q){s={...s,routine:{...s.routine!,nextAutonomyAt:ctx.now+30000}};return arriveIndoor(queueObject(s,q.objectId,q.kind,ctx.now),ctx)}
+ }
+ return s
+}
 // One settlement clock, segmented at event and completion boundaries. Saving never changes it.
 export function settle(state: GameState, ctx: EngineContext, offline = false): GameState {
   if(ctx.now<state.lastSaved)return state
-  state=ensureLife(ensureNeeds(state))
+  state=ensureRoutine(ensureLife(ensureNeeds(state)))
   state=settleLocation(state,ctx.now)
-  if (ctx.now <= state.lastSaved) return ctx.now===state.lastSaved?arriveIndoor(state,ctx):state
+  if (ctx.now <= state.lastSaved) return ctx.now===state.lastSaved?advanceRoutine(arriveIndoor(state,ctx),ctx,!offline):state
   const end = ctx.now
   let cursor = offline ? Math.max(state.lastSaved, end - 8 * REAL_HOUR) : state.lastSaved
   let s: GameState = { ...state, meters: { ...state.meters } }
+  s=advanceRoutine(s,{...ctx,now:cursor},!offline)
   const offlineBudget = state.gChog * 0.25
   let charged = 0
   const passiveCutoff = state.lastSaved + 30 * 60000
@@ -182,6 +205,7 @@ export function settle(state: GameState, ctx: EngineContext, offline = false): G
       s = income({ ...s, job: null, cooldowns: { ...s.cooldowns, validator: cursor + 60000 } }, job.score * 2, cursor)
     }
     s=arriveIndoor(s,{...ctx,now:cursor})
+    s=advanceRoutine(s,{...ctx,now:cursor},!offline)
   }
   if(s.household){const hours=Math.min(ctx.now-state.lastSaved,8*REAL_HOUR)/REAL_HOUR*SIMULATION_SPEED,p=s.household.pet;s={...s,household:{...s.household,pet:{...p,hunger:Math.max(20,p.hunger-hours*2),affection:Math.max(20,p.affection-hours),energy:Math.min(100,p.energy+hours)}}}}
   return { ...settleMeals(s,end), lastSaved: end }
@@ -194,6 +218,11 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
   const now = Math.max(ctx.now, s.lastSaved)
   if(s.location.trip&&command.type!=='tick'&&command.type!=='cancel')return message(s,'Enjoy the journey. Your tram is still in transit.')
   switch (command.type) {
+    case 'enqueueAction':return advanceRoutine(enqueueIntent(s,command.objectId,command.kind),{...ctx,now},true)
+    case 'setAutonomy':return {...s,routine:{...s.routine!,autonomy:command.enabled,nextAutonomyAt:now},lastMessage:command.enabled?'Autonomy on: free care at home; your queued choices go first.':'Autonomy off. You decide what happens next.'}
+    case 'clearQueue':return {...s,routine:{...s.routine!,queue:[],nextAutonomyAt:now+30000},lastMessage:'Waiting intentions cleared. Your current activity continues.'}
+    case 'removeIntent':return {...s,routine:{...s.routine!,queue:s.routine!.queue.filter(q=>q.id!==command.id)}}
+    case 'reorderIntent':{const queue=[...s.routine!.queue],i=queue.findIndex(q=>q.id===command.id),next=i+(command.direction==='up'?-1:1);if(i>=0&&next>=0&&next<queue.length)[queue[i],queue[next]]=[queue[next],queue[i]];return {...s,routine:{...s.routine!,queue}}}
     case 'buyGroceries':return buyGroceries(s,command.pack,cityPrice(GROCERIES[command.pack].price,s.currentZone,ctx.gas[s.currentZone]))
     case 'startProject':case 'claimProject':return projectCommand(s,command.id,command.type==='claimProject')
     case 'enterVenue':{
@@ -258,7 +287,7 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
     case 'registration': return { ...s, registeredLot: command.lot, registeredOnChain: command.lot !== null }
     case 'cancel':{
       if(s.location.trip){if(now-s.location.trip.startedAt>2000)return message(s,'The tram has departed. You will arrive shortly.');return message({...s,gChog:s.gChog+s.location.trip.fare,location:{...s.location,trip:undefined}},'Journey cancelled before boarding. Your fare was returned.')}
-      return message({ ...stopIndoor(s,now), action: null, job: null, location:s.location?.journey?{...s.location,tile:journeyTile(s.location,now),journey:null}:s.location }, 'Action canceled. Consumed food and energy are not refunded.')
+      return message({ ...stopIndoor(s,now),routine:{...s.routine!,queue:[],nextAutonomyAt:now+30000}, action: null, job: null, location:s.location?.journey?{...s.location,tile:journeyTile(s.location,now),journey:null}:s.location }, 'Action canceled. Consumed food and energy are not refunded.')
     }
     case 'startAction': {
       if(s.household&&s.location.kind!=='street')return message(s,'Select an actual object in this room to start an activity.')

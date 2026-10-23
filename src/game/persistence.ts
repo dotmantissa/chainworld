@@ -1,10 +1,11 @@
 import type { GameState, ZoneId } from './types'
 import {parseLife,newLife,RECIPES} from './life'
 import {ADDED_NEEDS} from './needs'
+import {parseRoutine,newRoutine} from './routine'
 import { ACTIONS } from './gameEngine'
 import { parseEstate, DEFAULT_LOCATION, frontDoor, streetWalkable } from './neighborhood'
 import { DEFAULT_PROFILE, parseProfile } from './residentProfile'
-import {validBlueprint,houseWalkable,entryTile} from './housing'
+import {validBlueprint,houseWalkable,entryTile,wallBlocks,approaches,FURNITURE,ROOM_STEP,type Blueprint} from './housing'
 import {venueOf,venueBlueprint,placeKey,npcById} from './places'
 
 export interface StorageLike { getItem(key: string): string | null; setItem(key: string, value: string): void }
@@ -27,8 +28,9 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
     const cooldowns: Record<string, number> = {}
     if (v2) for (const key of ['socialize', 'ration', 'validator']) if (finite(p.cooldowns[key], 0, Number.MAX_SAFE_INTEGER)) cooldowns[key] = p.cooldowns[key]
     const life=p.life===undefined?newLife():parseLife(p.life);if(!life)return null
+    const routine=p.routine===undefined?newRoutine():parseRoutine(p.routine,v2?p.sequence:0);if(!routine)return null
     const s: GameState = {
-      ...identity, life, household:undefined,home:parseEstate(p.home)??identity.home,location:{...DEFAULT_LOCATION,tile:frontDoor(parseEstate(p.home)??identity.home)}, profile:parseProfile(p.profile)??{...DEFAULT_PROFILE}, gChog: Math.floor(p.gChog), lastSaved: p.lastSaved, upkeepCarry: v2 ? p.upkeepCarry : 0,
+      ...identity, life, routine, household:undefined,home:parseEstate(p.home)??identity.home,location:{...DEFAULT_LOCATION,tile:frontDoor(parseEstate(p.home)??identity.home)}, profile:parseProfile(p.profile)??{...DEFAULT_PROFILE}, gChog: Math.floor(p.gChog), lastSaved: p.lastSaved, upkeepCarry: v2 ? p.upkeepCarry : 0,
       meters: { hygiene:p.meters.hygiene??ADDED_NEEDS.hygiene,fun:p.meters.fun??ADDED_NEEDS.fun,comfort:p.meters.comfort??ADDED_NEEDS.comfort, hunger: p.meters.hunger, social: p.meters.social, energy: v2 ? p.meters.energy : 100, reputation: p.meters.reputation, housingTier: Math.floor(p.meters.housingTier) },
       currentZone: [0,1,2,3,4,5].includes(p.currentZone) ? p.currentZone : 0,
       xp: v2 ? p.xp : 0, sequence: v2 ? p.sequence : 0, cooldowns,
@@ -42,9 +44,18 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
     if(venue&&s.currentZone!==5)s.location={kind:'home',tile:p.location.tile??{x:5,y:3},journey:null,district:0,venue:placeKey(s.currentZone,venue),interior:venueBlueprint(s.currentZone,venue)}
     const h=p.household
     if(h?.schema===1&&Number.isInteger(h.seed)&&['legacy-rank-v1','source-tier-v1'].includes(h.grant)&&typeof h.sourceTier==='string'&&h.blueprint&&validBlueprint(h.blueprint)&&h.pet&&[h.pet.hunger,h.pet.energy,h.pet.affection,h.pet.bond].every((n:unknown)=>finite(n,0,100))&&typeof h.pet.following==='boolean'&&finite(h.pet.lastCare,0,Date.now()+300000)&&h.relationships&&typeof h.relationships==='object'){
-      const b=s.location.interior??h.blueprint,relationships:typeof h.relationships={}
+      const b:Blueprint=s.location.interior??h.blueprint,relationships:typeof h.relationships={}
       for(const[id,r]of Object.entries(h.relationships) as [string,{friendship:number;meetings:number;lastMet:number;memory:string}][])if(npcById(id)&&finite(r.friendship,0,100)&&finite(r.meetings,0,1e9)&&finite(r.lastMet,0,Date.now()+300000)&&typeof r.memory==='string'&&r.memory.length<80)relationships[id]=r
       s.household={...h,relationships,humanTile:h.humanTile&&houseWalkable(b,h.humanTile)?h.humanTile:entryTile(b),journey:null,pendingUse:null}
+      const restoredHouse=s.household!
+      const journey=h.journey
+      if(journey&&Array.isArray(journey.path)&&journey.path.length>0&&journey.path.length<=256&&journey.from&&houseWalkable(b,journey.from)&&finite(journey.startedAt,0,s.lastSaved)&&journey.endsAt===journey.startedAt+journey.path.length*ROOM_STEP){
+        const route=[journey.from,...journey.path]
+        if(route.every(t=>houseWalkable(b,t))&&route.every((t,i)=>!i||Math.abs(t.x-route[i-1].x)+Math.abs(t.y-route[i-1].y)===1&&!wallBlocks(b,route[i-1],t)))restoredHouse.journey={from:journey.from,path:journey.path.map((t:{x:number;y:number})=>({x:t.x,y:t.y})),startedAt:journey.startedAt,endsAt:journey.endsAt}
+      }
+      const pending=h.pendingUse,o=b.objects.find(o=>o.id===pending?.objectId&&!o.stored),target=restoredHouse.journey?.path.slice(-1)[0]??restoredHouse.humanTile
+      if(pending&&o&&pending.layoutVersion===b.version&&finite(pending.arrivesAt,0,s.lastSaved+60000)&&(FURNITURE[o.type].actions as readonly string[]).includes(pending.kind)&&approaches(b,o).some(t=>t.x===target.x&&t.y===target.y)&&pending.arrivesAt===(restoredHouse.journey?.endsAt??s.lastSaved))restoredHouse.pendingUse={objectId:o.id,kind:pending.kind,layoutVersion:b.version,arrivesAt:pending.arrivesAt}
+
     }
     if(p.location?.kind==='street'&&Number.isInteger(p.location.tile?.x)&&Number.isInteger(p.location.tile?.y)){const tile=p.location.tile;if(streetWalkable(tile))s.location={kind:'street',tile,journey:null}}
     const trip=p.location?.trip

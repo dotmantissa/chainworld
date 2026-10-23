@@ -1,0 +1,18 @@
+import {test,expect} from '@playwright/test'
+test('queued actions can be reordered and removed, survive reload and finish in order',async({page})=>{
+ await page.route('https://**/*',r=>r.abort());const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
+ await page.goto('/');await page.getByRole('button',{name:'Explore a local preview'}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')
+ await page.getByText('Objects in this place',{exact:true}).click()
+ await page.locator('.place-objects').getByRole('button',{name:'Cloud bed',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:/^Sleep/}).click()
+ await page.locator('.place-objects').getByRole('button',{name:'Little kitchen',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:/Wash at the sink/}).click()
+ await page.locator('.place-objects').getByRole('button',{name:'Reading sofa',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:/Relax on the sofa/}).click()
+ await expect(page.getByRole('list',{name:'Waiting actions'}).getByRole('listitem')).toHaveCount(2)
+ await page.getByRole('button',{name:'Move waiting action 2 up',exact:true}).click();await expect(page.getByRole('list',{name:'Waiting actions'}).getByRole('listitem').first()).toContainText('Relax on the sofa')
+ await page.getByRole('button',{name:'Remove waiting action 1',exact:true}).click()
+ await page.reload();await page.getByRole('button',{name:'Explore a local preview'}).click()
+ await expect(page.getByRole('list',{name:'Waiting actions'})).toContainText('Wash at the sink')
+ await expect(page.getByRole('status')).toContainText('Wash at the sink complete',{timeout:50000})
+ await expect(page.locator('.queue-panel')).toContainText('Next up · 0/6')
+ await page.getByRole('checkbox',{name:'Free care autonomy',exact:true}).check();await page.reload();await page.getByRole('button',{name:'Explore a local preview'}).click();await expect(page.getByRole('checkbox',{name:'Free care autonomy',exact:true})).toBeChecked()
+ expect(errors).toEqual([])
+})
