@@ -1,3 +1,4 @@
+import BrandLogo from './BrandLogo'
 import {MONAD_TESTNET_ID,networkName} from '../game/networks'
 import ChogWorkshop from './ChogWorkshop'
 import {CHOG_GOODS,chogSpecialty,partnerBonus} from '../game/chogEconomy'
@@ -71,7 +72,7 @@ export default function GameHUD({gameState,revision,traits,onExit}:Props) {
   const toolTitle=({home:'Your household',life:'Skills & pantry',goals:'Goals & rewards',build:'Build & buy',jobs:'Make a living',zones:'Travel',map:'Neighbors',services:'City services',chog:'Your Chog workshop'} as Record<string,string>)[tab??'']??'Your household'
   useEffect(()=>{if(s.job?.kind!=='validator')return;let alive=true;queueMicrotask(()=>{if(alive)setTab('jobs')});return()=>{alive=false}},[s.job?.id,s.job?.kind])
   return <main className="game-shell">
-    <header className="game-header"><div><a className="wordmark" href="/">chain<span>world</span><i>✦</i></a><p className="muted">{ZONES[s.currentZone].name} · {HOUSING_LABELS[s.meters.housingTier]}</p></div>
+    <header className="game-header"><div><BrandLogo/><p className="muted">{ZONES[s.currentZone].name} · {HOUSING_LABELS[s.meters.housingTier]}</p></div>
       <div className="header-balance"><strong>{s.gChog.toLocaleString()} <small>gCHOG</small></strong><p className="muted">{dailyCost(s,{now:s.lastSaved,gas})} / simulated day</p></div>
       <div className="game-account"><button onClick={()=>onExit()}>Back to welcome</button><ConnectKitButton/></div>
     </header>

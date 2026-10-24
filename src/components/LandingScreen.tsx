@@ -1,3 +1,4 @@
+import BrandLogo from './BrandLogo'
 import {useEffect} from 'react'
 import {ConnectKitButton} from 'connectkit'
 import {useSwitchChain} from 'wagmi'
@@ -10,7 +11,7 @@ export default function LandingScreen({selectedNetwork,nft,onAuthenticate,onWall
  const network=useSwitchChain(),connected=!!nft.address,testnet=selectedNetwork!==143,label=networkName(selectedNetwork??MONAD_TESTNET_ID)
  useEffect(()=>{if(walletOpen)document.getElementById('enter')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'})},[walletOpen])
  return <main className="landing-shell welcome-page">
-  <nav className="landing-nav"><a className="wordmark" href="/">chain<span>world</span><i>✦</i></a><span className="welcome-tagline">PLAY · BUILD · BELONG</span></nav>
+  <nav className="landing-nav"><BrandLogo/><span className="welcome-tagline">PLAY · BUILD · BELONG</span></nav>
   <div className="landing-grid"><section className="landing-copy"><p className="eyebrow">A LITTLE LIFE. A CHOG BY YOUR SIDE.</p><h1>Make yourself<br/><em>at home.</em></h1><p>Care for your Chog, make goods together and earn your place in a living neighborhood. Build a home and a business around the NFT that makes your household yours.</p><div className="welcome-actions"><button className="primary" onClick={onWalletIntent}>{connected?'Continue with my Chog':'Connect wallet to play'} ↗</button></div><p className="landing-play-note">Choose Testnet or Mainnet · Connect your wallet · Play with your Chog</p>{error&&!walletOpen&&<p className="notice" role="alert">{error}</p>}</section>
    <section className="welcome-home" aria-label="A life with your Chog"><img src="/art/entry/home-v1.webp" alt="A resident and their Chog in a furnished home" width="900" height="560"/><div><span>YOUR HOME. YOUR CHOG. YOUR NEXT CHAPTER.</span><p>Make things. Meet people. Make room for life.</p></div></section>
   </div>
@@ -24,6 +25,6 @@ export default function LandingScreen({selectedNetwork,nft,onAuthenticate,onWall
    <p className="preview-note">Your wallet and {testnet?'Test Chog':'mainnet Chog'} are required to play. Progress and workshop assets follow your NFT household. {label}; gCHOG is game currency.</p>
   </section>}
   <section className="landing-features">{[['01','Care for your partner','Your Chog’s traits and bond shape your workshop and earnings.'],['02','Make a little living','Craft with real furniture and deliver goods to city businesses.'],['03','Make the place yours','Buy furniture and arrange it directly inside your home.']].map(([n,title,text])=><article key={n}><span>{n}</span><h3>{title}</h3><p>{text}</p></article>)}</section>
-  <CollectionGallery/><footer>CHAIN WORLD <span>A life worth coming home to. · Monad</span></footer>
+  <CollectionGallery/><footer><BrandLogo/><span>A life worth coming home to. · Monad</span></footer>
  </main>
 }

@@ -1,0 +1,16 @@
+{
+  "id": "/",
+  "name": "ChainWorld",
+  "short_name": "ChainWorld",
+  "description": "Build a home, make a living and share a world with your Chog.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F6F1E6",
+  "theme_color": "#382B49",
+  "icons": [
+    {"src": "/brand/chainworld-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/brand/chainworld-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/brand/chainworld-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
