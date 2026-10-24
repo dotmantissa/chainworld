@@ -6,7 +6,7 @@ import {decodeFunctionData,encodeFunctionResult,type Hex} from 'viem'
 import {CHAIN_WORLD_REGISTRY_ABI as abi} from '../../src/contracts/chainWorldRegistryAbi'
 const realistic=JSON.parse(readFileSync('src/world/realism-manifest.json','utf8'))
 test.use({hasTouch:true})
-test.beforeEach(async({page})=>{await page.route('https://**/*',route=>route.abort());await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
+test.beforeEach(async({page})=>{await page.route('https://**/*',route=>route.abort());await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click();await page.getByRole('button',{name:'Play on testnet',exact:true}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
 const zoom=async(surface:Locator)=>Number(await surface.getAttribute('data-camera-zoom'))
 async function saved(page:Page){return page.evaluate(()=>Object.values(localStorage).map(v=>{try{return JSON.parse(v)}catch{return null}}).find(s=>s?.version===2&&s?.walletAddress==='0x1111111111111111111111111111111111111111'))}
 async function drag(page:Page,surface:Locator){const box=(await surface.boundingBox())!;await page.mouse.move(box.x+box.width*.5,box.y+box.height*.55);await page.mouse.down();await page.mouse.move(box.x+box.width*.65,box.y+box.height*.65,{steps:10});await page.mouse.up()}

@@ -1,6 +1,6 @@
 import {test,expect} from './walletFixture'
 
-test.beforeEach(async({page})=>{await page.route('https://**/*',r=>r.abort());await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
+test.beforeEach(async({page})=>{await page.route('https://**/*',r=>r.abort());await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click();await page.getByRole('button',{name:'Play on testnet',exact:true}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
 
 test('first screen puts the world, needs and one suggested action before optional settings',async({page})=>{
  await expect(page.getByRole('navigation',{name:'Game tools'}).getByRole('button')).toHaveCount(3)
@@ -94,5 +94,7 @@ test('outdoor care offers usable park recovery and routes sink washing to a cafe
  await page.getByRole('region',{name:'Your needs'}).getByRole('button',{name:/Hygiene/}).click()
  await page.getByRole('dialog').getByRole('button',{name:/Wash at the sink/}).click()
  await expect(page.getByRole('status')).toContainText('Wash at the sink',{timeout:15000})
- await page.getByRole('button',{name:'Cancel',exact:true}).click()
+ // A short wash may finish before Playwright can click a transient Cancel button.
+ await expect(page.getByRole('status')).toContainText('Wash at the sink complete.',{timeout:20000})
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('cw_test_snapshot')!).meters.hygiene)).toBeGreaterThan(99)
 })

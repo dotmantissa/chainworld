@@ -2,7 +2,7 @@ import {household,closeTools,goals} from './playTools'
 import {test,expect} from './walletFixture'
 test('daily goals and physical friend hangouts persist without chat money',async({page})=>{
  test.setTimeout(150000);await page.route('https://**/*',r=>r.abort());const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
- await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click()
+ await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click();await page.getByRole('button',{name:'Play on testnet',exact:true}).click()
  await goals(page);await expect(page.locator('.daily-goals .quest-row')).toHaveCount(3);await closeTools(page)
  await page.getByRole('button',{name:'Leave home & explore'}).click();await page.getByRole('button',{name:'Parallel Perk Café',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Go inside',exact:true}).click()
  await expect(page.getByRole('heading',{name:'Parallel Perk Café',exact:true})).toBeVisible({timeout:25000})
@@ -13,7 +13,7 @@ test('daily goals and physical friend hangouts persist without chat money',async
  await page.waitForTimeout(16000)
  await page.getByRole('button',{name:'Meet Violet',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:/Spend time together/}).click()
  await expect(page.getByRole('status')).toContainText('A lovely moment with Violet. Friendship 28/100',{timeout:30000})
- await page.reload();await page.getByRole('button',{name:'Continue with my Chog'}).click();await household(page);await expect(page.locator('.friendships')).toContainText('Friend · 28/100');await closeTools(page)
+ await page.reload();await page.getByRole('button',{name:'Continue with my Chog'}).click();await page.getByRole('button',{name:'Play on testnet',exact:true}).click();await household(page);await expect(page.locator('.friendships')).toContainText('Friend · 28/100');await closeTools(page)
  await page.getByRole('button',{name:'Meet Violet',exact:true}).click();await expect(page.getByRole('dialog')).toContainText('Time together at this venue');await page.getByRole('button',{name:'Close conversation'}).click()
  const balance=await page.evaluate(()=>JSON.parse(localStorage.getItem('cw_test_snapshot')!).gChog);expect(balance).toBe(100);expect(errors).toEqual([])
  await page.screenshot({path:'/tmp/chainworld-new-social.png',fullPage:true})

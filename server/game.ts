@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { db } from './db'
 import { serverFetch } from './httpClient'
 import { authenticated } from './session'
-import { chainClient, collection, nftAbi, tokenMetadata } from './chain'
+import { clientFor, collection, nftAbi, tokenMetadata } from './chain'
 import { body, checkOrigin, endpoint, HttpError, send } from './http'
 import { parseCommand } from './commands'
 import { createNewGameState, reduceGame, settle, unlockEarnedZones } from '../src/game/gameEngine'
@@ -15,35 +15,37 @@ import { getAllZoneGwei, getZoneGwei,cachedZoneGwei } from '../src/game/zones'
 import type { GameState } from '../src/game/types'
 import { parseAbi } from 'viem'
 import {ensureHousehold,freshHousehold} from '../src/game/household'
+import {requestChain,sameRealm} from './network'
+import {MONAD_TESTNET_ID} from '../src/game/networks'
 import {entryTile} from '../src/game/housing'
 export default endpoint(async(req,res)=>{
   const receivedAt=Date.now()
   if(!['GET','POST'].includes(req.method??''))throw new HttpError(405,'Method not allowed')
   const input=req.method==='POST'?(checkOrigin(req),await body(req)):{}
-  const wallet=await authenticated(req)
+  const chainId=requestChain(req,input),wallet=await authenticated(req,chainId),client=clientFor(chainId)
   const params=new URL(req.url??'','http://localhost').searchParams
   const id=req.method==='GET'?params.get('tokenId'):input.tokenId
   if((typeof id!=='string'&&typeof id!=='number')||!/^\d+$/.test(String(id))||!Number.isSafeInteger(Number(id)))throw new HttpError(400,'Invalid token ID')
-  const tokenId=Number(id),address=collection(),key=`10143:${address.toLowerCase()}:${tokenId}`
+  const tokenId=Number(id),address=collection(chainId),key=`${chainId}:${address.toLowerCase()}:${tokenId}`
   const requestId=input.requestId
   if(req.method==='POST'&&(typeof requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)||!Number.isInteger(input.revision)))throw new HttpError(400,'A command request ID and revision are required')
   let command=req.method==='POST'?parseCommand(input.command):{type:'tick'} as const
-  const sql=db(),registry=process.env.REGISTRY_V2_ADDRESS
+  const sql=db(),registry=chainId===MONAD_TESTNET_ID?process.env.REGISTRY_V2_ADDRESS:undefined
   // Direct controls do not wait for unrelated gas or published-profile RPCs.
   const directInput=['walk','moveIndoor','clickBlock','leaveHome','enterHome','enterVenue'].includes(command.type)
   // Ownership, the state snapshot and public observations are independent reads.
   const [owner,existing,observations,registryProfile]=await Promise.all([
-    chainClient.readContract({address,abi:nftAbi,functionName:'ownerOf',args:[BigInt(tokenId)]}),
+    client.readContract({address,abi:nftAbi,functionName:'ownerOf',args:[BigInt(tokenId)]}),
     sql`SELECT state,revision,EXISTS(SELECT 1 FROM cw_parcels WHERE identity=${key}) AS estate_ready,EXISTS(SELECT 1 FROM cw_commands WHERE identity=${key} AND request_id=${typeof requestId==='string'?requestId:null}::uuid) AS repeated FROM cw_games WHERE identity=${key}`,
     directInput?Promise.resolve(cachedZoneGwei()):getAllZoneGwei(serverFetch),
-    req.method==='GET'&&registry&&/^0x[0-9a-f]{40}$/i.test(registry)?chainClient.readContract({address:registry as `0x${string}`,abi:parseAbi(['function getPlayer(uint256) view returns (bool,uint256,uint8,uint16[6],uint256)']),functionName:'getPlayer',args:[BigInt(tokenId)]}):Promise.resolve(null),
+    req.method==='GET'&&registry&&/^0x[0-9a-f]{40}$/i.test(registry)?client.readContract({address:registry as `0x${string}`,abi:parseAbi(['function getPlayer(uint256) view returns (bool,uint256,uint8,uint16[6],uint256)']),functionName:'getPlayer',args:[BigInt(tokenId)]}):Promise.resolve(null),
   ])
   if(owner.toLowerCase()!==wallet)throw new HttpError(403,'This wallet no longer owns the selected NFT.')
   let rows=existing
   if(!existing.length){
-    const metadata=await tokenMetadata(tokenId)
-    const rank=await verifiedRank(tokenId,metadata)
-    let initial=createNewGameState(wallet,tokenId,metadata.attributes,0,{collection:address,rank})
+    const metadata=await tokenMetadata(tokenId,chainId)
+    const rank=await verifiedRank(tokenId,metadata,chainId)
+    let initial=createNewGameState(wallet,tokenId,metadata.attributes,0,{chainId,collection:address,rank})
     initial.appearance={...initial.appearance,sourceImage:metadata.image,sourceName:metadata.name}
     initial=freshHousehold(initial)
     const result=await sql.transaction([
@@ -67,12 +69,13 @@ export default endpoint(async(req,res)=>{
   state={...state,profile:state.profile??{...DEFAULT_PROFILE},home:state.home??estateDefault(state),location:state.location??{...DEFAULT_LOCATION}}
   const revision=Number(rows[0].revision)
   if(state.appearance.schemaVersion!==2||!state.appearance.sourceImage||!state.appearance.sourceTier&&!state.household){
-    const metadata=await tokenMetadata(tokenId)
+    const metadata=await tokenMetadata(tokenId,chainId)
     const derived=mapTraitsToCharacter(metadata.attributes,tokenId)
     state={...state,stats:derived.stats,appearance:{...derived.appearance,sourceImage:metadata.image,sourceName:metadata.name}}
   }
   state=ensureHousehold(state)
   state={...state,location:{...state.location,district:state.location.district??(state.currentZone===state.home.city?state.home.district:0)}}
+  if(state.location.kind==='visit'&&state.location.host&&!sameRealm(key,state.location.host))state={...state,action:null,job:null,location:{kind:'street',tile:state.location.tile,journey:null}}
   if(state.location.kind==='visit'&&state.location.host){
     const hosts=await sql`SELECT state FROM cw_games WHERE identity=${state.location.host}`
     const host=hosts[0]?.state as GameState|undefined
@@ -91,6 +94,7 @@ export default endpoint(async(req,res)=>{
     state=reduceGame(state,{type:'resolveGrifter',sessionId:state.job.id,wei:q.wei,fetchedAt:q.fetchedAt,stale:q.stale},{now:Date.now(),gas})
   }
   if(command.type==='enterHome'&&command.host){
+    if(!sameRealm(key,command.host))throw new HttpError(403,'Choose a household in your current network.')
     const hosts=await sql`SELECT state FROM cw_games WHERE identity=${command.host}`
     const host=hosts[0]?.state as GameState|undefined
     if(!host?.home?.open)throw new HttpError(400,'This resident’s home is closed to visitors.')
@@ -104,7 +108,7 @@ export default endpoint(async(req,res)=>{
     state={...state,registeredOnChain:registryProfile[0],registeredLot:registryProfile[0]?Number(registryProfile[1]):null}
   }
   // Recheck ownership after external observations and before the atomic write.
-  const currentOwner=await chainClient.readContract({address,abi:nftAbi,functionName:'ownerOf',args:[BigInt(tokenId)]})
+  const currentOwner=await client.readContract({address,abi:nftAbi,functionName:'ownerOf',args:[BigInt(tokenId)]})
   if(currentOwner.toLowerCase()!==wallet)throw new HttpError(403,'NFT ownership changed. Reconnect its current owner.')
   const commandId=typeof requestId==='string'?requestId:randomUUID()
   let committed
@@ -112,12 +116,13 @@ export default endpoint(async(req,res)=>{
     if(['buyLand','offerLand','respondOffer','gesture'].includes(command.type))committed=await sql`SELECT * FROM cw_commit_world(${key},${revision},${JSON.stringify(state)}::jsonb,${commandId}::uuid,${JSON.stringify(command)}::jsonb,${cityPrice(250,state.home.city,gas[state.home.city])})`
     else{
       const pending=state.household?.pendingUse,objectId=pending?.objectId??state.action?.objectId??null
-      const place=state.location.host??state.location.venue??key,until=pending?pending.arrivesAt+65000:state.action?.endsAt??Date.now()
+      const place=state.location.host??(state.location.venue?`${chainId}:${address.toLowerCase()}:${state.location.venue}`:key),until=pending?pending.arrivesAt+65000:state.action?.endsAt??Date.now()
       committed=await sql`SELECT * FROM cw_commit_home(${key},${revision},${JSON.stringify(state)}::jsonb,${commandId}::uuid,${place},${objectId},${until+2000},${['buyFurniture','moveFurniture','storeFurniture','sellFurniture','expandRoom','editWall','upgrade'].includes(command.type)})`
     }
   }catch(error){
     const text=error instanceof Error?error.message:''
     const known=['Return to your home city to expand','Only adjacent land can join your estate','You already own this land','This parcel is occupied; make its owner an offer','Not enough gCHOG','This land is available to buy directly','Not enough gCHOG to fund this offer','Cancel an outstanding offer first','Offer is no longer pending','This offer belongs to another resident','This offer expired; reject or cancel it to refund the buyer','The parcel owner changed; reject or cancel this offer','A resident cannot sell their home parcel','The parcel no longer adjoins the buyer estate','This sale would disconnect the seller estate','That resident is no longer nearby','Meet outside in the same neighborhood first','Walk closer to that resident first','Give your neighbor a moment before another interaction']
+    known.push('This household is on another network')
     known.push('Someone is using that object. Choose another seat or wait','A guest is using your furniture; finish the visit before editing')
     const message=known.find(message=>text.includes(message))
     if(message)throw new HttpError(400,message)

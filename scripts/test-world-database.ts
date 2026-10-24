@@ -7,7 +7,7 @@ const sql=db(),tag=`world-verification:${randomUUID()}`,a=`${tag}:a`,b=`${tag}:b
 const base=createNewGameState('verification',0,[],0,{now:Date.now(),collection:'verification'})
 const stateA:GameState={...base,gChog:1000,home:{city:0,district,x:0,y:0,plots:[{x:0,y:0},{x:1,y:0}],style:'linen',open:true}}
 const stateB:GameState={...base,gChog:1000,home:{city:0,district,x:3,y:0,plots:[{x:3,y:0},{x:2,y:0},{x:3,y:1}],style:'sage',open:true}}
-const get=async(key:string)=>{const rows=await sql`SELECT state,revision FROM cw_games WHERE identity=${key}`;return{state:rows[0].state as GameState,revision:Number(rows[0].revision)}}
+const get=async(key:string)=>{for(let attempt=0;;attempt++){try{const rows=await sql`SELECT state,revision FROM cw_games WHERE identity=${key}`;return{state:rows[0].state as GameState,revision:Number(rows[0].revision)}}catch(error){if(attempt>=2||!/HTTP status 50[234]/.test(String(error)))throw error;await new Promise(r=>setTimeout(r,200*(attempt+1)))}}}
 const commit=async(key:string,command:unknown,id=randomUUID(),cost=250)=>{const g=await get(key);return sql`SELECT * FROM cw_commit_world(${key},${g.revision},${JSON.stringify(g.state)}::jsonb,${id}::uuid,${JSON.stringify(command)}::jsonb,${cost})`}
 try{
  await sql`INSERT INTO cw_games(identity,state) VALUES(${a},${JSON.stringify(stateA)}::jsonb),(${b},${JSON.stringify(stateB)}::jsonb)`

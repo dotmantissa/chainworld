@@ -5,8 +5,10 @@ export const indoorSchema=`CREATE TABLE IF NOT EXISTS cw_object_leases (
 export const indoorCommitFunction=`
 CREATE OR REPLACE FUNCTION cw_commit_home(game_key text,expected_revision integer,next_state jsonb,command_id uuid,place_key text,object_key text,lease_end double precision,editing boolean)
 RETURNS TABLE(outcome text,state jsonb,revision integer) LANGUAGE plpgsql AS $$
-DECLARE result record;
+DECLARE result record; realm_key text;
 BEGIN
+ realm_key=split_part(game_key,':',1)||':'||split_part(game_key,':',2);
+ IF left(place_key,length(realm_key)+1)<>realm_key||':' THEN place_key=realm_key||':'||place_key;END IF;
  PERFORM pg_advisory_xact_lock(hashtext('cw-place:'||place_key));
  SELECT * INTO result FROM cw_commit_game(game_key,expected_revision,next_state,command_id);
  IF result.outcome<>'committed' THEN RETURN QUERY SELECT result.outcome,result.state,result.revision;RETURN;END IF;

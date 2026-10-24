@@ -10,11 +10,11 @@ export function useNeighborhood(state:GameState,shared:boolean) {
     if(!shared)return
     let alive=true
     const refresh=async()=>{
-      try{const data=await api<NeighborhoodSnapshot>(`/api/neighborhood?tokenId=${state.tokenId}`);if(alive){setSnapshot(data);setError('')}}catch(e){if(alive)setError(e instanceof Error?e.message:'The neighborhood is unavailable')}
+      try{const data=await api<NeighborhoodSnapshot>(`/api/neighborhood?chainId=${state.chainId}&tokenId=${state.tokenId}`);if(alive){setSnapshot(data);setError('')}}catch(e){if(alive)setError(e instanceof Error?e.message:'The neighborhood is unavailable')}
     }
     void refresh();const timer=setInterval(()=>void refresh(),10000)
     return()=>{alive=false;clearInterval(timer)}
-  },[shared,key,state.tokenId,context])
+  },[shared,key,state.chainId,state.tokenId,context])
   const local:NeighborhoodSnapshot={neighbors:home.city===state.currentZone?[{identity:key,tokenId:state.tokenId,name:state.profile?.name||'Your Chog',appearance:state.appearance,profile:state.profile,home,housingTier:state.meters.housingTier,location:state.location,online:true}]:[],parcels:home.city===state.currentZone?home.plots.map(p=>({...p,identity:key})):[],offers:[],messages:[]}
   return {snapshot:shared?snapshot:local,error}
 }

@@ -1,6 +1,6 @@
 # Chain World
 
-A browser life simulator on Monad Testnet. Play a human resident with a separate Chog pet, build a home, visit five blockchain cities and form friendships. The Chog NFT owns the household's identity, property, balance and progression.
+A browser life simulator on Monad Mainnet and Testnet. Play a human resident with a separate Chog pet, build a home, visit five blockchain cities and form friendships. The Chog NFT owns the household's identity, property, balance and progression.
 
 The current build implements the human/pet household, editable modular homes, physical object interactions, enterable city venues, timed travel and persistent NPC friendships described in the [life-simulation architecture](docs/life-simulation-architecture.md). See [implementation status](docs/implementation-status.md) for verified behavior and remaining work. Graphics combine NFT-seeded, fully weighted human meshes with original realistic furniture and city assets; saved game geometry controls layouts and collision. The [realism direction](docs/realism-direction.md) records the material, room and physical-interaction improvements guided by the supplied references.
 
@@ -16,7 +16,7 @@ npm run db:migrate
 npm run dev
 ```
 
-Open **http://localhost:5175** and choose **Connect wallet to play**. Wallet connection, Monad Testnet and an owned Test Chog are required. New players claim a free Test Chog (paying only test MON gas), then sign the login message to create/open their household. Existing owners can continue with their Chog and reuse a valid signed session. Token zero is supported; no duplicate claim is required.
+Open **http://localhost:5175**, click **Connect wallet to play**, and choose **Play on testnet** or **Play on Mainnet**. Testnet retains the free Test Chog claim (test MON gas only) and signed login. Mainnet requires ownership of a Chog from the original collection `0xc96d31f8626c6d03fae5dcd3d61e3fb9f4a73763`; it offers no Test Chog claim. Returning owners can reuse a valid session on that network. See [dual-network play](docs/dual-network-play.md).
 
 All gameplay uses the authenticated game service. The backend checks current NFT ownership and stores progression by chain, collection and token; it never accepts client balances, rewards or clocks as authority. `DATABASE_URL` stays server-side and `APP_ORIGIN` must match the deployment origin. `VITE_SHARED_WORLD` is obsolete: there is no anonymous preview or browser-only fallback. Old local preview saves are ignored and never imported into shared funds or stock. **Explore the collection** remains read-only artwork/trait browsing.
 
@@ -24,7 +24,7 @@ All gameplay uses the authenticated game service. The backend checks current NFT
 
 Saving runs in the background. In shared play, movement and choices project immediately while a serialized command queue reconciles them with the server; a small status below the world shows unsaved choices or connection recovery. Routine saves never lock the room or add a waiting bubble above the resident. The pending-command journal is batched into idle work and flushed when leaving the page. See [background saving](docs/background-saving.md) for retry, rollback and authority details.
 
-Connect your wallet, claim/select your Test Chog and sign in. Resident customization is optional once you enter. Follow the suggested next step above the room, click a need meter for matching care, or select furniture directly. **Household**, **Build & buy**, and **Travel & neighbors** open optional tools. Household includes resident/pet care, the Chog workshop, skills, pantry and rewards; kitchen actions also link directly to supplies, and desk actions link to advanced jobs.
+Choose your network, connect your wallet, claim/select the appropriate Chog and sign in. Resident customization is optional once you enter. Follow the suggested next step above the room, click a need meter for matching care, or select furniture directly. **Household**, **Build & buy**, and **Travel & neighbors** open optional tools. Household includes resident/pet care, the Chog workshop, skills, pantry and rewards; kitchen actions also link directly to supplies, and desk actions link to advanced jobs.
 
 - Click the floor to walk, or focus the world and use **WASD**. Click another floor tile to redirect an ordinary walk. Press **E** for nearby object/service choices. Route dots, a destination ring and furniture hover labels show what your resident can do. Active object use can be queued or cancelled.
 - Zoom with the mouse wheel, trackpad pinch, touch pinch or **+ / −** controls in homes, streets and the world map. Drag to pan; **Pan** mode makes every drag/tap a camera gesture. Arrow controls/keys pan, **+ / −** zoom, and **0 / Center** refits the home or follows your resident outdoors. House labels stay above roofs, readable and clickable while zooming.
@@ -45,7 +45,7 @@ Connect your wallet, claim/select your Test Chog and sign in. Resident customiza
 
 ## Current features
 
-Wallet signup leads through connect → claim/verify Chog → sign in, then preloads the world and character art through one loading screen. Returning owners load their current server household. Returning NFT sessions avoid another signature, and transient metadata refreshes retain the active game. Doorway transitions await authoritative confirmation so a late movement acknowledgment cannot bounce a player into the previous scene. Routine movement/saving stays responsive. Residents now use authored continuous faces, bodies, hair and clothing with the complete skeletal action set and matching portraits; see [character art and CC0 provenance](docs/character-art.md).
+Wallet signup leads through network choice → connect → claim/verify the network’s Chog → sign in, then preloads the world and character art through one loading screen. Returning owners load their current server household. Returning NFT sessions avoid another signature, and transient metadata refreshes retain the active game. Doorway transitions await authoritative confirmation so a late movement acknowledgment cannot bounce a player into the previous scene. Routine movement/saving stays responsive. Residents now use authored continuous faces, bodies, hair and clothing with the complete skeletal action set and matching portraits; see [character art and CC0 provenance](docs/character-art.md).
 
 The current local build adds six human needs, sink washing and sofa relaxation; a real pantry with groceries, cooking, fresh leftovers and learned skills; three rewarded household projects; a saved six-action queue with reorder/remove controls and optional free-care autonomy; timed NPC hangouts, consumable meal gifts and daily goals; and room detection from walls/doors. The wallet-only release publishes these additions and the subsequent playability/UX pass together. See the [playability audit](docs/playability-audit.md) for findings, implemented changes and remaining animation/release work.
 
@@ -136,6 +136,8 @@ npm run test:browser   # requires Playwright Chromium and system libraries
 ```
 
 The database check creates and removes isolated verification rows. It tests concurrent writes and replay protection. The API check uses a temporary in-memory signing key for login/logout tests and never submits a blockchain transaction.
+
+Mainnet and Testnet have separate households, economies, property and sessions. Testnet progress cannot become Mainnet inventory or funds.
 
 Events use deterministic UTC two-hour slots. Costs, work income and social effects are scoped independently. Gas observations cache for 60 seconds and retain exact wei values for prediction jobs.
 

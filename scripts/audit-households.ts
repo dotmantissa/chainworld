@@ -1,3 +1,4 @@
+import {MAINNET_CHOG} from '../src/game/networks'
 import {createHash} from 'node:crypto'
 import residentMeshes from '../src/world/skeleton/character-manifest.json'
 import assert from 'node:assert/strict'
@@ -10,8 +11,8 @@ import {humanArtwork,furnitureArtwork,cityArtwork,materialArtwork,humanPortraitA
 const source=JSON.parse(await readFile('data/chog/source-manifest.json','utf8')) as SourceManifest
 const deployment=JSON.parse(await readFile('data/deployments/faucet-monad-testnet.json','utf8')) as {collection:string}
 const ranks=calculateRarity(source.tokens),assets=new Set<string>(),tiers:Record<string,number>={},layouts=new Set<string>()
-for(const[tokenId,token]of source.tokens.entries()){
- let state=createNewGameState('audit',tokenId,token.metadata.attributes,0,{collection:deployment.collection,rank:ranks.get(token.tokenId)!.rank,now:0})
+for(const[copyId,token]of source.tokens.entries())for(const network of[{chainId:10143,collection:deployment.collection,tokenId:copyId},{chainId:143,collection:MAINNET_CHOG,tokenId:token.tokenId}]){
+ let state=createNewGameState('audit',network.tokenId,token.metadata.attributes,0,{chainId:network.chainId,collection:network.collection,rank:ranks.get(token.tokenId)!.rank,now:0})
  state.appearance={...state.appearance,sourceImage:token.metadata.image,sourceName:token.metadata.name};state=freshHousehold(state)
  const h=state.household!,pack=SOURCE_PACKAGES[h.sourceTier as keyof typeof SOURCE_PACKAGES]
  assert(pack,`Unknown source tier for ${token.tokenId}`);assert(validBlueprint(h.blueprint),`Invalid house for ${token.tokenId}`)
@@ -28,4 +29,4 @@ for(let city=0;city<5;city++)for(const asset of cityArtwork(city))assets.add(ass
 for(const asset of[...materialArtwork,...humanPortraitArtwork,...outdoorArtwork,...architectureArtwork])assets.add(asset.url)
 await Promise.all([...assets].map(url=>access('public'+url)))
 for(const file of Object.values(residentMeshes)){const bytes=await readFile('public'+file.url);assert.equal(createHash('sha256').update(bytes).digest('hex'),file.sha256)}
-console.log(JSON.stringify({residentMeshesVerified:Object.keys(residentMeshes).length,households:source.tokens.length,tiers,distinctFurnitureLayouts:layouts.size,assetsVerified:assets.size,checks:'Every source household has a reachable shower; source-tier cash plus furniture conserved; legal accessible layouts; usable floor fits granted land; migration never regrants; NFT-seeded human assets exist for every presentation.'},null,2))
+console.log(JSON.stringify({residentMeshesVerified:Object.keys(residentMeshes).length,networks:2,sourceTokens:source.tokens.length,households:source.tokens.length*2,tiers,distinctFurnitureLayouts:layouts.size,assetsVerified:assets.size,checks:'Every source household has a reachable shower; source-tier cash plus furniture conserved; legal accessible layouts; usable floor fits granted land; migration never regrants; NFT-seeded human assets exist for every presentation.'},null,2))

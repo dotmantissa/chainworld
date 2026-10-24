@@ -11,6 +11,6 @@ function apiPlugin():Plugin {
 }
 export default defineConfig(({mode})=>{
   const env=loadEnv(mode,process.cwd(),'')
-  for(const key of ['DATABASE_URL','APP_ORIGIN','MONAD_TESTNET_RPC_URL','CHOG_ADDRESS','FAUCET_ADDRESS','REGISTRY_V2_ADDRESS','METADATA_HOSTS','LOCAL_HTTP_PROXY_URL'])if(env[key])process.env[key]=env[key]
+  for(const key of ['DATABASE_URL','APP_ORIGIN','MONAD_TESTNET_RPC_URL','MONAD_MAINNET_RPC_URL','CHOG_ADDRESS','FAUCET_ADDRESS','REGISTRY_V2_ADDRESS','METADATA_HOSTS','LOCAL_HTTP_PROXY_URL'])if(env[key])process.env[key]=env[key]
   return {plugins:[react(),apiPlugin()],server:{port:5175,strictPort:true},build:{rollupOptions:{output:{manualChunks:{phaser:['phaser']}}}}}
 })

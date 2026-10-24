@@ -4,7 +4,7 @@ test('slow authoritative saving does not block walking, object choices, queues o
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.route('https://**/*',r=>r.abort())
  let release!:()=>void;const gate=new Promise<void>(r=>{release=r}),requests:string[]=[]
  await page.route('**/api/game',async route=>{requests.push(route.request().postDataJSON().command.type);if(requests.length===1)await gate;await route.fallback()})
- await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click()
+ await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click();await page.getByRole('button',{name:'Play on testnet',exact:true}).click()
  await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')
  const canvas=page.locator('canvas');await canvas.focus();await page.keyboard.press('d')
  await expect(canvas).toHaveAttribute('data-destination',JSON.stringify({x:4,y:6}),{timeout:1200})

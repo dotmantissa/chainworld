@@ -22,16 +22,17 @@ CREATE TABLE IF NOT EXISTS cw_gestures (
 `
 export const ensureEstateFunction=`
 CREATE OR REPLACE FUNCTION cw_ensure_estate(game_key text) RETURNS void LANGUAGE plpgsql AS $$
-DECLARE g cw_games%ROWTYPE; c integer; d integer; px integer; py integer; candidate integer; n integer; pads jsonb;
+DECLARE g cw_games%ROWTYPE; c integer; d integer; px integer; py integer; candidate integer; n integer; pads jsonb; realm_key text;
 BEGIN
- PERFORM pg_advisory_xact_lock(hashtext('cw-world-property'));
+ realm_key=split_part(game_key,':',1)||':'||split_part(game_key,':',2);
+ PERFORM pg_advisory_xact_lock(hashtext('cw-world-property:'||realm_key));
  SELECT * INTO STRICT g FROM cw_games WHERE identity=game_key FOR UPDATE;
  IF EXISTS(SELECT 1 FROM cw_parcels WHERE identity=game_key) THEN RETURN; END IF;
  c=CASE WHEN (g.state->>'currentZone')::integer BETWEEN 0 AND 4 THEN (g.state->>'currentZone')::integer ELSE 0 END;
  candidate=0;
  LOOP
   d=candidate/16;px=(candidate%4)*2;py=((candidate%16)/4)*2;
-  EXIT WHEN NOT EXISTS(SELECT 1 FROM cw_parcels WHERE city=c AND district=d AND x BETWEEN px AND px+1 AND y BETWEEN py AND py+1);
+  EXIT WHEN NOT EXISTS(SELECT 1 FROM cw_parcels WHERE realm=realm_key AND city=c AND district=d AND x BETWEEN px AND px+1 AND y BETWEEN py AND py+1);
   candidate=candidate+1;
  END LOOP;
  n=1+FLOOR(COALESCE((g.state->'meters'->>'housingTier')::integer,0)/2.0)::integer;
@@ -50,9 +51,10 @@ export const worldCommitFunction=`
 CREATE OR REPLACE FUNCTION cw_commit_world(game_key text, expected_revision integer, next_state jsonb, command_id uuid, command jsonb, land_price integer)
 RETURNS TABLE(outcome text,state jsonb,revision integer) LANGUAGE plpgsql AS $$
 DECLARE g cw_games%ROWTYPE; o cw_land_offers%ROWTYPE; kind text; c integer; d integer; px integer; py integer;
- holder text; counter_key text; counter_state jsonb; buyer_state jsonb; seller_state jsonb; amount bigint; pads jsonb; remaining integer; connected integer;
+ holder text; counter_key text; counter_state jsonb; buyer_state jsonb; seller_state jsonb; amount bigint; pads jsonb; remaining integer; connected integer; realm_key text;
 BEGIN
- PERFORM pg_advisory_xact_lock(hashtext('cw-world-property'));
+ realm_key=split_part(game_key,':',1)||':'||split_part(game_key,':',2);
+ PERFORM pg_advisory_xact_lock(hashtext('cw-world-property:'||realm_key));
  SELECT * INTO STRICT g FROM cw_games WHERE identity=game_key FOR UPDATE;
  IF EXISTS(SELECT 1 FROM cw_commands WHERE identity=game_key AND request_id=command_id) THEN
   RETURN QUERY SELECT 'replayed'::text,g.state,g.revision; RETURN;
@@ -63,7 +65,7 @@ BEGIN
  IF kind IN ('buyLand','offerLand') THEN
   IF (next_state->>'currentZone')::integer<>c THEN RAISE EXCEPTION 'Return to your home city to expand'; END IF;
   IF NOT EXISTS(SELECT 1 FROM cw_parcels WHERE identity=game_key AND city=c AND district=d AND abs(x-px)+abs(y-py)=1) THEN RAISE EXCEPTION 'Only adjacent land can join your estate'; END IF;
-  SELECT identity INTO holder FROM cw_parcels WHERE city=c AND district=d AND x=px AND y=py;
+  SELECT identity INTO holder FROM cw_parcels WHERE realm=realm_key AND city=c AND district=d AND x=px AND y=py;
   IF holder=game_key THEN RAISE EXCEPTION 'You already own this land'; END IF;
   IF kind='buyLand' THEN
    IF holder IS NOT NULL THEN RAISE EXCEPTION 'This parcel is occupied; make its owner an offer'; END IF;
@@ -84,13 +86,14 @@ BEGIN
   SELECT * INTO o FROM cw_land_offers WHERE id=(command->>'id')::uuid FOR UPDATE;
   IF NOT FOUND OR o.status<>'pending' THEN RAISE EXCEPTION 'Offer is no longer pending'; END IF;
   IF command->>'decision'='cancel' AND o.buyer<>game_key OR command->>'decision' IN ('accept','reject') AND o.seller<>game_key THEN RAISE EXCEPTION 'This offer belongs to another resident'; END IF;
+  IF split_part(o.buyer,':',1)||':'||split_part(o.buyer,':',2)<>realm_key OR split_part(o.seller,':',1)||':'||split_part(o.seller,':',2)<>realm_key THEN RAISE EXCEPTION 'This household is on another network';END IF;
   counter_key=CASE WHEN game_key=o.buyer THEN o.seller ELSE o.buyer END;
   SELECT cw_games.state INTO STRICT counter_state FROM cw_games WHERE identity=counter_key FOR UPDATE;
   buyer_state=CASE WHEN game_key=o.buyer THEN next_state ELSE counter_state END;
   seller_state=CASE WHEN game_key=o.seller THEN next_state ELSE counter_state END;
   IF command->>'decision'='accept' THEN
    IF o.expires_at<=now() THEN RAISE EXCEPTION 'This offer expired; reject or cancel it to refund the buyer'; END IF;
-   IF NOT EXISTS(SELECT 1 FROM cw_parcels WHERE city=o.city AND district=o.district AND x=o.x AND y=o.y AND identity=o.seller) THEN RAISE EXCEPTION 'The parcel owner changed; reject or cancel this offer'; END IF;
+   IF NOT EXISTS(SELECT 1 FROM cw_parcels WHERE realm=realm_key AND city=o.city AND district=o.district AND x=o.x AND y=o.y AND identity=o.seller) THEN RAISE EXCEPTION 'The parcel owner changed; reject or cancel this offer'; END IF;
    IF (seller_state->'home'->>'x')::integer=o.x AND (seller_state->'home'->>'y')::integer=o.y THEN RAISE EXCEPTION 'A resident cannot sell their home parcel'; END IF;
    IF NOT EXISTS(SELECT 1 FROM cw_parcels WHERE identity=o.buyer AND city=o.city AND district=o.district AND abs(x-o.x)+abs(y-o.y)=1) THEN RAISE EXCEPTION 'The parcel no longer adjoins the buyer estate'; END IF;
    SELECT count(*)-1 INTO remaining FROM cw_parcels WHERE identity=o.seller;
@@ -101,7 +104,7 @@ BEGIN
     WHERE p.identity=o.seller AND NOT(p.x=o.x AND p.y=o.y)
    ) SELECT count(*) INTO connected FROM component;
    IF connected<>remaining THEN RAISE EXCEPTION 'This sale would disconnect the seller estate'; END IF;
-   UPDATE cw_parcels SET identity=o.buyer WHERE city=o.city AND district=o.district AND x=o.x AND y=o.y;
+   UPDATE cw_parcels SET identity=o.buyer WHERE realm=realm_key AND city=o.city AND district=o.district AND x=o.x AND y=o.y;
    SELECT jsonb_agg(jsonb_build_object('x',x,'y',y) ORDER BY x,y) INTO pads FROM cw_parcels WHERE identity=o.seller;
    seller_state=jsonb_set(jsonb_set(seller_state,'{home,plots}',pads),'{gChog}',to_jsonb((seller_state->>'gChog')::bigint+o.amount));
    SELECT jsonb_agg(jsonb_build_object('x',x,'y',y) ORDER BY x,y) INTO pads FROM cw_parcels WHERE identity=o.buyer;
@@ -117,6 +120,7 @@ BEGIN
   next_state=jsonb_set(next_state,'{lastMessage}',to_jsonb('Land offer resolved. Property and balances updated.'::text));
  ELSIF kind='gesture' THEN
   counter_key=command->>'recipient';
+  IF split_part(counter_key,':',1)||':'||split_part(counter_key,':',2)<>realm_key THEN RAISE EXCEPTION 'This household is on another network';END IF;
   SELECT cw_games.state INTO counter_state FROM cw_games WHERE identity=counter_key AND updated_at>now()-interval '45 seconds' FOR UPDATE;
   IF NOT FOUND OR counter_key=game_key THEN RAISE EXCEPTION 'That resident is no longer nearby'; END IF;
   IF next_state->'location'->>'kind'<>'street' OR counter_state->'location'->>'kind'<>'street' OR next_state->'location'->'journey'<>'null'::jsonb OR counter_state->'location'->'journey'<>'null'::jsonb OR next_state->>'currentZone'<>counter_state->>'currentZone' OR COALESCE(next_state->'location'->>'district',next_state->'home'->>'district')<>COALESCE(counter_state->'location'->>'district',counter_state->'home'->>'district') THEN RAISE EXCEPTION 'Meet outside in the same neighborhood first'; END IF;
