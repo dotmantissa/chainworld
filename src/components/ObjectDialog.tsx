@@ -11,7 +11,7 @@ export default function ObjectDialog({object,objectId,state,gas,onChoose,onClose
   const dialog=useRef<HTMLDialogElement>(null)
   const content=INTERACTIONS[object]
   const item=objectId?activeBlueprint(state).objects.find(o=>o.id===objectId):undefined
-  const bathroom=item?.type==='basin'||item?.type==='shower'
+  const bathroom=item?.type==='basin'||item?.type==='shower'||item?.type==='showerStall'
   const park=activeBlueprint(state).environment==='park'
   const art=park&&item?.type==='sofa'?outdoorArtwork[item.rotation]:park&&item?.type==='plant'?outdoorArtwork[2+item.rotation]:furnitureArtwork(item?.type??({eat:'kitchen',rest:'bed',work:'desk',socialize:'sofa',pet:'bowl',decor:'plant'} as const)[object],item?.rotation)
   const actions=content.actions.filter(a=>item?(FURNITURE[item.type].actions as readonly string[]).includes(a.kind):state.location.kind!=='street'||SERVICES.some(service=>service.actions.includes(a.kind)))

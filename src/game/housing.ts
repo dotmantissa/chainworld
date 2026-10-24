@@ -1,6 +1,7 @@
 import type {GameState} from './types'
 import type {Tile} from '../world/navigation'
 export const FURNITURE={
+ showerStall:{label:'Essential shower',price:0,w:1,h:1,family:'eat',actions:['shower']},
  bed:{label:'Cloud bed',price:45,w:2,h:3,family:'rest',actions:['rest','sleep']},
  basin:{label:'Oak washbasin',price:30,w:1,h:1,family:'eat',actions:['wash']},
  shower:{label:'Rain shower',price:70,w:2,h:2,family:'eat',actions:['shower']},
@@ -15,7 +16,7 @@ export const FURNITURE={
 export type FurnitureType=keyof typeof FURNITURE
 export interface Furniture {id:string;type:FurnitureType;x:number;y:number;rotation:0|1;stored:boolean;paid?:number}
 export interface Partition {x:number;y:number;axis:'x'|'y';door:boolean}
-export interface Blueprint {width:number;height:number;version:number;objects:Furniture[];walls:Partition[];environment?:'cafe'|'work'|'park';npcTiles?:Tile[]}
+export interface Blueprint {width:number;height:number;version:number;objects:Furniture[];walls:Partition[];environment?:'cafe'|'work'|'park'|'library';npcTiles?:Tile[]}
 export const ROOM_STEP=200
 export const tileKey=(t:Tile)=>`${t.x},${t.y}`
 export const entryTile=(b:Blueprint):Tile=>({x:Math.floor(b.width/2),y:b.height-1})
@@ -39,7 +40,7 @@ export function approachPath(b:Blueprint,start:Tile,o:Furniture,kind?:import('./
  return candidates.map(p=>housePath(b,start,p)).filter((p):p is Tile[]=>p!==null).sort((a,z)=>a.length-z.length)[0]??null
 }
 export function validBlueprint(b:Blueprint):boolean{
- if(!Number.isInteger(b.width)||!Number.isInteger(b.height)||b.width<7||b.height<7||b.width>12||b.height>12||!Number.isSafeInteger(b.version)||b.version<1||!Array.isArray(b.objects)||b.objects.length>80||!Array.isArray(b.walls)||b.walls.length>200)return false
+ if(!Number.isInteger(b.width)||!Number.isInteger(b.height)||b.width<7||b.height<7||b.width>12||b.height>12||!Number.isSafeInteger(b.version)||b.version<1||!Array.isArray(b.objects)||b.objects.length>81||!Array.isArray(b.walls)||b.walls.length>200)return false
  const occupied=new Set<string>(),ids=new Set<string>()
  for(const o of b.objects){if(!o||!Object.prototype.hasOwnProperty.call(FURNITURE,o.type)||typeof o.id!=='string'||o.id.length>80||ids.has(o.id)||![0,1].includes(o.rotation)||typeof o.stored!=='boolean'||!Number.isInteger(o.x)||!Number.isInteger(o.y)||o.paid!==undefined&&(!Number.isSafeInteger(o.paid)||o.paid<0||o.paid>1e9))return false;ids.add(o.id);if(o.stored)continue;for(const p of footprint(o)){const k=tileKey(p);if(p.x<0||p.y<0||p.x>=b.width||p.y>=b.height||occupied.has(k))return false;occupied.add(k)}}
  const edges=new Set<string>()
@@ -56,9 +57,11 @@ export function houseSeed(s:Pick<GameState,'chainId'|'collection'|'tokenId'|'app
 export function starterBlueprint(seed:number,level:number,legacy=false):Blueprint{
  const b:Blueprint={width:7+Math.min(3,Math.floor(level/2)),height:7+Math.min(2,Math.floor(level/2)),version:1,objects:[],walls:[]}
  const types:FurnitureType[]=legacy?['bed','kitchen','desk','sofa','bowl']:level===0?(seed%3===0?[]:['bed']):level===1?['bed',seed%2?'kitchen':'desk','bowl']:['bed','kitchen','desk','sofa','bowl','plant',...(level>=3?['lamp','shelf'] as FurnitureType[]:[])]
- for(const[typeIndex,type]of types.entries()){
+ types.push('showerStall')
+ const ordered=[...types.entries()].sort((a,z)=>Number(z[1]==='showerStall')-Number(a[1]==='showerStall'))
+ for(const[typeIndex,type]of ordered){
   const options:Tile[]=[];for(let y=0;y<b.height-1;y++)for(let x=0;x<b.width;x++)options.push({x,y})
   options.sort((a,z)=>seedOf(`${seed}:${type}:${a.x},${a.y}`)-seedOf(`${seed}:${type}:${z.x},${z.y}`))
-  for(const p of options){const o:Furniture={id:`starter-${typeIndex}-${type}`,type,...p,rotation:0,stored:false};const next={...b,objects:[...b.objects,o]};if(validBlueprint(next)){b.objects.push(o);break}}
+  for(const p of options){const o:Furniture={id:`starter-${typeIndex}-${type}`,type,...p,rotation:0,stored:false,...(type==='showerStall'?{paid:0}:{})};const next={...b,objects:[...b.objects,o]};if(validBlueprint(next)){b.objects.push(o);break}}
  }return b
 }

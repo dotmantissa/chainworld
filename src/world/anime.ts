@@ -30,7 +30,7 @@ export function drawRoom(scene:Phaser.Scene,b:Blueprint,style:string):Phaser.Gam
  }
  const material=b.environment==='park'?3:b.environment==='cafe'?5:style==='midnight'?1:style==='terracotta'?2:0
  const tiled=new Set(detectRooms(b).filter(r=>r.label==='Bathroom'||r.label==='Kitchen').flatMap(r=>r.cells.map(t=>`${t.x},${t.y}`)))
- for(const object of b.objects.filter(o=>!o.stored&&['kitchen','basin','shower'].includes(o.type)))for(const t of footprint(object))for(const dy of [0,1])tiled.add(`${t.x},${t.y+dy}`)
+ for(const object of b.objects.filter(o=>!o.stored&&['kitchen','basin','shower','showerStall'].includes(o.type)))for(const t of footprint(object))for(const dy of [0,1])tiled.add(`${t.x},${t.y+dy}`)
  for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){const p=houseIso({x,y}),tile=scene.add.image(p.x,p.y,materialArtwork[b.environment!=='park'&&tiled.has(`${x},${y}`)?5:material].key).setDisplaySize(50.8,26.5);if((x+y)%3===0)tile.setTint(0xf4f0e8);room.add(tile)}
  if(b.environment==='park')return room
  const details=scene.add.graphics();room.add(details)

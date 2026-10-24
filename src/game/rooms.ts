@@ -15,7 +15,7 @@ export function detectRooms(b:Blueprint):DetectedRoom[]{
   }
   const id=rooms.length;for(const t of cells)owners.set(tileKey(t),id)
   const keys=new Set(cells.map(tileKey)),objects=b.objects.filter(o=>!o.stored&&footprint(o).some(t=>keys.has(tileKey(t)))),types=[...new Set(objects.map(o=>o.type))]
-  const label=types.includes('bed')&&types.includes('kitchen')?'Open-plan studio':types.includes('bed')?'Bedroom':types.includes('shower')||types.includes('basin')?'Bathroom':types.includes('kitchen')?'Kitchen':types.includes('desk')?'Study':types.includes('sofa')||types.includes('shelf')?'Lounge':types.includes('bowl')?'Chog room':'Empty room'
+  const label=types.includes('bed')&&types.includes('kitchen')?'Open-plan studio':types.includes('bed')?'Bedroom':types.includes('showerStall')||types.includes('shower')||types.includes('basin')?'Bathroom':types.includes('kitchen')?'Kitchen':types.includes('desk')?'Study':types.includes('sofa')||types.includes('shelf')?'Lounge':types.includes('bowl')?'Chog room':'Empty room'
   const occupied=new Set(objects.flatMap(o=>footprint(o).filter(t=>keys.has(tileKey(t))).map(tileKey)))
   rooms.push({id,label,cells,area:cells.length,freeArea:cells.length-occupied.size,doors:0,furniture:types})
  }
