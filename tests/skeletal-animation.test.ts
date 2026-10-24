@@ -1,6 +1,10 @@
+import {readFileSync} from 'node:fs'
+import {installCharacterMesh} from '../src/world/skeleton/characterAssets'
+import manifest from '../src/world/skeleton/character-manifest.json'
 import {describe,it,expect} from 'vitest'
 import {HumanRig,RIG_ACTIVITIES} from '../src/world/skeleton/HumanRig'
 import {ACTIONS} from '../src/game/gameEngine'
+for(const[name,file]of Object.entries(manifest)){const data=readFileSync('public'+file.url);installCharacterMesh(name,data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength) as ArrayBuffer)}
 describe('weighted skeletal animation',()=>{
  it('binds the full body, hands and face to a real hierarchical skeleton',()=>{
   const rig=new HumanRig({seed:21,gender:'female'});expect(rig.mesh.isSkinnedMesh).toBe(true);expect(rig.bones.length).toBe(26)

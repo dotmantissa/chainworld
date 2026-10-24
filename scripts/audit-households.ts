@@ -1,3 +1,5 @@
+import {createHash} from 'node:crypto'
+import residentMeshes from '../src/world/skeleton/character-manifest.json'
 import assert from 'node:assert/strict'
 import {readFile,access} from 'node:fs/promises'
 import {createNewGameState} from '../src/game/gameEngine'
@@ -25,4 +27,5 @@ for(const type of Object.keys(FURNITURE)as(keyof typeof FURNITURE)[])for(const r
 for(let city=0;city<5;city++)for(const asset of cityArtwork(city))assets.add(asset.url)
 for(const asset of[...materialArtwork,...humanPortraitArtwork,...outdoorArtwork,...architectureArtwork])assets.add(asset.url)
 await Promise.all([...assets].map(url=>access('public'+url)))
-console.log(JSON.stringify({households:source.tokens.length,tiers,distinctFurnitureLayouts:layouts.size,assetsVerified:assets.size,checks:'Every source household has a reachable shower; source-tier cash plus furniture conserved; legal accessible layouts; usable floor fits granted land; migration never regrants; NFT-seeded human assets exist for every presentation.'},null,2))
+for(const file of Object.values(residentMeshes)){const bytes=await readFile('public'+file.url);assert.equal(createHash('sha256').update(bytes).digest('hex'),file.sha256)}
+console.log(JSON.stringify({residentMeshesVerified:Object.keys(residentMeshes).length,households:source.tokens.length,tiers,distinctFurnitureLayouts:layouts.size,assetsVerified:assets.size,checks:'Every source household has a reachable shower; source-tier cash plus furniture conserved; legal accessible layouts; usable floor fits granted land; migration never regrants; NFT-seeded human assets exist for every presentation.'},null,2))

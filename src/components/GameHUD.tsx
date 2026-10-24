@@ -1,3 +1,5 @@
+import ChogWorkshop from './ChogWorkshop'
+import {CHOG_GOODS,chogSpecialty,partnerBonus} from '../game/chogEconomy'
 import type {BuildTool} from '../world/buildTools'
 import { useCallback, useEffect,useRef, useState } from 'react'
 import { ConnectKitButton } from 'connectkit'
@@ -33,7 +35,7 @@ import {useNeighborhood} from '../hooks/useNeighborhood'
 import {HOME_STYLES,identityOf,CITY_INFRASTRUCTURE} from '../game/neighborhood'
 interface Props { gameState:GameState; revision?:number; traits:ChogTrait[]; preview?:boolean; onExit():void }
 export default function GameHUD({gameState,revision,traits,preview,onExit}:Props) {
-  const {state:s,dispatch,saveError,gas,serverError,pending,shared,saving,offline,queued,retrySave}=useGameController(gameState,revision)
+  const {state:s,dispatch,saveError,gas,serverError,pending,shared,saving,offline,queued,retrySave,transitioning}=useGameController(gameState,revision)
   const [buildTool,setBuildTool]=useState<BuildTool>({kind:'select'})
   const [tab,setTab]=useState<string|null>(null)
   const [selectedObject,setSelectedObject]=useState<{family:FurnitureKind;id?:string}|null>(null)
@@ -64,7 +66,7 @@ export default function GameHUD({gameState,revision,traits,preview,onExit}:Props
   }
   const followSuggestion=()=>{if(suggestion.ration)dispatch({type:'ration'});else if(suggestion.action)chooseAction(suggestion.action);else if(suggestion.tool)setTab(suggestion.tool);else if(suggestion.explore){if(outdoors)setTab('services');else dispatch({type:'leaveHome'})}}
   const claimable=QUESTS.filter(q=>q.ready(s)&&!s.quests.includes(q.id)).length
-  const toolTitle=({home:'Your household',life:'Skills & pantry',goals:'Goals & rewards',build:'Build & buy',jobs:'Make a living',zones:'Travel',map:'Neighbors',services:'City services'} as Record<string,string>)[tab??'']??'Your household'
+  const toolTitle=({home:'Your household',life:'Skills & pantry',goals:'Goals & rewards',build:'Build & buy',jobs:'Make a living',zones:'Travel',map:'Neighbors',services:'City services',chog:'Your Chog workshop'} as Record<string,string>)[tab??'']??'Your household'
   useEffect(()=>{if(s.job?.kind!=='validator')return;let alive=true;queueMicrotask(()=>{if(alive)setTab('jobs')});return()=>{alive=false}},[s.job?.id,s.job?.kind])
   return <main className="game-shell">
     <header className="game-header"><div><a className="wordmark" href="/">chain<span>world</span><i>✦</i></a><p className="muted">{ZONES[s.currentZone].name} · {HOUSING_LABELS[s.meters.housingTier]}</p></div>
@@ -72,10 +74,12 @@ export default function GameHUD({gameState,revision,traits,preview,onExit}:Props
       {preview?<button onClick={onExit}>Exit preview</button>:<ConnectKitButton/>}
     </header>
     <section className="play-needs" aria-label="Your needs">{HUMAN_NEEDS.map(need=><button key={need} title={`Choose care for ${NEED_LABELS[need].toLowerCase()}`} disabled={!!s.buildMode} onClick={()=>chooseAction(({hunger:'eat',energy:'rest',hygiene:'wash',fun:'unwind',comfort:'relax',social:'socialize'} as const)[need])}><MeterBar label={NEED_LABELS[need]} value={s.meters[need]} max={100}/></button>)}</section>
+    <button className="chog-partner-bar" onClick={()=>setTab('chog')}><ChogAvatar appearance={s.appearance} tier={s.rarityTier} size={34}/><span><strong>{s.appearance.sourceName??`Chog #${s.tokenId}`} · your economic partner</strong><small>{CHOG_GOODS[chogSpecialty(s)].label} specialist · Bond {s.household?.pet.bond??0} · {Math.round(partnerBonus(s)*100)}% job bonus</small></span><span>Workshop & orders ↗</span></button>
     <div className="world-layout"><div className="world-column">
       <div className="room-heading"><div><p className="eyebrow">{ZONES[s.currentZone].name} · {s.profile.name||'You'} & your Chog</p><h1>{s.location.venue?venueTitle(s):outdoors?'Life beyond the front door.':host?`Visiting ${host.name}`:'Home, sweet node.'}</h1></div><span className="pill">{shared?'Shared world':preview?'Local preview':'Local prototype'}</span></div>
       <section className="play-guidance" aria-label="Suggested next step"><div><strong>{suggestion.title}</strong><p>{suggestion.description}</p></div><button onClick={followSuggestion} disabled={pending||!!s.buildMode}>{suggestion.label} <span aria-hidden="true">↗</span></button></section>
       {s.location.trip&&<div className="transit-card"><p className="eyebrow">NEXT STOP · {ZONES[s.location.trip.zone].name}</p><h2>A little journey, a new story.</h2><p>Your household and Chog travel together. Fare: {s.location.trip.fare} gCHOG.</p><progress max={s.location.trip.endsAt-s.location.trip.startedAt} value={Math.max(0,s.lastSaved-s.location.trip.startedAt)}/><small>Arriving at {new Date(s.location.trip.endsAt).toLocaleTimeString()}</small></div>}
+      {transitioning&&<p className="scene-transfer" aria-live="polite">Opening your destination…</p>}
       {outdoors?<WorldNeighborhood ref={street} state={s} snapshot={neighborhood} dispatch={dispatch} pending={pending} blocked={selectedObject!==null||tab!==null||!!s.location.trip} gas={gas} onTravel={()=>setTab('zones')}/>:<><WorldRoom ref={room} state={roomState} dispatch={dispatch} pending={pending} buildTool={buildTool} setBuildTool={setBuildTool} gas={gas[s.home.city]} buildControls={<BuildPanel state={s} dispatch={dispatch} pending={pending} gas={gas[s.home.city]} tool={buildTool} onTool={setBuildTool}/>} dialogOpen={selectedObject!==null||selectedNpc!==null||tab!==null} onObjectSelect={selectObject} onNpcSelect={setSelectedNpc}/><div className="street-controls"><button onClick={()=>dispatch({type:'leaveHome'})} disabled={!!s.buildMode||pending||!!s.action||!!s.job||!!s.household?.journey}>{s.location.venue?'Leave venue':'Leave home & explore'}</button>{host&&<p className="muted">You are a guest. Your own funds and needs apply.</p>}</div></>}
       <div className="activity-strip" role="status" aria-live="polite"><span className="status-dot"/>{s.lastMessage}</div>
       {neighborhoodError&&shared&&<p className="notice">{neighborhoodError}</p>}
@@ -86,11 +90,12 @@ export default function GameHUD({gameState,revision,traits,preview,onExit}:Props
     </div></div>
     <p className="save-note" aria-live="polite" data-sync={offline?'offline':saving?'saving':'saved'}>{offline?`Offline · ${queued} choice${queued===1?'':'s'} waiting to sync`:saving?'Saving in background…':shared?'Saved to your NFT household':preview?'Local preview · saved in this browser':'Saved in this browser'} · gCHOG is game currency{offline&&<button onClick={retrySave}>Retry save</button>}</p>
     {tab&&<ToolDrawer title={toolTitle} onClose={()=>setTab(null)}>
-      {(['home','life','goals'].includes(tab))&&<nav className="tool-links" aria-label="Household pages"><button onClick={()=>setTab('home')}>Resident & Chog</button><button onClick={()=>setTab('life')}>Skills & pantry</button><button onClick={()=>setTab('goals')}>Goals & rewards{claimable?` · ${claimable}`:''}</button></nav>}
+      {(['home','life','goals','chog'].includes(tab))&&<nav className="tool-links" aria-label="Household pages"><button onClick={()=>setTab('home')}>Resident & Chog</button><button onClick={()=>setTab('chog')}>Chog workshop</button><button onClick={()=>setTab('life')}>Skills & pantry</button><button onClick={()=>setTab('goals')}>Goals & rewards{claimable?` · ${claimable}`:''}</button></nav>}
       {(['zones','map','services'].includes(tab))&&<nav className="tool-links" aria-label="World pages"><button onClick={()=>setTab('services')}>City services</button><button onClick={()=>setTab('zones')}>Travel</button><button onClick={()=>setTab('map')}>Neighbors</button></nav>}
       {tab==='services'&&<section className="panel space-y-3"><h3>Everything you need in town</h3><p className="muted">Meals, sink washing, work and social care are available in town. Use a café kitchen to wash; free park reading restores energy, fun and comfort.</p>{[0,1,2,4].map(i=><button key={i} disabled={pending||walking||!!activity} onClick={()=>{setTab(null);if(outdoors)street.current?.requestVenue(i);else{setServiceRequest(i);dispatch({type:'leaveHome'})}}}>{['Find the café','Find the workplace','Find the park','','Find the library'][i]}</button>)}<p className="muted">Select the matching building or its labelled button outside to walk over and go inside.</p></section>}
       {tab==='goals'&&<DailyGoals state={s} dispatch={dispatch} pending={pending}/>}
       {tab==='goals'&&<div className="home-panels"><section className="panel space-y-3"><h2>Little milestones</h2>{QUESTS.map(q=><div className="quest-row" key={q.id}><div><strong>{q.name}</strong><p className="muted">{q.description}</p></div><button disabled={s.quests.includes(q.id)||!q.ready(s)} onClick={()=>dispatch({type:'claimQuest',id:q.id})}>{s.quests.includes(q.id)?'✓ Claimed':`+${q.reward}`}</button></div>)}</section></div>}
+      {tab==='chog'&&<ChogWorkshop state={s} dispatch={dispatch} gas={gas[s.currentZone]} pending={pending} onMake={good=>{setTab(null);requestAction(CHOG_GOODS[good].action)}} onVisit={i=>{setTab(null);if(outdoors)street.current?.requestVenue(i);else{setServiceRequest(i);dispatch({type:'leaveHome'})}}} onPantry={()=>setTab('life')}/>}
       {tab==='life'&&<LifePanel state={s} dispatch={dispatch} pending={pending} gas={gas[s.currentZone]}/>}
       {tab==='jobs'&&<JobsPanel gameState={s} dispatch={dispatchJob}/>}
       {tab==='zones'&&<section className="panel space-y-3"><h2>Find your kind of neighborhood</h2><p className="muted">Choose a destination. Walk to the station, board a tram, and arrive in a new city. Returning home and Sanctuary are free.</p>{ZONES.map(z=><div key={z.id}><ZoneCard zone={z} isCurrentZone={s.currentZone===z.id} isUnlocked={s.unlockedZones.includes(z.id)} rarityRank={s.rarityRank} onTravel={travelTo} eventMultiplier={getEventMultiplier(event,z.id,'cost',s.lastSaved)}/><p className="travel-price">Travel: {z.id===s.home.city?0:travelCost(s.currentZone,z.id,gas[z.id])} gCHOG</p></div>)}</section>}

@@ -15,3 +15,11 @@ The controller now separates presentation, command synchronization and storage:
 The in-world bubble is reserved for physical activity. Background synchronization never adds a waiting message above the resident. Long-suspended projections apply the same offline settlement caps as the authority. Shared updates may reconcile a provisional route, price, resource or completion time with the authority; the save status distinguishes pending choices from acknowledged ones.
 
 Verification includes simulated slow writes while walking/queuing/cancelling in Chromium, lost-response retries with stable IDs, no compounded debit, conflict rebasing, economic rejection rollback, ownership denial, malformed outbox recovery, deferred write coalescing/lifecycle flush and isolated server-route tests proving the direct-input RPC policy without bypassing ownership checks. These are local/mocked checks; they do not claim a fresh live Neon/wallet deployment test.
+
+## Confirmed doorway transitions
+
+Movement remains predicted, but scene boundaries (`leaveHome`, `enterHome`, `enterVenue`, `travel`) are committed after the authoritative response. Previously an optimistic street/venue scene could render before a delayed movement acknowledgment; rebasing then found the server's longer journey still active and briefly restored the prior scene.
+
+The projected queue stops before its first doorway command. That command waits for the acknowledged physical journey/action to finish on the real clock, then crosses once when the response arrives. A small destination-opening status describes this interval; routine save status never locks play. Duplicate navigation and new physical activity are suppressed only during the scene handoff. Confirmed revisions cannot move backward. Rejected entry retains the original scene and shows the error.
+
+The delayed-response browser test records the entire heading history while approaching, leaving home and entering a café: exactly home → street → café, including multiple 1.2-second movement responses. Unit checks cover the wait, rejection and no premature scene projection. These remain mocked transport checks rather than production latency claims.

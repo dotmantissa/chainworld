@@ -38,7 +38,7 @@ const WorldNeighborhood=forwardRef<NeighborhoodHandle,Props>(function WorldNeigh
  },[goal,currentPending,currentState.location,currentState.lastSaved,currentState.lastMessage,sendCommand])
  useEffect(()=>{
   let disposed=false,game:import('phaser').Game|undefined
-  void Promise.all([import('phaser'),import('../world/StreetScene')]).then(([{default:Phaser},{StreetScene}])=>{
+  void Promise.all([import('phaser'),import('../world/StreetScene'),import('../world/skeleton/characterAssets').then(m=>m.prepareCharacterArt())]).then(([{default:Phaser},{StreetScene}])=>{
    if(disposed||!host.current)return
    scene.current=new StreetScene({state:()=>latest.current.state,snapshot:()=>latest.current.snapshot,blocked:()=>latest.current.pending||latest.current.blocked||selectionRef.current!==null,
     walk:tile=>{setGoal(null);latest.current.dispatch({type:'walk',target:tile})},selectPlot:tile=>{setSelection({type:'plot',tile});setError('')},selectService:index=>{setSelection({type:'service',index});setError('')},selectNeighbor:neighbor=>{setSelection({type:'neighbor',neighbor});setError('')},

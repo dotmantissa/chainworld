@@ -88,3 +88,17 @@ describe('deferred local persistence',()=>{
  })
  it('reports storage failure without throwing into gameplay',()=>{const result=vi.fn(),writer=new DeferredWriter(()=>{throw new Error('Storage denied')},result);writer.schedule(1);expect(()=>writer.flush()).not.toThrow();expect(result).toHaveBeenCalledWith(false)})
 })
+
+describe('confirmed doorway transitions',()=>{
+ it('never bounces outside and back when a delayed indoor walk is acknowledged',async()=>{
+  vi.useFakeTimers();let now=1000;const origin=initial(),requests:{request:SyncRequest;resolve(v:SyncResponse):void}[]=[],history:string[]=[]
+  const sync=new SharedGameSync({initial:{state:origin,revision:0},now:()=>now,gas:()=>({}),onChange:v=>{const place=v.state.location.venue??v.state.location.kind;if(history[history.length-1]!==place)history.push(place)},transport:request=>new Promise(resolve=>requests.push({request,resolve}))})
+  sync.start();sync.enqueue({type:'moveIndoor',target:{x:4,y:6}});now=1300;sync.advance();sync.enqueue({type:'leaveHome'});expect(sync.view().transitioning).toBe(true);expect(history).toEqual(['home'])
+  now=4000;const moved=reduceGame(origin,requests[0].request.command,{now,gas:{}});requests[0].resolve({status:200,snapshot:{state:moved,revision:1}});await flush();expect(requests).toHaveLength(1);expect(history).toEqual(['home'])
+  now=4200;await vi.advanceTimersByTimeAsync(200);expect(requests).toHaveLength(2);const outside=reduceGame(moved,requests[1].request.command,{now,gas:{}});requests[1].resolve({status:200,snapshot:{state:outside,revision:2}});await flush();expect(history).toEqual(['home','street']);expect(sync.view().transitioning).toBe(false);sync.dispose()
+ })
+ it('keeps the street until venue entry succeeds and leaves it intact on rejection',async()=>{
+  const origin=initial();origin.location={kind:'street',tile:{x:5,y:3},journey:null};let reply!:(r:SyncResponse)=>void
+  const sync=new SharedGameSync({initial:{state:origin,revision:0},now:()=>1000,gas:()=>({}),onChange:()=>{},transport:()=>new Promise(resolve=>{reply=resolve})});sync.start();sync.enqueue({type:'enterVenue',venue:'cafe'});expect(sync.view().state.location.kind).toBe('street');reply({status:400,error:'Entrance closed'});await flush();expect(sync.view().state.location.kind).toBe('street');expect(sync.view().transitioning).toBe(false);expect(sync.view().error).toContain('Entrance closed');sync.dispose()
+ })
+})

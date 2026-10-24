@@ -25,12 +25,13 @@ export interface GameMeters {
 }
 export type ActionKind = 'eat' | 'snack' | 'rest' | 'sleep' | 'socialize' | 'unwind' | 'work' | 'focus' | 'hermit' | 'wash' | 'shower' | 'relax' | 'cookBreakfast' | 'cookStew' | 'eatLeftovers' | 'practiceCoding' | 'paint' | 'npcHangout'
 export type JobKind = 'validator' | 'grifter'
-export interface ActiveAction { id: number; kind: ActionKind; startedAt: number; endsAt: number;objectId?:string;npcId?:string;mealRecipe?:import('./life').Recipe }
+export interface ActiveAction { id: number; kind: ActionKind; startedAt: number; endsAt: number;objectId?:string;npcId?:string;chogGood?:import('./chogEconomy').ChogGood;mealRecipe?:import('./life').Recipe }
 export interface JobSession {
   id: number; kind: JobKind; startedAt: number; endsAt: number; zone: ZoneId
   seed: number; score: number; clicked: number[]; openingWei?: string; openingAt?: number; prediction?: 'up' | 'down'
 }
 export interface GameState {
+  chogEconomy?:import('./chogEconomy').ChogEconomy
   buildMode?:boolean
   daily?:import('./dailyGoals').DailyState
   routine?:import('./routine').RoutineState

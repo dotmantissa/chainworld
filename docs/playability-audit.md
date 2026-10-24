@@ -62,3 +62,13 @@ The follow-up replaces the detached Build grid with the rendered room as the pla
 Public venues have authored 12×12 layouts, commercial furnishings and separate service, seating, stacks, reading and workplace areas. All five cities now have an enterable library and librarian. A 26-bone weighted mesh animates every action plus walking, jobs, pet care and NPC/visitor motion. Bathing adds articulated scrubbing, privacy blur, water, frosted glass and vapor. See [implementation details](direct-building-and-animation.md).
 
 Live multi-wallet/RPC/Neon verification, onchain land activation, multi-floor construction, autonomous NPC schedules and reference-level character art remain release/art tasks. These local changes do not activate them.
+
+## Follow-up: entry, scene stability, characters and Chog economy
+
+The landing now offers one-click Play/Continue and optional Chog-wallet entry with progressive next steps. Character setup is available while playing. World modules and meshes preload through one progress screen; latest-save reentry and transient NFT metadata refresh no longer reset the world.
+
+A late movement acknowledgment previously recreated the old interior after an optimistic doorway transition. Boundary commands now wait for the confirmed physical approach and commit the destination once. A browser regression checks the entire home → street → café history, rather than only the final location. Background saves retain the existing responsive queue.
+
+Authored continuous character meshes, aligned hairstyles, casual garments/shoes and matching portraits replace the earlier assembled primitive human. The full skeletal action set remains. [Source and visual implementation](character-art.md).
+
+The Chog is visible as an economic partner beneath the needs, with its workshop inside the existing Household tool. Paid inputs, physical crafting, daily venue orders and workshop reinvestment create an earn/spend loop. Actual NFT traits, care and bond affect its outcomes; inventory and receipts persist with the NFT household. [Commerce rules and verification](chog-workshop.md).

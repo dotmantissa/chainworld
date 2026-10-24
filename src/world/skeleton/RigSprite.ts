@@ -6,7 +6,7 @@ export class RigRenderer {
  private renderer?:WebGLRenderer;private cpuCanvas?:HTMLCanvasElement;private scene=new Scene();private camera=new OrthographicCamera(-1.12,1.12,1.12,-1.12,.1,20);private actors=new Set<RigSprite>()
  constructor(private phaser:Phaser.Scene){
   try{this.renderer=new WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});this.renderer.setSize(256,256);this.renderer.setPixelRatio(1);this.renderer.outputColorSpace=SRGBColorSpace;this.renderer.setClearColor(new Color(0),0)}catch{this.cpuCanvas=document.createElement('canvas');this.cpuCanvas.width=this.cpuCanvas.height=256}
-  this.camera.position.set(3,2.6,4);this.camera.lookAt(0,.9,0);this.scene.add(new AmbientLight(0xffffff,2));const light=new DirectionalLight(0xffeed7,3);light.position.set(-3,6,5);this.scene.add(light)
+  this.camera.position.set(3,2.6,4);this.camera.lookAt(0,.9,0);this.scene.add(new AmbientLight(0xffffff,2));const light=new DirectionalLight(0xffeed7,3);light.position.set(-3,6,5);this.scene.add(light);const rim=new DirectionalLight(0xe4edf4,.9);rim.position.set(3,3,-3);this.scene.add(rim)
   phaser.game.canvas.dataset.animationBackend=this.renderer?'skinned-mesh':'skinned-mesh-cpu';phaser.events.once('shutdown',()=>this.destroy())
  }
  create(identity:RigIdentity,height=125){const actor=new RigSprite(this.phaser,this,identity,height);this.actors.add(actor);return actor}

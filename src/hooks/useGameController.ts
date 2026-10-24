@@ -18,7 +18,7 @@ export function useGameController(initial:GameState,serverRevision?:number){
  const shared=serverRevision!==undefined
  const [state,setState]=useState(()=>shared?initial:unlockEarnedZones(settle(initial,{now:Date.now(),gas:{}},true)))
  const [saveError,setSaveError]=useState(false),[serverError,setServerError]=useState('')
- const [syncStatus,setSyncStatus]=useState({saving:false,offline:false,queued:0})
+ const [syncStatus,setSyncStatus]=useState({saving:false,offline:false,queued:0,transitioning:false})
  const current=useRef(state),gas=useRef<Partial<Record<ZoneId,number|null>>>({})
  const [gasPrices,setGasPrices]=useState<Partial<Record<ZoneId,number|null>>>({})
  const alive=useRef(true),sync=useRef<SharedGameSync>(),writer=useRef<DeferredWriter<GameState>>()
@@ -36,7 +36,7 @@ export function useGameController(initial:GameState,serverRevision?:number){
    let restored:PendingCommand[]=[];try{restored=restoreOutbox(sessionStorage.getItem(outboxKey))}catch{/* In-memory retries remain available. */}
    sync.current=new SharedGameSync({initial:{state:initial,revision:serverRevision!},restored,gas:()=>gas.current,journal:commands=>journal.schedule(commands),
     transport:async(request:SyncRequest)=>{const response=await fetch('/api/game',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(request),signal:AbortSignal.timeout(15000)});const result=await response.json();return {status:response.status,snapshot:result.state&&Number.isInteger(result.revision)?result:undefined,error:result.error}},
-    onChange:view=>{if(!alive.current)return;current.current=view.state;setState(view.state);setSyncStatus({saving:view.saving,offline:view.offline,queued:view.queued});setServerError(view.error)},
+    onChange:view=>{if(!alive.current)return;current.current=view.state;setState(view.state);setSyncStatus({saving:view.saving,offline:view.offline,queued:view.queued,transitioning:view.transitioning});setServerError(view.error)},
    });sync.current.start()
   }else{writer.current=new DeferredWriter(saveGameState,ok=>{if(alive.current)setSaveError(!ok)});writer.current.schedule(current.current)}
   const refresh=async()=>{const observations=await getAllZoneGwei();if(!alive.current)return;gas.current=Object.fromEntries(observations.map(o=>[o.zoneId,o.gwei]));setGasPrices(gas.current)}
@@ -58,5 +58,5 @@ export function useGameController(initial:GameState,serverRevision?:number){
   resolving.current=job.id
   void getZoneGwei(job.zone,true).then(quote=>{if(alive.current)dispatch({type:'resolveGrifter',sessionId:job.id,wei:quote.wei,fetchedAt:quote.fetchedAt,stale:quote.stale})}).finally(()=>{if(resolving.current===job.id)resolving.current=null})
  },[shared,state.job,state.lastSaved,dispatch])
- return {state,dispatch,saveError,gas:gasPrices,serverError,pending:false,shared,...syncStatus,retrySave:()=>sync.current?.retry()}
+ return {state,dispatch,saveError,gas:gasPrices,serverError,pending:syncStatus.transitioning,shared,...syncStatus,retrySave:()=>sync.current?.retry()}
 }

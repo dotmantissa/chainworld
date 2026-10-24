@@ -1,3 +1,4 @@
+import {ensureChogEconomy,manageChogEconomy,partnerBonus,beginChogProduction,finishChogProduction,type ChogGood} from './chogEconomy'
 import {VENUE_SERVICE_INDEX,refreshVenue} from './places'
 import type { ActionKind, ChogTrait, GameMeters, GameState, JobKind, ZoneId } from './types'
 import { rankToTier, tierToStartingFunds, tierToUnlockedZones, tierToHousingLevel, mapTraitsToCharacter } from './traitMapper'
@@ -40,6 +41,9 @@ export const ACTIONS: Record<ActionKind, { duration: number; cost: number; label
 }
 export const LEGACY_CARE_DURATIONS:Partial<Record<ActionKind,number>>={eat:6000,snack:3000,sleep:30000,unwind:15000,rest:10000,socialize:8000,wash:8000,relax:12000}
 export type Command =
+  | {type:'buyChogMaterials'|'upgradeChogWorkshop'}
+  | {type:'setChogProduction';enabled:boolean}
+  | {type:'deliverChogGoods';good:ChogGood}
   | {type:'setBuildMode';enabled:boolean}
   | {type:'claimDaily';id:DailyGoal}
   | {type:'enqueueAction';objectId:string;kind:ActionKind}
@@ -115,7 +119,7 @@ export function dailyCost(state: GameState, ctx: EngineContext, at = ctx.now): n
 function message(s: GameState, text: string): GameState { return { ...s, lastMessage: text } }
 function income(s: GameState, base: number, now: number): GameState {
   const event = getEventMultiplier(getTodaysEvent(now), s.currentZone, 'income', now)
-  const amount = Math.round(base * s.stats.incomeMultiplier * event * (isDegenSpiral(s.meters) ? 0.4 : 1))
+  const amount = Math.round(base * s.stats.incomeMultiplier * (1+partnerBonus(s)) * event * (isDegenSpiral(s.meters) ? 0.4 : 1))
   return { ...s, gChog: s.gChog + amount, xp: s.xp + 20, completedWork: s.completedWork + 1,
     meters: { ...s.meters, reputation: Math.min(500, s.meters.reputation + 8) }, lastMessage: `Job complete: +${amount} gCHOG, +20 XP, +8 reputation.` }
 }
@@ -144,7 +148,7 @@ function completeAction(s: GameState, at: number): GameState {
   if(action.kind==='cookBreakfast'||action.kind==='cookStew')next=recordDaily(next,'cook',at)
   if(action.kind==='practiceCoding'||action.kind==='paint'||action.kind==='unwind')next=recordDaily(next,'practice',at)
   if(action.kind==='npcHangout'&&action.npcId)next=completeHangout(next,action.npcId,at)
-  return next
+  return finishChogProduction(next,action.chogGood,action.kind,action.id)
 }
 function beginActivity(s:GameState,kind:ActionKind,ctx:EngineContext,objectId?:string):GameState{
  const cost=actionCost(s,kind,ctx.gas),energy=kind==='focus'?20:kind==='work'||kind==='hermit'?10:kind==='paint'||kind==='practiceCoding'?5:0
@@ -152,8 +156,8 @@ function beginActivity(s:GameState,kind:ActionKind,ctx:EngineContext,objectId?:s
  if(s.meters.energy<energy)return message(s,'Rest before working. You need more energy.')
  if((s.cooldowns[kind]??0)>ctx.now)return message(s,'This action is cooling down.')
  const reason=lifeActionReason(s,kind,ctx.now);if(reason)return message(s,reason)
- const consumed=consumeLifeAction(s,kind,ctx.now);s=consumed.state
- return {...s,gChog:s.gChog-cost,sequence:s.sequence+1,meters:{...s.meters,energy:s.meters.energy-energy},action:{id:s.sequence+1,kind,objectId,mealRecipe:consumed.mealRecipe,startedAt:ctx.now,endsAt:ctx.now+ACTIONS[kind].duration},lastMessage:`${ACTIONS[kind].label}…`}
+ const consumed=consumeLifeAction(s,kind,ctx.now);s=consumed.state;const production=beginChogProduction(s,kind);s=production.state
+ return {...s,gChog:s.gChog-cost,sequence:s.sequence+1,meters:{...s.meters,energy:s.meters.energy-energy},action:{id:s.sequence+1,kind,objectId,...(production.good?{chogGood:production.good}:{}),mealRecipe:consumed.mealRecipe,startedAt:ctx.now,endsAt:ctx.now+ACTIONS[kind].duration},lastMessage:`${ACTIONS[kind].label}…`}
 }
 function arriveIndoor(s:GameState,ctx:EngineContext):GameState{
  const h=s.household;if(!h)return s
@@ -180,7 +184,7 @@ function advanceRoutine(s:GameState,ctx:EngineContext,autonomous:boolean):GameSt
 // One settlement clock, segmented at event and completion boundaries. Saving never changes it.
 export function settle(state: GameState, ctx: EngineContext, offline = false): GameState {
   if(ctx.now<state.lastSaved)return state
-  state=ensureRoutine(ensureLife(ensureNeeds(state)))
+  state=ensureChogEconomy(ensureRoutine(ensureLife(ensureNeeds(state))),ctx.now)
   state=refreshVenue(state.household?ensureHousehold(state):state)
   const trip=state.location.trip,previousZone=state.currentZone
   state=settleLocation(state,ctx.now)
@@ -238,6 +242,7 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
   if(s.location.trip&&command.type!=='tick'&&command.type!=='cancel')return message(s,'Enjoy the journey. Your tram is still in transit.')
   if(s.buildMode&&['moveIndoor','useObject','enqueueAction','carePet','startAction','startJob','walk','leaveHome','enterHome','enterVenue','travel','ration'].includes(command.type))return message(s,'Finish Build mode to resume playing.')
   switch (command.type) {
+    case 'buyChogMaterials':case 'upgradeChogWorkshop':case 'setChogProduction':case 'deliverChogGoods':return manageChogEconomy(s,command,n=>cityPrice(n,s.currentZone,ctx.gas[s.currentZone]),now)
     case 'setBuildMode':{
       if(!command.enabled)return {...s,buildMode:false,lastMessage:'Back to life. Click objects for activities.'}
       if(s.location.kind!=='home'||s.location.venue||s.location.host||s.currentZone!==s.home.city||s.action||s.job||s.household?.journey||s.household?.pendingUse)return message({...s,buildMode:false},'Return home and finish walking or activities before building.')

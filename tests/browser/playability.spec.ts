@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test'
 
-test.beforeEach(async({page})=>{await page.route('https://**/*',r=>r.abort());await page.goto('/');await page.getByRole('button',{name:'Explore a local preview'}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
+test.beforeEach(async({page})=>{await page.route('https://**/*',r=>r.abort());await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
 
 test('first screen puts the world, needs and one suggested action before optional settings',async({page})=>{
  await expect(page.getByRole('navigation',{name:'Game tools'}).getByRole('button')).toHaveCount(3)

@@ -5,7 +5,7 @@ export interface GameSnapshot {state:GameState;revision:number}
 export interface PendingCommand {requestId:string;command:Command;at:number;conflicts:number;sent?:boolean}
 export interface SyncRequest {tokenId:number;command:Command;revision:number;requestId:string}
 export interface SyncResponse {status:number;snapshot?:GameSnapshot;error?:string}
-export interface SyncView {state:GameState;saving:boolean;offline:boolean;queued:number;error:string}
+export interface SyncView {state:GameState;transitioning:boolean;saving:boolean;offline:boolean;queued:number;error:string}
 interface Options {
  initial:GameSnapshot
  transport(request:SyncRequest):Promise<SyncResponse>
@@ -15,6 +15,7 @@ interface Options {
  journal?(commands:PendingCommand[]):void
  restored?:PendingCommand[]
 }
+export const isNavigation=(c:Command)=>['leaveHome','enterHome','enterVenue','travel'].includes(c.type)
 const movement=(c:Command)=>c.type==='walk'||c.type==='moveIndoor'
 const MAX_COMMANDS=64
 
@@ -23,6 +24,7 @@ export class SharedGameSync {
  private confirmed:GameSnapshot
  private commands:PendingCommand[]
  private inFlight:PendingCommand|null=null
+ private navigationTimer:ReturnType<typeof setTimeout>|undefined
  private retryTimer:ReturnType<typeof setTimeout>|undefined
  private attempts=0
  private stopped=false
@@ -35,14 +37,15 @@ export class SharedGameSync {
  getPending(){return this.commands.map(q=>({...q}))}
  view(now=this.clock()):SyncView{
   let state=this.confirmed.state
-  for(const q of this.commands){try{state=reduceGame(state,q.command,{now:Math.max(state.lastSaved,q.at),gas:this.options.gas()})}catch{/* A damaged local outbox must not crash play; the authority rejects invalid intents. */}}
+  for(const q of this.commands){if(isNavigation(q.command))break;try{state=reduceGame(state,q.command,{now:Math.max(state.lastSaved,q.at),gas:this.options.gas()})}catch{/* A damaged local outbox must not crash play; the authority rejects invalid intents. */}}
   state=unlockEarnedZones(settle(state,{now:Math.max(now,state.lastSaved),gas:this.options.gas()},now-state.lastSaved>60000))
-  return {state,saving:this.commands.length>0,offline:this.offline,queued:this.commands.length,error:this.error}
+  return {state,transitioning:this.commands.some(q=>isNavigation(q.command)),saving:this.commands.length>0,offline:this.offline,queued:this.commands.length,error:this.error}
  }
  advance(){if(!this.stopped)this.publish()}
  enqueue(command:Command){
   if(this.stopped)return
   if(command.type==='tick'&&this.commands.length)return
+  if(this.commands.some(q=>isNavigation(q.command))&&(isNavigation(command)||movement(command)||['enqueueAction','useObject','startAction','startJob','carePet','talkNpc','setBuildMode'].includes(command.type)))return
   // Idle retries must never sit in front of a new user choice.
   if(command.type!=='tick')this.commands=this.commands.filter(q=>q===this.inFlight||q.command.type!=='tick')
   const last=this.commands[this.commands.length-1]
@@ -53,16 +56,21 @@ export class SharedGameSync {
   this.changed()
  }
  retry(){if(this.stopped)return;if(this.retryTimer!==undefined)clearTimeout(this.retryTimer);this.retryTimer=undefined;this.attempts=0;void this.pump()}
- dispose(){this.stopped=true;if(this.retryTimer!==undefined)clearTimeout(this.retryTimer);this.options.journal?.(this.getPending())}
+ dispose(){this.stopped=true;if(this.navigationTimer!==undefined)clearTimeout(this.navigationTimer);if(this.retryTimer!==undefined)clearTimeout(this.retryTimer);this.options.journal?.(this.getPending())}
  private publish(){this.options.onChange(this.view())}
  private changed(){this.options.journal?.(this.getPending());this.publish();void this.pump()}
  private async pump(){
-  if(this.stopped||this.inFlight||this.retryTimer!==undefined||!this.commands.length)return
-  const q=this.commands[0];q.sent=true;this.inFlight=q
+  if(this.stopped||this.inFlight||this.retryTimer!==undefined||this.navigationTimer!==undefined||!this.commands.length)return
+  const q=this.commands[0]
+  if(isNavigation(q.command)){
+   const now=this.clock(),s=settle(this.confirmed.state,{now:Math.max(now,this.confirmed.state.lastSaved),gas:this.options.gas()}),until=Math.max(s.location.journey?.endsAt??0,s.household?.journey?.endsAt??0,s.action?.endsAt??0,s.job?.endsAt??0)
+   if(until>now){this.navigationTimer=setTimeout(()=>{this.navigationTimer=undefined;void this.pump()},Math.min(1000,until-now));return}
+  }
+  q.sent=true;this.inFlight=q
   try{
    const response=await this.options.transport({tokenId:this.confirmed.state.tokenId,command:q.command,revision:this.confirmed.revision,requestId:q.requestId})
    if(this.stopped)return
-   if(response.snapshot)this.confirmed=response.snapshot
+   if(response.snapshot&&response.snapshot.revision>=this.confirmed.revision)this.confirmed=response.snapshot
    if(response.status===409&&response.snapshot&&q.conflicts<2){q.conflicts++;q.at=this.clock()}
    else if(response.status>=200&&response.status<300&&response.snapshot){this.commands.shift();this.offline=false;this.attempts=0;if(q.command.type!=='tick')this.error=''}
    else if(response.status===401||response.status===403){this.commands=[];this.offline=false;this.error=response.error??'Verify the current NFT owner before continuing.'}

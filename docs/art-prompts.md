@@ -1,6 +1,6 @@
 # Rendered game artwork
 
-**Current character assets use the user-supplied purple spiky Chog reference and authentic original metadata. The green preview sections below are retained as superseded generation history; their assets are no longer loaded.**
+**Current human residents use authored CC0 Quaternius meshes retargeted to the game’s skeleton; see [character source, compiler and hashes](character-art.md). Chog pet assets use the user-supplied purple spiky reference and authentic original metadata. The older human sprite/green preview sections below are retained as superseded generation history.**
 
 Generated with the built-in image generation tool after the user requested realistic objects. Final project assets are WebP encodings with transparency preserved for sprites; generated PNG originals remain in the tool's artifact store. These are game presentation assets, not assertions of original NFT collection artwork.
 

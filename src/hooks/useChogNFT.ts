@@ -58,7 +58,7 @@ export function useChogNFT() {
   const error=selectionError??(balanceRead.error?'Could not read NFT ownership. Retry when the network is available.':owner.error?'This token could not be found.':uri.error?'Could not read the NFT metadata URI.':manifestRoot.error||sourceId.error?'Could not verify the faucet source mapping. Retry NFT loading.':verified&&uri.data===''?'This NFT has no published metadata URI.':owner.data&&!verified&&address?'The selected NFT belongs to a different wallet.':metaError)
   const {refetch:refetchBalance}=balanceRead,{refetch:refetchFirst}=first,{refetch:refetchOwner}=owner,{refetch:refetchUri}=uri,{refetch:refetchRoot}=manifestRoot,{refetch:refetchSource}=sourceId
   const retry=useCallback(()=>{setAttempt(n=>n+1);void refetchBalance();void refetchFirst();void refetchOwner();void refetchUri();void refetchRoot();void refetchSource()},[refetchBalance,refetchFirst,refetchOwner,refetchUri,refetchRoot,refetchSource])
-  return {address,isCorrectChain,balance:Number(balance),ownsChog:verified,tokenId,metadata,selected,setSelected,retry,error,
+  return {address,isCorrectChain,ownershipLost:!!address&&owner.data!==undefined&&owner.data.toLowerCase()!==address.toLowerCase(),balance:Number(balance),ownsChog:verified,tokenId,metadata,selected,setSelected,retry,error,
     needsTokenId:balance>0n&&first.isError&&selected==='',
     isLoading:!!address&&isCorrectChain&&(balanceRead.isLoading||(balance>0n&&selected===''&&first.isLoading)||(resolved!==undefined&&owner.isLoading)||(verified&&(uri.isLoading||(!error&&!metadata)))),
   }

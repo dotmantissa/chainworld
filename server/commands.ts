@@ -1,3 +1,4 @@
+import {CHOG_GOODS,type ChogGood} from '../src/game/chogEconomy'
 import type { ActionKind, ZoneId } from '../src/game/types'
 import {ACTIONS} from '../src/game/gameEngine'
 import type { Command } from '../src/game/gameEngine'
@@ -13,6 +14,9 @@ export function parseCommand(value:unknown):Command {
   const c=value as Record<string,unknown>
   const coordinate=(v:unknown)=>Number.isInteger(v)&&Number(v)>=0&&Number(v)<8
   switch(c.type){
+    case 'buyChogMaterials':case 'upgradeChogWorkshop':return {type:c.type}
+    case 'setChogProduction':if(typeof c.enabled==='boolean')return {type:c.type,enabled:c.enabled};break
+    case 'deliverChogGoods':if(typeof c.good==='string'&&Object.prototype.hasOwnProperty.call(CHOG_GOODS,c.good))return {type:c.type,good:c.good as ChogGood};break
     case 'claimDaily':if(typeof c.id==='string'&&Object.prototype.hasOwnProperty.call(DAILY_GOALS,c.id))return {type:'claimDaily',id:c.id as DailyGoal};break
     case 'setBuildMode':if(typeof c.enabled==='boolean')return {type:'setBuildMode',enabled:c.enabled};break
     case 'setAutonomy':if(typeof c.enabled==='boolean')return {type:'setAutonomy',enabled:c.enabled};break

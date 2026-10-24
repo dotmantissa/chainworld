@@ -30,7 +30,7 @@ export default endpoint(async(req,res)=>{
   let command=req.method==='POST'?parseCommand(input.command):{type:'tick'} as const
   const sql=db(),registry=process.env.REGISTRY_V2_ADDRESS
   // Direct controls do not wait for unrelated gas or published-profile RPCs.
-  const directInput=['walk','moveIndoor','clickBlock'].includes(command.type)
+  const directInput=['walk','moveIndoor','clickBlock','leaveHome','enterHome','enterVenue'].includes(command.type)
   // Ownership, the state snapshot and public observations are independent reads.
   const [owner,existing,observations,registryProfile]=await Promise.all([
     chainClient.readContract({address,abi:nftAbi,functionName:'ownerOf',args:[BigInt(tokenId)]}),

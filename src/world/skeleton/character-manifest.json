@@ -1,0 +1,44 @@
+{
+  "male": {
+    "url": "/art/characters/male-v1.bin",
+    "vertices": 15539,
+    "triangles": 15296,
+    "bytes": 418107,
+    "sha256": "9c56a3793fd919a6ea15ff9aa9a0b35aa2e62c31d938899969402ad7e34ecf03"
+  },
+  "female": {
+    "url": "/art/characters/female-v1.bin",
+    "vertices": 15900,
+    "triangles": 15992,
+    "bytes": 429864,
+    "sha256": "132dd9e2191906f5c9bdbdff0787810a1fdd6f1f20e57f328d00569c3f08e2b3"
+  },
+  "parted": {
+    "url": "/art/characters/parted-v1.bin",
+    "vertices": 757,
+    "triangles": 1301,
+    "bytes": 23715,
+    "sha256": "9b45480276b02c2f646e66fc29fd26785726b583fc5c19f47872a7dc74aab679"
+  },
+  "long": {
+    "url": "/art/characters/long-v1.bin",
+    "vertices": 3080,
+    "triangles": 2906,
+    "bytes": 82128,
+    "sha256": "7f368c315c881a5903f3fa1fdd533a19d06c7e585c80189a35dfe99e2148c2eb"
+  },
+  "buns": {
+    "url": "/art/characters/buns-v1.bin",
+    "vertices": 3502,
+    "triangles": 3284,
+    "bytes": 93258,
+    "sha256": "82b2c41e8dba6772c56fce57bc6a29f3491920b82d2c46182002cad6423ccaf4"
+  },
+  "buzzed": {
+    "url": "/art/characters/buzzed-v1.bin",
+    "vertices": 466,
+    "triangles": 830,
+    "bytes": 14778,
+    "sha256": "d8eb88e42801b26a0112e0787fff6a53b6682433d37ab47417d4549fe6a162c1"
+  }
+}

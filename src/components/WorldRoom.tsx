@@ -34,7 +34,7 @@ const WorldRoom = forwardRef<RoomHandle, Props>(function WorldRoom({ state, disp
   useEffect(()=>{
     let disposed=false
     let game: import('phaser').Game | undefined
-    void Promise.all([import('phaser'),import('../world/RoomScene')]).then(([{default:Phaser},{RoomScene}])=>{
+    void Promise.all([import('phaser'),import('../world/RoomScene'),import('../world/skeleton/characterAssets').then(m=>m.prepareCharacterArt())]).then(([{default:Phaser},{RoomScene}])=>{
       if(disposed || !host.current) return
       const markup=renderToStaticMarkup(<ChogAvatar appearance={latest.current.appearance} tier={latest.current.rarityTier} size={96} portrait={false}/> )
       const svg=markup.slice(markup.indexOf('<svg'),markup.indexOf('</svg>')+6).replace(/<circle cx="50" cy="50" r="50"[^>]*><\/circle>/,'')
