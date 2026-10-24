@@ -1,0 +1,38 @@
+{
+  "cafeCounter": {
+    "key": "venue-cafeCounter-v1",
+    "url": "/art/venues/cafeCounter-v1.webp",
+    "width": 768,
+    "height": 512
+  },
+  "cafeTable": {
+    "key": "venue-cafeTable-v1",
+    "url": "/art/venues/cafeTable-v1.webp",
+    "width": 768,
+    "height": 664
+  },
+  "bookStack": {
+    "key": "venue-bookStack-v1",
+    "url": "/art/venues/bookStack-v1.webp",
+    "width": 768,
+    "height": 702
+  },
+  "readingTable": {
+    "key": "venue-readingTable-v1",
+    "url": "/art/venues/readingTable-v1.webp",
+    "width": 768,
+    "height": 512
+  },
+  "meetingTable": {
+    "key": "venue-meetingTable-v1",
+    "url": "/art/venues/meetingTable-v1.webp",
+    "width": 768,
+    "height": 512
+  },
+  "libraryExterior": {
+    "key": "venue-libraryExterior-v1",
+    "url": "/art/venues/libraryExterior-v1.webp",
+    "width": 768,
+    "height": 702
+  }
+}

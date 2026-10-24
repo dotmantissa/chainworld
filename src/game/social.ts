@@ -9,6 +9,7 @@ export function npcRoutine(npc:CityNpc,now:number):string {
  if(hour<6||hour>=22)return 'Taking a quiet break'
  if(npc.venue==='cafe')return hour<12?'Sharing breakfast stories':hour<18?'Trying local recipes':'Catching up over dinner'
  if(npc.venue==='work')return hour<12?'Planning a new project':hour<18?'Working on a project':'Sharing what they learned'
+ if(npc.venue==='library')return hour<12?'Shelving new arrivals':hour<18?'Helping readers find a book':'Preparing a reading circle'
  return hour<12?'Tending the garden':hour<18?'Welcoming Chog companions':'Enjoying the evening air'
 }
 export function hangoutReason(s:GameState,id:string,now=s.lastSaved):string|null {

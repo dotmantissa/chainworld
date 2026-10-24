@@ -20,13 +20,14 @@ export const SERVICES=[
   {id:'work',label:'Proof of Work Club',frame:3,tile:{x:13,y:1},approach:{x:13,y:3},actions:['work','focus','hermit'] as ActionKind[]},
   {id:'park',label:'Touch Grass Gardens',frame:4,tile:{x:21,y:1},approach:{x:21,y:3},actions:['socialize','unwind'] as ActionKind[]},
   {id:'station',label:'Bridge & Prejudice Transit',frame:5,tile:{x:29,y:1},approach:{x:29,y:3},actions:[] as ActionKind[]},
+  {id:'library',label:'Neighborhood Library',frame:6,tile:{x:34,y:1},approach:{x:34,y:3},actions:['unwind','practiceCoding','paint'] as ActionKind[]},
 ]
 export const CITY_INFRASTRUCTURE:Record<CityId,{architecture:string;services:string[];accent:string}>= {
-  0:{architecture:'Sandstone homes, violet trams and a parallel validator hall',services:['Parallel Perk Café','Ten Thousand TPS Works','Monad Meadow','Parallel Lines Tram'],accent:'#ad91d3'},
-  1:{architecture:'Limestone townhouses, prestigious plazas and brass streetlights',services:['The Expensive Espresso','Proof of Work Avenue','Central Gwei Park','Peak Fare Terminal'],accent:'#bba785'},
-  2:{architecture:'Blue waterfront cottages, maker studios and public gardens',services:['Based & Breakfast','Builder’s Block Studio','Blue Sky Gardens','All Your Base Station'],accent:'#77aac5'},
-  3:{architecture:'Terracotta courtyards, traders’ arcades and optimistic parks',services:['Arbi’s Sandwich Counter','Optimistic Accounts','Seven Day Gardens','Finality Eventually Station'],accent:'#85b6b6'},
-  4:{architecture:'Colorful seaside villas, a market arcade and mosaic promenades',services:['Many Sided Meals','Polygon Maker Market','Mosaic Shore Gardens','Round Trip Station'],accent:'#b89cc9'},
+  0:{architecture:'Sandstone homes, violet trams and a parallel validator hall',services:['Parallel Perk Café','Ten Thousand TPS Works','Monad Meadow','Parallel Lines Tram','Parallel Pages Library'],accent:'#ad91d3'},
+  1:{architecture:'Limestone townhouses, prestigious plazas and brass streetlights',services:['The Expensive Espresso','Proof of Work Avenue','Central Gwei Park','Peak Fare Terminal','The Gaslight Library'],accent:'#bba785'},
+  2:{architecture:'Blue waterfront cottages, maker studios and public gardens',services:['Based & Breakfast','Builder’s Block Studio','Blue Sky Gardens','All Your Base Station','Open Source Library'],accent:'#77aac5'},
+  3:{architecture:'Terracotta courtyards, traders’ arcades and optimistic parks',services:['Arbi’s Sandwich Counter','Optimistic Accounts','Seven Day Gardens','Finality Eventually Station','The Long Read Library'],accent:'#85b6b6'},
+  4:{architecture:'Colorful seaside villas, a market arcade and mosaic promenades',services:['Many Sided Meals','Polygon Maker Market','Mosaic Shore Gardens','Round Trip Station','Many Stories Library'],accent:'#b89cc9'},
 }
 export const serviceName=(city:ZoneId,index:number)=>city===5?SERVICES[index].label:CITY_INFRASTRUCTURE[city].services[index]
 export const adjacent=(a:Tile,b:Tile)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1

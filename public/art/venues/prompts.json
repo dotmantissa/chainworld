@@ -1,0 +1,72 @@
+{
+  "generator": "Built-in image_gen",
+  "transparentBackground": true,
+  "assets": [
+    {
+      "name": "cafeCounter",
+      "prompt": "Use case: stylized-concept. Single original isometric sprite for the Chainworld browser life simulator. Realistic residential/commercial scale and warm high-quality 3D game rendering, detailed PBR wood/fabric/metal/stone. Orthographic isometric upper three-quarter camera around 30 degrees above floor. Front facing diagonally down-left, rear up-right. Entire object visible and isolated on genuine transparent alpha, no background wall or floor plate, no people, logos, UI, labels or text. Soft neutral warm daylight and subtle contact shadow. Carefully readable shapes at small game scale. A commercial cafe service counter three units wide: walnut fluted front, cream terrazzo countertop, a professional compact espresso machine and grinder on the left, low clear-glass pastry display with croissants on the right, cups and milk pitcher on counter. Customer-facing front clearly visible. Independent furniture, no surrounding room.",
+      "source": "exec-83c7f648-de6b-4fb2-a3f7-c33de44b006f.png",
+      "url": "/art/venues/cafeCounter-v1.webp",
+      "width": 768,
+      "height": 512,
+      "bytes": 105260,
+      "sha256": "985e025805284b8dd4106d52cf8cefa7480b2951c026b4dc91b86e6e08db0ff2",
+      "transparentPixels": 168388
+    },
+    {
+      "name": "cafeTable",
+      "prompt": "Use case: stylized-concept. Single original isometric sprite for the Chainworld browser life simulator. Realistic residential/commercial scale and warm high-quality 3D game rendering, detailed PBR wood/fabric/metal/stone. Orthographic isometric upper three-quarter camera around 30 degrees above floor. Front facing diagonally down-left, rear up-right. Entire object visible and isolated on genuine transparent alpha, no background wall or floor plate, no people, logos, UI, labels or text. Soft neutral warm daylight and subtle contact shadow. Carefully readable shapes at small game scale. A round walnut bistro table with TWO sage upholstered dining chairs, one on either side, a small coffee cup and ceramic vase at the center. Chairs tucked closely but clear seats remain available for a seated character. A cohesive cafe seating group, compact two-by-two grid footprint.",
+      "source": "exec-e30ebccb-a392-4ecb-8d87-16b7388e6d14.png",
+      "url": "/art/venues/cafeTable-v1.webp",
+      "width": 768,
+      "height": 664,
+      "bytes": 129866,
+      "sha256": "018aadff4e1f1a36dbfd79e66a6792f8b3059db64e9a3937d018ddec48b7cd38",
+      "transparentPixels": 299248
+    },
+    {
+      "name": "bookStack",
+      "prompt": "Use case: stylized-concept. Single original isometric sprite for the Chainworld browser life simulator. Realistic residential/commercial scale and warm high-quality 3D game rendering, detailed PBR wood/fabric/metal/stone. Orthographic isometric upper three-quarter camera around 30 degrees above floor. Front facing diagonally down-left, rear up-right. Entire object visible and isolated on genuine transparent alpha, no background wall or floor plate, no people, logos, UI, labels or text. Soft neutral warm daylight and subtle contact shadow. Carefully readable shapes at small game scale. A freestanding double-sided PUBLIC LIBRARY book stack two units wide: tall warm oak shelving, many books of restrained varied colors in orderly rows, subtle bottom plinth and open top. Side and front visible, adult height about 1.8m. No surrounding room.",
+      "source": "exec-3ee141e0-fe9a-480d-983e-e81c014bde10.png",
+      "url": "/art/venues/bookStack-v1.webp",
+      "width": 768,
+      "height": 702,
+      "bytes": 133502,
+      "sha256": "9dc82a1d91390a623f1ccbcdad8aedbbce5083f8e6b7a5861d19ee70941a67ad",
+      "transparentPixels": 252679
+    },
+    {
+      "name": "readingTable",
+      "prompt": "Use case: stylized-concept. Single original isometric sprite for the Chainworld browser life simulator. Realistic residential/commercial scale and warm high-quality 3D game rendering, detailed PBR wood/fabric/metal/stone. Orthographic isometric upper three-quarter camera around 30 degrees above floor. Front facing diagonally down-left, rear up-right. Entire object visible and isolated on genuine transparent alpha, no background wall or floor plate, no people, logos, UI, labels or text. Soft neutral warm daylight and subtle contact shadow. Carefully readable shapes at small game scale. A generous public library reading table two units wide, four simple walnut and olive fabric chairs tucked neatly around it, two open books, a small brass shaded reading lamp at the middle, slim notebooks. Clear places for characters to sit; library furniture rather than a domestic dining table.",
+      "source": "exec-783722ff-3ee8-418a-8e37-e13dd308fd40.png",
+      "url": "/art/venues/readingTable-v1.webp",
+      "width": 768,
+      "height": 512,
+      "bytes": 77516,
+      "sha256": "848a4176a828731686d4bef938d45ddd6e3e9c19552a4521e6201cf98eff073e",
+      "transparentPixels": 236506
+    },
+    {
+      "name": "meetingTable",
+      "prompt": "Use case: stylized-concept. Single original isometric sprite for the Chainworld browser life simulator. Realistic residential/commercial scale and warm high-quality 3D game rendering, detailed PBR wood/fabric/metal/stone. Orthographic isometric upper three-quarter camera around 30 degrees above floor. Front facing diagonally down-left, rear up-right. Entire object visible and isolated on genuine transparent alpha, no background wall or floor plate, no people, logos, UI, labels or text. Soft neutral warm daylight and subtle contact shadow. Carefully readable shapes at small game scale. A modern shared workplace meeting table with four charcoal office chairs tucked around, a muted blue-grey top with solid wood legs, one small open laptop, plain notebooks and a ceramic water jug. Compact commercial seating group, no people.",
+      "source": "exec-93fe87a2-8854-4e74-9064-21756618a51a.png",
+      "url": "/art/venues/meetingTable-v1.webp",
+      "width": 768,
+      "height": 512,
+      "bytes": 66898,
+      "sha256": "0cbd2ce1596bce9f9b2a5daf5c28826fcfab1f1e2bb8a96ccf41bb8ba57d7787",
+      "transparentPixels": 255325
+    },
+    {
+      "name": "libraryExterior",
+      "prompt": "Use case: stylized-concept. Single original isometric sprite for the Chainworld browser life simulator. Realistic residential/commercial scale and warm high-quality 3D game rendering, detailed PBR wood/fabric/metal/stone. Orthographic isometric upper three-quarter camera around 30 degrees above floor. Front facing diagonally down-left, rear up-right. Entire object visible and isolated on genuine transparent alpha, no background wall or floor plate, no people, logos, UI, labels or text. Soft neutral warm daylight and subtle contact shadow. Carefully readable shapes at small game scale. A small public neighborhood library BUILDING as a complete cutaway-free isometric exterior, modern cream brick and walnut facade with tall glazed entrance, two stories, large windows showing bookshelves, subtle brass book-shaped decorative emblem but NO WORDS, a broad inviting entrance facing down-left, small planter boxes integrated in facade. Entire building visible on transparent background, no surrounding city or floor plate. About the same width as a neighborhood cafe building.",
+      "source": "exec-6fde5478-3712-4e3b-af3d-253a150be1c0.png",
+      "url": "/art/venues/libraryExterior-v1.webp",
+      "width": 768,
+      "height": 702,
+      "bytes": 164890,
+      "sha256": "88bfabe155ba49e8d4b8cb024d658a2ea4bbf0e20cd7c3341f1f996f353f141a",
+      "transparentPixels": 165734
+    }
+  ]
+}

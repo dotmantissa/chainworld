@@ -8,10 +8,10 @@ import {partitionSegment} from '../src/world/furnitureView'
 const initial=()=>ensureHousehold(createNewGameState('preview',0,[],0,{now:1000,chainId:0,collection:'preview'}))
 const ctx=(now:number)=>({now,gas:{}})
 function buy(s:ReturnType<typeof initial>,type:FurnitureType){
- const b=s.household!.blueprint
+ s=reduceGame(s,{type:'setBuildMode',enabled:true},ctx(1000));const b=s.household!.blueprint
  for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){
   const next=reduceGame(s,{type:'buyFurniture',furniture:type,x,y,rotation:0,version:b.version},ctx(1000))
-  if(next.household!.blueprint.objects.length>b.objects.length)return next
+  if(next.household!.blueprint.objects.length>b.objects.length)return reduceGame(next,{type:'setBuildMode',enabled:false},ctx(1000))
  }
  throw new Error('No valid fixture position in the test home')
 }

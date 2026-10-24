@@ -3,9 +3,10 @@ import {CameraGestures,type CameraView,type CameraCommand} from './cameraControl
 export class WorldCamera {
  private panMode=false
  private gestures:CameraGestures
- constructor(private scene:Phaser.Scene,private resetView:()=>void,private onChange:(view:CameraView)=>void,private min=.35,private max=3.5){
+ constructor(private scene:Phaser.Scene,private resetView:()=>void,private onChange:(view:CameraView)=>void,private min=.35,private max=3.5,claimPointer?:(x:number,y:number,button:number)=>boolean,cancelClaim?:()=>void){
   const canvas=scene.game.canvas;canvas.tabIndex=0
   this.gestures=new CameraGestures(canvas,{
+   claimPointer,cancelClaim,
    zoomBy:(factor,x,y)=>{
     const camera=scene.cameras.main,old=camera.zoom,zoom=Math.max(this.min,Math.min(this.max,old*factor)),rect=canvas.getBoundingClientRect()
     camera.stopFollow();camera.setZoom(zoom)
@@ -20,6 +21,7 @@ export class WorldCamera {
   resetView();this.publish();scene.events.once('shutdown',()=>this.gestures.destroy())
  }
  private publish(){const canvas=this.scene.game.canvas,camera=this.scene.cameras.main;canvas.style.cursor=this.panMode?'grab':'default';canvas.dataset.cameraZoom=camera.zoom.toFixed(3);canvas.dataset.cameraX=camera.scrollX.toFixed(2);canvas.dataset.cameraY=camera.scrollY.toFixed(2);canvas.dataset.panMode=String(this.panMode);this.onChange({zoom:camera.zoom,panMode:this.panMode})}
+ isPanMode(){return this.panMode}
  canSelect(){return this.gestures.canSelect()}
  command(command:CameraCommand){this.gestures.command(command)}
 }

@@ -24,6 +24,11 @@ export class ActivityEffects {
    if(washing)g.lineStyle(2,0x9fcbd6,.75).lineBetween(x,y-13,x,y-3)
    if(!reduced)for(let i=0;i<4;i++){const p=(phase+i/4)%1;g.fillStyle(washing?0xa7d7e1:0xfff6dd,(1-p)*.8).fillEllipse(x+Math.sin(p*5+i)*4,y+(washing?p*8:-p*26),washing?1.6:3,washing?3:5)}
   }
+  if(showering){
+   // Warm vapor rises beyond the enclosure and drifts across the bathroom opening.
+   for(let i=0;i<14;i++){const p=reduced?.45:(phase*.35+i/14)%1;g.fillStyle(0xf2f2ed,(1-p)*.13).fillEllipse(human.x-18+Math.sin(i*2+p*3)*20+p*30,human.y-38-p*115,18+p*32,13+p*23)}
+   g.fillStyle(0xe4eeea,.2).fillRoundedRect(human.x-23,human.y-88,46,88,5)
+  }
   if(showering&&!reduced)for(let i=0;i<12;i++){const p=(phase*1.6+i/12)%1;g.lineStyle(1.2,0xb7dae5,(1-p)*.65).lineBetween(human.x-12+i%5*6,human.y-92+p*70,human.x-12+i%5*6,human.y-87+p*70)}
   if(['work','focus','practiceCoding','hermit'].includes(kind)){
    g.fillStyle(0xffe7aa,reduced?.06:.06+Math.sin(phase*2)*.025).fillEllipse(v.x-sign*12,v.y-29,23,17)

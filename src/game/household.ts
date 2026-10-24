@@ -6,7 +6,7 @@ export interface IndoorJourney {from:Tile;path:Tile[];startedAt:number;endsAt:nu
 export interface Household {
  amenitiesVersion?:1;schema:1;seed:number;sourceTier:string;grant:'legacy-rank-v1'|'source-tier-v1';blueprint:Blueprint;humanTile:Tile
  journey:IndoorJourney|null;pendingUse:{objectId:string;kind:import('./types').ActionKind;layoutVersion:number;arrivesAt:number}|null
- pet:{hunger:number;energy:number;affection:number;bond:number;following:boolean;lastCare:number}
+ pet:{hunger:number;energy:number;affection:number;bond:number;following:boolean;lastCare:number;lastActivity?:'feed'|'pet'|'play'}
  relationships:Record<string,{friendship:number;meetings:number;lastMet:number;memory:string}>
 }
 export const SOURCE_PACKAGES={Common:{level:0,funds:200},Uncommon:{level:1,funds:500},Rare:{level:2,funds:1200},Epic:{level:3,funds:2500},Legendary:{level:4,funds:5000}} as const

@@ -1,3 +1,4 @@
+import {place} from './buildTools'
 import {household,closeTools,world} from './playTools'
 import {test,expect} from '@playwright/test'
 test.beforeEach(async({page})=>{await page.route('https://**/*',route=>route.abort())})
@@ -5,13 +6,10 @@ test('human and Chog household buys furniture, stores it and preserves the layou
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
  await page.goto('/');await page.getByRole('button',{name:'Explore a local preview'}).click()
  await household(page);await expect(page.locator('.human-avatar')).toBeVisible();await expect(page.locator('.pet-card')).toContainText('Your Chog');await closeTools(page)
- await page.getByRole('button',{name:'Build & buy',exact:true}).click();await page.getByRole('button',{name:/Window fern/}).click()
- let placed=false
- for(const cell of await page.getByRole('button',{name:/^Build cell/}).all()){await cell.click();const buy=page.getByRole('button',{name:/Buy & place/});if(await buy.isEnabled()){await buy.click();placed=true;break}}
- expect(placed).toBe(true);await expect(page.getByRole('status')).toContainText('Furniture purchased and placed')
+ await page.getByRole('button',{name:'Build & buy',exact:true}).click();await place(page,'Window fern');await page.locator('.build-storage summary').click()
  const fern=page.locator('.owned-item').filter({hasText:'Window fern'});await fern.getByRole('button',{name:'Store',exact:true}).click();await expect(fern).toContainText('In storage')
- await page.reload();await page.getByRole('button',{name:'Explore a local preview'}).click();await page.getByRole('button',{name:'Build & buy',exact:true}).click()
- await expect(page.locator('.owned-item').filter({hasText:'Window fern'})).toContainText('In storage');expect(errors).toEqual([])
+ await page.reload();await page.getByRole('button',{name:'Explore a local preview'}).click();await expect(page.locator('canvas')).toHaveAttribute('data-build-mode','true')
+ await page.locator('.build-storage summary').click();await expect(page.locator('.owned-item').filter({hasText:'Window fern'})).toContainText('In storage');expect(errors).toEqual([])
 })
 test('enters a café, approaches an NPC and preserves friendship and venue across reload',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))

@@ -1,3 +1,4 @@
+import {VENUE_SERVICE_INDEX,refreshVenue} from './places'
 import type { ActionKind, ChogTrait, GameMeters, GameState, JobKind, ZoneId } from './types'
 import { rankToTier, tierToStartingFunds, tierToUnlockedZones, tierToHousingLevel, mapTraitsToCharacter } from './traitMapper'
 import { getEventMultiplier, getTodaysEvent } from './events'
@@ -39,6 +40,7 @@ export const ACTIONS: Record<ActionKind, { duration: number; cost: number; label
 }
 export const LEGACY_CARE_DURATIONS:Partial<Record<ActionKind,number>>={eat:6000,snack:3000,sleep:30000,unwind:15000,rest:10000,socialize:8000,wash:8000,relax:12000}
 export type Command =
+  | {type:'setBuildMode';enabled:boolean}
   | {type:'claimDaily';id:DailyGoal}
   | {type:'enqueueAction';objectId:string;kind:ActionKind}
   | {type:'removeIntent';id:number}
@@ -162,7 +164,7 @@ function arriveIndoor(s:GameState,ctx:EngineContext):GameState{
 }
 function advanceRoutine(s:GameState,ctx:EngineContext,autonomous:boolean):GameState{
  s=ensureRoutine(s)
- if(s.action||s.job||s.household?.journey||s.household?.pendingUse||s.location.journey||s.location.trip)return s
+ if(s.buildMode||s.action||s.job||s.household?.journey||s.household?.pendingUse||s.location.journey||s.location.trip)return s
  let queue=[...s.routine!.queue]
  while(queue.length){
   const q=queue.shift()!;s={...s,routine:{...s.routine!,queue}}
@@ -179,6 +181,7 @@ function advanceRoutine(s:GameState,ctx:EngineContext,autonomous:boolean):GameSt
 export function settle(state: GameState, ctx: EngineContext, offline = false): GameState {
   if(ctx.now<state.lastSaved)return state
   state=ensureRoutine(ensureLife(ensureNeeds(state)))
+  state=refreshVenue(state.household?ensureHousehold(state):state)
   const trip=state.location.trip,previousZone=state.currentZone
   state=settleLocation(state,ctx.now)
   if(trip&&!state.location.trip&&state.currentZone!==previousZone)state=recordDaily(state,'travel',trip.endsAt)
@@ -228,10 +231,18 @@ export function blockIsValid(seed: number, index: number): boolean {
   return ((Math.imul(seed ^ (index + 1), 1664525) + 1013904223) >>> 0) % 10 >= 4
 }
 export function reduceGame(state: GameState, command: Command, ctx: EngineContext): GameState {
+  // Pause queued/autonomous care before settling the mode-entry command.
+  if(command.type==='setBuildMode'&&command.enabled&&state.location.kind==='home'&&!state.location.venue&&!state.location.host&&!state.action&&!state.job&&!state.household?.journey&&!state.household?.pendingUse)state={...state,buildMode:true}
   let s = settle(state, ctx)
   const now = Math.max(ctx.now, s.lastSaved)
   if(s.location.trip&&command.type!=='tick'&&command.type!=='cancel')return message(s,'Enjoy the journey. Your tram is still in transit.')
+  if(s.buildMode&&['moveIndoor','useObject','enqueueAction','carePet','startAction','startJob','walk','leaveHome','enterHome','enterVenue','travel','ration'].includes(command.type))return message(s,'Finish Build mode to resume playing.')
   switch (command.type) {
+    case 'setBuildMode':{
+      if(!command.enabled)return {...s,buildMode:false,lastMessage:'Back to life. Click objects for activities.'}
+      if(s.location.kind!=='home'||s.location.venue||s.location.host||s.currentZone!==s.home.city||s.action||s.job||s.household?.journey||s.household?.pendingUse)return message({...s,buildMode:false},'Return home and finish walking or activities before building.')
+      return {...s,buildMode:true,lastMessage:'Build mode: drag furniture inside your home. Finish building to play.'}
+    }
     case 'claimDaily':return claimDaily(s,command.id,now)
     case 'enqueueAction':return advanceRoutine(enqueueIntent(s,command.objectId,command.kind),{...ctx,now},true)
     case 'setAutonomy':return {...s,routine:{...s.routine!,autonomy:command.enabled,nextAutonomyAt:now},lastMessage:command.enabled?'Autonomy on: free care at home; your queued choices go first.':'Autonomy off. You decide what happens next.'}
@@ -242,7 +253,7 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
     case 'startProject':case 'claimProject':return projectCommand(s,command.id,command.type==='claimProject')
     case 'enterVenue':{
       if(s.location.kind!=='street'||s.currentZone===5||s.location.journey||s.action||s.job)return message(s,'Finish your walk before entering a venue.')
-      const index=command.venue==='cafe'?0:command.venue==='work'?1:2
+      const index=VENUE_SERVICE_INDEX[command.venue]
       if(distance(s.location.tile,SERVICES[index].approach)>1)return message(s,'Walk to the venue entrance first.')
       s=ensureHousehold(s);const blueprint=venueBlueprint(s.currentZone as Exclude<ZoneId,5>,command.venue)
       return message({...s,household:{...s.household!,humanTile:entryTile(blueprint),journey:null,pendingUse:null},location:{...s.location,kind:'home',venue:placeKey(s.currentZone,command.venue),interior:blueprint,journey:null}},'Step inside. Select an object or meet someone nearby.')
@@ -279,7 +290,7 @@ export function reduceGame(state: GameState, command: Command, ctx: EngineContex
       if(s.location.kind==='street'&&distance(s.location.tile,SERVICES[2].approach)>1)return message(s,'Walk to the park to care for your Chog outside.')
       const cost=command.kind==='feed'?cityPrice(8,s.currentZone,ctx.gas[s.currentZone]):0
       if(s.gChog<cost)return message(s,'Not enough household gCHOG for pet food.')
-      return message(recordDaily({...s,meters:{...s.meters,fun:command.kind==='play'?Math.min(100,s.meters.fun+15):s.meters.fun},gChog:s.gChog-cost,household:{...h,pet:{...p,hunger:command.kind==='feed'?Math.min(100,p.hunger+35):p.hunger,affection:Math.min(100,p.affection+(command.kind==='play'?25:15)),energy:command.kind==='play'?Math.max(20,p.energy-5):p.energy,bond:Math.min(100,p.bond+3),lastCare:now}}},'pet',now),command.kind==='feed'?'Your Chog enjoyed a fresh bowl of food.':command.kind==='play'?'A little playtime. Your Chog’s bond grew.':'Your Chog leans into your hand. Bond +3.')
+      return message(recordDaily({...s,meters:{...s.meters,fun:command.kind==='play'?Math.min(100,s.meters.fun+15):s.meters.fun},gChog:s.gChog-cost,household:{...h,pet:{...p,hunger:command.kind==='feed'?Math.min(100,p.hunger+35):p.hunger,affection:Math.min(100,p.affection+(command.kind==='play'?25:15)),energy:command.kind==='play'?Math.max(20,p.energy-5):p.energy,bond:Math.min(100,p.bond+3),lastCare:now,lastActivity:command.kind}}},'pet',now),command.kind==='feed'?'Your Chog enjoyed a fresh bowl of food.':command.kind==='play'?'A little playtime. Your Chog’s bond grew.':'Your Chog leans into your hand. Bond +3.')
     }
     case 'setProfile': {
       const profile=parseProfile(command.profile)

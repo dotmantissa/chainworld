@@ -13,6 +13,7 @@ for(const[tokenId,token]of source.tokens.entries()){
  state.appearance={...state.appearance,sourceImage:token.metadata.image,sourceName:token.metadata.name};state=freshHousehold(state)
  const h=state.household!,pack=SOURCE_PACKAGES[h.sourceTier as keyof typeof SOURCE_PACKAGES]
  assert(pack,`Unknown source tier for ${token.tokenId}`);assert(validBlueprint(h.blueprint),`Invalid house for ${token.tokenId}`)
+ assert(h.blueprint.objects.some(o=>!o.stored&&(FURNITURE[o.type].actions as readonly string[]).includes('shower')),`Missing essential shower for ${token.tokenId}`)
  assert.equal(state.gChog+h.blueprint.objects.reduce((sum,o)=>sum+FURNITURE[o.type].price,0),pack.funds)
  assert(h.blueprint.width*h.blueprint.height<=64*state.home.plots.length)
  assert.equal(state.home.plots.length,1+Math.floor(pack.level/2));assert(state.gChog>=0)
@@ -24,4 +25,4 @@ for(const type of Object.keys(FURNITURE)as(keyof typeof FURNITURE)[])for(const r
 for(let city=0;city<5;city++)for(const asset of cityArtwork(city))assets.add(asset.url)
 for(const asset of[...materialArtwork,...humanPortraitArtwork,...outdoorArtwork,...architectureArtwork])assets.add(asset.url)
 await Promise.all([...assets].map(url=>access('public'+url)))
-console.log(JSON.stringify({households:source.tokens.length,tiers,distinctFurnitureLayouts:layouts.size,assetsVerified:assets.size,checks:'Source-tier cash plus furniture conserved; legal accessible layouts; usable floor fits granted land; migration never regrants; NFT-seeded human assets exist for every presentation.'},null,2))
+console.log(JSON.stringify({households:source.tokens.length,tiers,distinctFurnitureLayouts:layouts.size,assetsVerified:assets.size,checks:'Every source household has a reachable shower; source-tier cash plus furniture conserved; legal accessible layouts; usable floor fits granted land; migration never regrants; NFT-seeded human assets exist for every presentation.'},null,2))

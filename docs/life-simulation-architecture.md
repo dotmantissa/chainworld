@@ -2,6 +2,8 @@
 
 Proposed architecture and gameplay plan, 23 October 2026. Reviewed against local commit `635a02fc1d1c896e9532f490efcef467b21f4dc0`. The existing checkout was used directly. This document proposes the next implementation; it does not describe features as shipped.
 
+Update, 24 October: later user requirements supersede the empty-home and illustrated-character assumptions in this proposal. Every spawned household now receives a shower; the current implementation uses direct scene building, purpose-specific public interiors and weighted skeletal human animation. See [current status](implementation-status.md) and [implementation details](direct-building-and-animation.md).
+
 The player controls a human who lives with their Chog pet. The Chog NFT determines the household's identity, initial circumstances, visual heritage and economic account. A satisfying session should involve making decisions in a home or city: cooking, furnishing a room, walking the pet, meeting someone, visiting a venue or taking a trip. The world should remain useful when no other player is online.
 
 The supplied bedroom image establishes an anime-inspired illustration style: clean outlines, cel shading, soft colors, clear silhouettes and readable everyday objects. It does not prescribe a bedroom layout, house design, furniture arrangement or camera angle.

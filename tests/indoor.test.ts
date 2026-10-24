@@ -22,13 +22,13 @@ describe('physical household interactions and Build/Buy',()=>{
   let s=initial();const desk=s.household!.blueprint.objects.find(o=>o.type==='desk')!;s=reduceGame(s,{type:'useObject',objectId:desk.id,kind:'work'},ctx(1000));s=reduceGame(s,{type:'cancel'},ctx(1001));expect(s.gChog).toBe(100);expect(s.household?.pendingUse).toBeNull();expect(s.household?.journey).toBeNull()
  })
  it('rejects overlapping furniture, stale layout versions and unaffordable edits atomically',()=>{
-  const s=initial(),b=s.household!.blueprint,bed=b.objects.find(o=>o.type==='bed')!
+  const s=reduceGame(initial(),{type:'setBuildMode',enabled:true},ctx(1000)),b=s.household!.blueprint,bed=b.objects.find(o=>o.type==='bed')!
   const overlap=reduceGame(s,{type:'buyFurniture',furniture:'plant',x:bed.x,y:bed.y,rotation:0,version:b.version},ctx(1000));expect(overlap.gChog).toBe(100);expect(overlap.household?.blueprint).toEqual(b)
   const stale=reduceGame(s,{type:'expandRoom',axis:'x',version:0},ctx(1000));expect(stale.household?.blueprint).toEqual(b)
   const poor=reduceGame({...s,gChog:0},{type:'expandRoom',axis:'x',version:b.version},ctx(1000));expect(poor.gChog).toBe(0);expect(poor.household?.blueprint.width).toBe(b.width)
  })
  it('stores and places owned furniture without duplicating it or charging again',()=>{
-  const s=initial(),b=s.household!.blueprint,o=b.objects.find(o=>o.type==='sofa')!
+  const s=reduceGame(initial(),{type:'setBuildMode',enabled:true},ctx(1000)),b=s.household!.blueprint,o=b.objects.find(o=>o.type==='sofa')!
   const stored=reduceGame(s,{type:'storeFurniture',id:o.id,version:b.version},ctx(1000));expect(stored.household!.blueprint.objects.find(i=>i.id===o.id)!.stored).toBe(true)
   const placed=reduceGame(stored,{type:'moveFurniture',id:o.id,x:o.x,y:o.y,rotation:o.rotation,version:b.version+1},ctx(1000));expect(placed.gChog).toBe(100);expect(placed.household?.blueprint.objects).toHaveLength(b.objects.length);expect(validBlueprint(placed.household!.blueprint)).toBe(true)
  })

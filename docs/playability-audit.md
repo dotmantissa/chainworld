@@ -53,3 +53,12 @@ Full multi-frame human walk/use animation, physical pet care, wandering NPC sche
 The saving/input release item now has a local implementation: immediate client projection, serialized background synchronization, coalescing, retry/rebase/rollback, an intent outbox and deferred browser writes. Movement/validator requests skip unrelated oracle/profile reads while retaining both ownership checks. Delayed-response browser coverage demonstrates active walking, object choice, queuing and cancellation before the first save response. Fresh live-environment latency measurement and multi-wallet validation are still required before making a production-readiness claim. See [background saving](background-saving.md).
 
 A reference-driven visual pass adds six original realistic furniture assets, usable bathroom fixtures, front-facing approaches, richer partition/material rendering, quieter activity markers and shorter basic care with legacy timer compatibility. Source screenshots supplied visual direction only. Full skeletal animation and a freely rotating 3D renderer remain outside this 2.5D pass. See [realism direction](realism-direction.md).
+
+
+## Follow-up: public spaces, animation and direct building
+
+The follow-up replaces the detached Build grid with the rendered room as the placement surface. Build mode is engine-enforced and suspends physical activities/autonomy; ordinary play never drags furnishings. Owned moves, cancellation, invalid drops, reload, purchases and storage are covered by actual canvas interaction checks. All source tiers now include a default shower, with a one-time non-destructive migration for existing households.
+
+Public venues have authored 12×12 layouts, commercial furnishings and separate service, seating, stacks, reading and workplace areas. All five cities now have an enterable library and librarian. A 26-bone weighted mesh animates every action plus walking, jobs, pet care and NPC/visitor motion. Bathing adds articulated scrubbing, privacy blur, water, frosted glass and vapor. See [implementation details](direct-building-and-animation.md).
+
+Live multi-wallet/RPC/Neon verification, onchain land activation, multi-floor construction, autonomous NPC schedules and reference-level character art remain release/art tasks. These local changes do not activate them.

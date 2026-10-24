@@ -70,3 +70,19 @@
 .landing-copy>.landing-play-note{font-size:11px!important;line-height:1.7!important;margin-top:14px}.onboarding-card details>summary{margin-bottom:10px;font-size:11px}.onboarding-card .signup-character{margin-top:12px}
 /* The host centers the fitted canvas; avoid applying Phaser's margins a second time. */
 .room-canvas canvas{margin:0!important}
+
+/* The room remains interactive while building; tools are a compact nonmodal inspector. */
+.room-build-layout{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:12px;align-items:start;background:#f3eee3}
+.room-build-layout .room-canvas{position:sticky;top:10px;min-width:0;min-height:310px}
+.room-build-layout .build-panel{padding:12px;border-left:1px solid #d6c9b5;max-height:550px;overflow:auto;background:#faf6ec;font-size:12px;display:flex;flex-direction:column;gap:10px}
+.room-build-layout .build-heading{display:block}.room-build-layout .build-heading h2{font-size:18px}.room-build-layout .build-heading button{width:100%;margin-top:10px}
+.room-build-layout .build-tools{display:flex;flex-wrap:wrap;gap:5px}.room-build-layout button{padding:7px 9px;font-size:12px}
+.room-build-layout .build-catalogue{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:230px;overflow:auto;gap:5px}.room-build-layout .build-catalogue button{min-width:0;display:flex;flex-direction:column;gap:3px;padding:5px}.room-build-layout .build-catalogue img{width:70px;height:53px;object-fit:contain}.room-build-layout .build-catalogue strong{font-size:11px}
+.build-inspector,.build-selection,.wall-tools{padding:9px;border:1px solid #d8cab4;border-radius:9px;background:#fff9eb}.wall-tools label,.wall-tools small{display:block;margin-top:6px}.build-panel summary{cursor:pointer;font-weight:650}.build-panel .owned-item{display:flex;flex-wrap:wrap;gap:5px;padding:7px 0}.build-panel .owned-item span{flex:1;min-width:90px}.build-panel .owned-item small{display:block}.build-panel .detected-room{display:block;padding:6px}.build-panel .detected-room small{display:block}
+@media(max-width:700px){.room-build-layout{display:flex;flex-direction:column;gap:0}.room-build-layout .room-canvas{position:relative;top:0;width:100%;min-height:240px}.room-build-layout .build-panel{width:100%;max-height:290px;border-left:0;border-top:1px solid #d6c9b5;padding:10px}.room-build-layout .build-heading{display:flex;align-items:center;gap:10px}.room-build-layout .build-heading button{width:auto;margin:0}.room-build-layout .build-catalogue{display:flex;overflow-x:auto;max-height:145px}.room-build-layout .build-catalogue button{flex:0 0 108px}.room-build-layout .build-panel p.muted{font-size:11px;line-height:1.4}}
+.room-build-layout .build-panel>*{flex-shrink:0}
+.room-build-layout .build-catalogue{flex-shrink:0;min-height:110px}
+@media(max-width:700px){.room-build-layout .build-panel{scroll-padding-bottom:20px}.room-build-layout .build-catalogue{height:128px;min-height:128px}.game-shell:has(.room-build-layout) .play-tools{position:static;box-shadow:none}.room-build-layout .build-panel button{scroll-margin-block:50px}}
+.public-room .room-canvas{height:clamp(360px,48dvh,600px)}
+.room-build-layout .build-heading{position:sticky;top:-12px;z-index:3;background:#faf6ec;padding:8px 0;border-bottom:1px solid #e3d9c7}
+@media(max-width:700px){.public-room .room-canvas{height:clamp(280px,38dvh,420px)}.room-build-layout .build-heading{top:-10px}}

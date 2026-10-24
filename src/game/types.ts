@@ -31,6 +31,7 @@ export interface JobSession {
   seed: number; score: number; clicked: number[]; openingWei?: string; openingAt?: number; prediction?: 'up' | 'down'
 }
 export interface GameState {
+  buildMode?:boolean
   daily?:import('./dailyGoals').DailyState
   routine?:import('./routine').RoutineState
   life?:import('./life').LifeState

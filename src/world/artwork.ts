@@ -1,5 +1,6 @@
 import type Phaser from 'phaser'
 import manifest from './art-manifest.json'
+import venues from './venue-manifest.json'
 import realistic from './realism-manifest.json'
 import {seedOf} from '../game/housing'
 import type {GameState} from '../game/types'
@@ -15,9 +16,9 @@ export function humanArtwork(state:HumanState):ArtAsset[]{
 }
 export function npcArtwork(npc:CityNpc):ArtAsset[]{const start=((npc.city+(npc.venue==='park'?1:0))%2)*6;return manifest.humans[npc.gender].slice(start,start+6).map(asset=>paletteAsset(asset,npc.city%4))}
 export const humanPortraitArtwork:ArtAsset[]=Object.values(manifest.humans).flatMap(poses=>[poses[0],poses[6]].flatMap(asset=>[0,1,2,3].map(palette=>paletteAsset(asset,palette))))
-export const furnitureArtwork=(type:FurnitureType,rotation=0):ArtAsset=>{const asset=realistic[(type==='showerStall'?'shower':type) as keyof typeof realistic];return asset?{...asset,flipX:rotation===1}:manifest.furniture[type as keyof typeof manifest.furniture][rotation]}
+export const furnitureArtwork=(type:FurnitureType,rotation=0):ArtAsset=>{const venue=venues[type as keyof typeof venues];if(venue)return {...venue,flipX:rotation===1};const asset=realistic[(type==='showerStall'?'shower':type) as keyof typeof realistic];return asset?{...asset,flipX:rotation===1}:manifest.furniture[type as keyof typeof manifest.furniture][rotation]}
 export const buildingsArtwork:ArtAsset[]=manifest.buildings
-export const cityArtwork=(city:number):ArtAsset[]=>buildingsArtwork.map(asset=>paletteAsset(asset,city,'city'))
+export const cityArtwork=(city:number):ArtAsset[]=>[...buildingsArtwork.map(asset=>paletteAsset(asset,city,'city')),venues.libraryExterior]
 export const materialArtwork:ArtAsset[]=manifest.materials
 export const outdoorArtwork:ArtAsset[]=manifest.outdoor
 export const architectureArtwork:ArtAsset[]=manifest.architecture

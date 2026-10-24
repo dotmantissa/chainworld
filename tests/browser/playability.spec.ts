@@ -34,10 +34,10 @@ test('mobile keeps the play surface and tools in reach without horizontal scroll
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await expect(tools).toBeInViewport()
  await page.getByRole('button',{name:/Build & buy/}).click()
- await expect(page.getByRole('dialog')).toHaveAccessibleName('Build & buy')
- await expect(page.getByRole('button',{name:/Buy & place/})).toBeVisible()
- expect(await page.evaluate(()=>document.querySelector('dialog')!.scrollWidth<=document.querySelector('dialog')!.clientWidth)).toBe(true)
- await page.keyboard.press('Escape');await page.screenshot({path:'/tmp/chainworld-play-mobile.png',fullPage:true})
+ await expect(page.locator('.build-panel')).toBeVisible();await expect(page.locator('canvas')).toHaveAttribute('data-build-mode','true');await expect(page.getByRole('dialog')).toHaveCount(0)
+ await page.getByRole('button',{name:'Buy furniture',exact:true}).click();await expect(page.locator('.build-catalogue')).toBeVisible()
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ await page.locator('.build-panel').getByRole('button',{name:'Finish building',exact:true}).click();await expect(page.locator('canvas')).toHaveAttribute('data-build-mode','false');await page.screenshot({path:'/tmp/chainworld-play-mobile.png',fullPage:true})
 })
 
 test('keyboard walking shows its destination, nearby actions open with E, and dialogs isolate movement',async({page})=>{

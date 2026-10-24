@@ -5,11 +5,14 @@ export interface CameraDriver {
  panBy(dx:number,dy:number):void
  reset():void
  setPanMode(value:boolean):void
+ cancelClaim?():void
+ claimPointer?(x:number,y:number,button:number):boolean
  view():CameraView
 }
 
 /** Native pointer gestures are shared by Phaser scenes and the DOM world directory. */
 export class CameraGestures {
+ private claimed=new Set<number>()
  private pointers=new Map<number,{x:number;y:number}>()
  private start:{x:number;y:number;button:number}|null=null
  private moved=false
@@ -21,14 +24,16 @@ export class CameraGestures {
   }
   listen('pointerdown',e=>{
    if(e.pointerType==='mouse')element.focus({preventScroll:true})
+   if(!this.pointers.size&&!this.driver.view().panMode&&this.driver.claimPointer?.(e.clientX,e.clientY,e.button)){this.claimed.add(e.pointerId);this.moved=false;this.suppressUntil=0}
    if(!this.pointers.size){this.suppressUntil=0;this.start={x:e.clientX,y:e.clientY,button:e.button};this.moved=this.driver.view().panMode||e.button!==0}
    this.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY})
-   if(this.pointers.size>1)this.moved=true
+   if(this.pointers.size>1){this.moved=true;this.claimed.clear();this.driver.cancelClaim?.()}
    const target=e.target instanceof HTMLElement?e.target:element
    target.setPointerCapture(e.pointerId)
   },{capture:true})
   listen('pointermove',e=>{
    const previous=this.pointers.get(e.pointerId);if(!previous)return
+   if(this.claimed.has(e.pointerId)){this.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});return}
    const before=[...this.pointers.values()];this.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});const after=[...this.pointers.values()]
    if(this.pointers.size>1){
     this.moved=true
@@ -44,7 +49,7 @@ export class CameraGestures {
   const end=(e:PointerEvent)=>{
    if(!this.pointers.has(e.pointerId))return
    if(this.moved||this.pointers.size>1)this.suppressUntil=Date.now()+350
-   this.pointers.delete(e.pointerId)
+   this.pointers.delete(e.pointerId);this.claimed.delete(e.pointerId)
    if(!this.pointers.size)this.start=null
    const target=e.target instanceof HTMLElement?e.target:element
    if(target.hasPointerCapture(e.pointerId))target.releasePointerCapture(e.pointerId)

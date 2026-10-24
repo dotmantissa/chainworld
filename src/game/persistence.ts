@@ -27,7 +27,7 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
     const v2 = p.version === 2
     if (v2 && (!finite(p.meters.energy, 0, 100) || !finite(p.xp, 0, 1e9) || !finite(p.sequence, 0, Number.MAX_SAFE_INTEGER) || !finite(p.upkeepCarry, 0, 1) || !Array.isArray(p.quests) || !p.cooldowns)) return null
     const cooldowns: Record<string, number> = {}
-    if (v2) for (const key of Object.keys(p.cooldowns).filter(k=>['socialize','ration','validator'].includes(k)||/^hangout:npc:[0-4]:(cafe|work|park)$/.test(k))) if (finite(p.cooldowns[key], 0, Number.MAX_SAFE_INTEGER)) cooldowns[key] = p.cooldowns[key]
+    if (v2) for (const key of Object.keys(p.cooldowns).filter(k=>['socialize','ration','validator'].includes(k)||/^hangout:npc:[0-4]:(cafe|work|park|library)$/.test(k))) if (finite(p.cooldowns[key], 0, Number.MAX_SAFE_INTEGER)) cooldowns[key] = p.cooldowns[key]
     const life=p.life===undefined?newLife():parseLife(p.life);if(!life)return null
     const routine=p.routine===undefined?newRoutine():parseRoutine(p.routine,v2?p.sequence:0);if(!routine)return null
     const daily=p.daily===undefined?newDaily(p.lastSaved):parseDaily(p.daily);if(!daily||daily.day>Math.floor(p.lastSaved/DAY_MS))return null
@@ -43,7 +43,7 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
       unlockedZones: [...new Set<ZoneId>([...identity.unlockedZones, ...(Array.isArray(p.unlockedZones) ? p.unlockedZones.filter((z: unknown) => typeof z === 'number' && [0,1,2,3,4,5].includes(z)) : [])])],
     }
     const venue=venueOf(p.location?.venue)
-    if(venue&&s.currentZone!==5)s.location={kind:'home',tile:p.location.tile??{x:5,y:3},journey:null,district:0,venue:placeKey(s.currentZone,venue),interior:venueBlueprint(s.currentZone,venue)}
+    if(venue&&s.currentZone!==5)s.location={kind:'home',tile:p.location.tile??{x:5,y:3},journey:null,district:0,venue:placeKey(s.currentZone,venue),interior:p.location.interior&&validBlueprint(p.location.interior)&&p.location.interior.environment===venue&&(p.action||p.household?.journey||p.household?.pendingUse)?p.location.interior:venueBlueprint(s.currentZone,venue)}
     const h=p.household
     if(h?.schema===1&&Number.isInteger(h.seed)&&['legacy-rank-v1','source-tier-v1'].includes(h.grant)&&typeof h.sourceTier==='string'&&h.blueprint&&validBlueprint(h.blueprint)&&h.pet&&[h.pet.hunger,h.pet.energy,h.pet.affection,h.pet.bond].every((n:unknown)=>finite(n,0,100))&&typeof h.pet.following==='boolean'&&finite(h.pet.lastCare,0,Date.now()+300000)&&h.relationships&&typeof h.relationships==='object'){
       const b:Blueprint=s.location.interior??h.blueprint,relationships:typeof h.relationships={}
@@ -67,6 +67,7 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
     if (v2 && j && ['validator','grifter'].includes(j.kind) && finite(j.id, 1, s.sequence) && finite(j.startedAt, 0, s.lastSaved) && finite(j.endsAt, j.startedAt, j.startedAt + 20000) && finite(j.seed, 0, 2147483647) && finite(j.score, 0, 330) && Array.isArray(j.clicked) && j.clicked.every((i: unknown) => Number.isInteger(i) && Number(i) >= 0 && Number(i) < 33) && j.zone === s.currentZone) {
       if (j.kind === 'validator' || (typeof j.openingWei === 'string' && /^\d+$/.test(j.openingWei) && finite(j.openingAt, 0, j.startedAt) && ['up','down'].includes(j.prediction))) s.job = j
     }
+    s.buildMode=p.buildMode===true&&s.location.kind==='home'&&!s.location.venue&&!s.location.host&&!s.action&&!s.job&&!s.household?.journey&&!s.household?.pendingUse
     return s
   } catch { return null }
 }

@@ -19,7 +19,7 @@ describe('architectural rooms and door boundaries',()=>{
  it('rejects newly cutting furniture while preserving older structural saves',()=>{
   let s=ensureHousehold(createNewGameState('local',0,[],0,{now:1000}));const bed=s.household!.blueprint.objects.find(o=>o.type==='bed')!,b=s.household!.blueprint,w={x:bed.x,y:bed.y,axis:'x' as const,door:false}
   expect(partitionCutsFurniture(b,w)).toBe(true)
-  const rejected=reduceGame(s,{type:'editWall',...w,remove:false,version:b.version},{now:1000,gas:{}})
+  const rejected=reduceGame({...s,buildMode:true},{type:'editWall',...w,remove:false,version:b.version},{now:1000,gas:{}})
   expect(rejected.gChog).toBe(s.gChog);expect(rejected.household?.blueprint).toEqual(b);expect(rejected.lastMessage).toMatch('cuts through furniture')
  })
 })

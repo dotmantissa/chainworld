@@ -1,9 +1,11 @@
+import {RigRenderer,type RigSprite} from './skeleton/RigSprite'
+import {rigIdentity} from './skeleton/HumanRig'
 import {MovementFeedback} from './MovementFeedback'
 import {sampleJourney,WALK_KEYS} from './motion'
 import {journeyTile} from '../game/neighborhood'
 import {WorldCamera} from './WorldCamera'
 import type {CameraCommand,CameraView} from './cameraControls'
-import {humanArtwork,humanPortraitArtwork,cityArtwork,materialArtwork,loadArtwork,sizeHuman,type ArtAsset} from './artwork'
+import {cityArtwork,materialArtwork,loadArtwork,type ArtAsset} from './artwork'
 import {loadPetArtwork,setPetPose} from './petArtwork'
 import Phaser from 'phaser'
 import type {GameState} from '../game/types'
@@ -13,18 +15,18 @@ export const streetIso=(t:Tile)=>({x:1200+(t.x-t.y)*32,y:120+(t.x+t.y)*16})
 const fromIso=(x:number,y:number):Tile=>({x:Math.round((x-1200)/64+(y-120)/32),y:Math.round((y-120)/32-(x-1200)/64)})
 export interface StreetBridge {state():GameState;snapshot():NeighborhoodSnapshot;blocked():boolean;walk(tile:Tile):void;selectPlot(tile:Tile):void;selectService(index:number):void;selectNeighbor(neighbor:Neighbor):void;avatarSvg(neighbor?:Neighbor):string;onCameraChange(view:CameraView):void}
 export class StreetScene extends Phaser.Scene{
- private resident!:Phaser.GameObjects.Image;private pet!:Phaser.GameObjects.Image;private buildings:Phaser.GameObjects.GameObject[]=[];private visitors=new Map<string,Phaser.GameObjects.Container>();private signature='';private lastTile:Tile={x:0,y:0};private poses:ArtAsset[]=[];private petKey='';private cityBuildings:ArtAsset[]=[]
+ private rig!:RigSprite;private rigRenderer!:RigRenderer;private visitorRigs=new Map<string,RigSprite>();private resident!:Phaser.GameObjects.Image;private pet!:Phaser.GameObjects.Image;private buildings:Phaser.GameObjects.GameObject[]=[];private visitors=new Map<string,Phaser.GameObjects.Container>();private signature='';private lastTile:Tile={x:0,y:0};private petKey='';private cityBuildings:ArtAsset[]=[]
  private route!:MovementFeedback;private shadow!:Phaser.GameObjects.Ellipse;private lastFrame=0;private lastKeyAt=0;private reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches
  private cameraView?:WorldCamera;private labels:Phaser.GameObjects.Text[]=[]
  cameraCommand(command:CameraCommand){this.cameraView?.command(command)}
  constructor(private bridge:StreetBridge){super('neighborhood')}
- preload(){const s=this.bridge.state();this.poses=humanArtwork(s);this.cityBuildings=cityArtwork(s.currentZone===5?0:s.currentZone);loadArtwork(this,this.poses);loadArtwork(this,this.cityBuildings);loadArtwork(this,materialArtwork);loadArtwork(this,humanPortraitArtwork);this.petKey=loadPetArtwork(this,s,this.bridge.avatarSvg())}
+ preload(){const s=this.bridge.state();this.cityBuildings=cityArtwork(s.currentZone===5?0:s.currentZone);loadArtwork(this,this.cityBuildings);loadArtwork(this,materialArtwork);this.petKey=loadPetArtwork(this,s,this.bridge.avatarSvg())}
 
  create(){
   this.route=new MovementFeedback(this,streetIso,1.2);this.shadow=this.add.ellipse(0,0,20,8,0x3b3029,.18)
   const s=this.bridge.state(),city=s.currentZone===5?0:s.currentZone;this.cameras.main.setBackgroundColor(['#e1e8d8','#e8e2d6','#bcdbe2','#e5d2b9','#c5dee0'][city]);const ground=this.add.graphics().setDepth(-1000)
   for(let y=0;y<39;y++)for(let x=0;x<36;x++){const p=streetIso({x,y}),walkable=streetWalkable({x,y});this.add.image(p.x,p.y,materialArtwork[walkable?2:3].key).setDisplaySize(64.5,32.5).setDepth(-999);if(!walkable&&y>=5)ground.fillStyle(0x5a6b4e,.05).fillEllipse(p.x,p.y,38,13)}
-  this.resident=this.add.image(0,0,this.poses[0].key);sizeHuman(this.resident,this.poses,0,70);this.pet=this.add.image(0,0,this.petKey);setPetPose(this.pet,this.petKey);this.pet.setScale(this.pet.scaleX*.85,this.pet.scaleY*.85);this.lastTile=s.location.tile;const p=streetIso(this.lastTile);this.resident.setPosition(p.x,p.y);this.cameras.main.startFollow(this.resident,true,.12,.12,0,30).setZoom(1.3).setBounds(-180,-300,2760,2000)
+  this.rigRenderer=new RigRenderer(this);this.rig=this.rigRenderer.create(rigIdentity(s),94);this.resident=this.rig.image;this.pet=this.add.image(0,0,this.petKey);setPetPose(this.pet,this.petKey);this.pet.setScale(this.pet.scaleX*.85,this.pet.scaleY*.85);this.lastTile=s.location.tile;const p=streetIso(this.lastTile);this.resident.setPosition(p.x,p.y);this.cameras.main.startFollow(this.resident,true,.12,.12,0,30).setZoom(1.3).setBounds(-180,-300,2760,2000)
   for(let index=0;index<SERVICES.length;index++){const service=SERVICES[index],p=streetIso(service.tile),art=this.cityBuildings[service.frame],sprite=this.add.image(p.x,p.y+34,art.key).setDisplaySize(192,192*art.height/art.width).setOrigin(.5,1).setDepth(p.y+32);sprite.setInteractive({pixelPerfect:true,alphaTolerance:70,useHandCursor:true}).on('pointerup',(pointer:Phaser.Input.Pointer,_x:number,_y:number,event:Phaser.Types.Input.EventData)=>{if(this.bridge.blocked()||!this.cameraView?.canSelect()||pointer.event.target!==this.game.canvas)return;event.stopPropagation();this.bridge.selectService(index)});sprite.on('pointerover',()=>sprite.setTint(0xead6ff));sprite.on('pointerout',()=>sprite.clearTint());const label=this.add.text(p.x,p.y+34-sprite.displayHeight-8,serviceName(city,index),{fontSize:'12px',color:'#564a63',backgroundColor:'#fff9e9',padding:{x:7,y:4}}).setOrigin(.5,1).setResolution(2).setDepth(1000000).setData({anchorX:p.x,anchorY:p.y+34-sprite.displayHeight-8,bottomY:p.y+34,halfWidth:96});label.setInteractive({useHandCursor:true}).on('pointerup',(...args:unknown[])=>sprite.emit('pointerup',...args));this.labels.push(label)}
 
   this.input.on('pointerup',(pointer:Phaser.Input.Pointer)=>{if(!this.bridge.blocked()&&this.cameraView?.canSelect()&&pointer.event.target===this.game.canvas)this.bridge.walk(fromIso(pointer.worldX,pointer.worldY))})
@@ -59,20 +61,19 @@ export class StreetScene extends Phaser.Scene{
    label.setPosition(Math.max(left+(label.width/2+8)/z,Math.min(right-(label.width/2+8)/z,x)),Math.max(top+(label.height+8)/z,y))
   }
   const motion=sampleJourney(s.location.journey,s.location.tile,now,STEP_MS),tile=motion.tile,p=streetIso(tile);if(motion.moving)this.lastFrame=motion.frame
-  const gait=this.reducedMotion?0:motion.moving?Math.sin(time/65):Math.sin(time/650)*.18
-  sizeHuman(this.resident,this.poses,this.lastFrame,70);this.resident.setPosition(p.x,p.y-Math.abs(gait)*(motion.moving?1.8:.5)).setDepth(p.y+30)
-  if(!this.reducedMotion)this.resident.setAngle(motion.moving?gait*1.5:0).setScale(this.resident.scaleX*(1+gait*.012),this.resident.scaleY*(1-gait*.012))
-  this.shadow.setPosition(p.x,p.y+1).setDepth(p.y+29).setScale(1-Math.abs(gait)*.1)
+  this.rig.update(motion.moving?'walking':s.action?.kind??s.job?.kind??'idle',time,this.lastFrame,this.reducedMotion,false,'standing')
+  this.resident.setPosition(p.x,p.y).setDepth(p.y+30)
+  this.shadow.setPosition(p.x,p.y+1).setDepth(p.y+29)
   this.route.render(s.location.journey,motion.index,time,this.reducedMotion)
   this.game.canvas.dataset.humanFrame=String(this.lastFrame);this.game.canvas.dataset.walking=String(motion.moving);this.game.canvas.dataset.destination=s.location.journey?.path.length?JSON.stringify(s.location.journey.path[s.location.journey.path.length-1]):''
   const petMotion=sampleJourney(s.location.journey,s.location.tile,now-STEP_MS*1.5,STEP_MS),petP=streetIso(petMotion.tile)
   setPetPose(this.pet,this.petKey,petMotion.moving?petMotion.frame:this.lastFrame);this.pet.setScale(this.pet.scaleX*.85,this.pet.scaleY*.85).setVisible(s.household?.pet.following??true).setPosition(petP.x-14,petP.y+(this.reducedMotion?0:Math.sin(time/180)*.7)).setDepth(petP.y+31)
   const visible=snapshot.neighbors.filter(n=>n.identity!==identityOf(s)&&n.online&&n.location?.kind==='street')
-  for(const[id,container]of this.visitors)if(!visible.some(n=>n.identity===id)){container.destroy();this.visitors.delete(id)}
+  for(const[id,container]of this.visitors)if(!visible.some(n=>n.identity===id)){container.destroy();this.visitorRigs.get(id)?.destroy();this.visitorRigs.delete(id);this.visitors.delete(id)}
   for(const neighbor of visible){
-   let container=this.visitors.get(neighbor.identity);const poses=humanArtwork({appearance:neighbor.appearance,profile:neighbor.profile,collection:neighbor.identity.split(':')[1],tokenId:neighbor.tokenId})
-   if(!container){const image=this.add.image(0,0,poses[0].key),name=this.add.text(0,-78,neighbor.name,{fontSize:'10px',backgroundColor:'#fff6e9',color:'#4a3e49',padding:{x:6,y:3}}).setOrigin(.5,1);sizeHuman(image,poses,0,70);container=this.add.container(0,0,[image,name]);container.setSize(50,85).setInteractive({useHandCursor:true}).on('pointerup',(pointer:Phaser.Input.Pointer,_a:number,_b:number,event:Phaser.Types.Input.EventData)=>{if(this.bridge.blocked()||!this.cameraView?.canSelect()||pointer.event.target!==this.game.canvas)return;event.stopPropagation();this.bridge.selectNeighbor(neighbor)});this.visitors.set(neighbor.identity,container)}
-   const avatar=container.list[0] as Phaser.GameObjects.Image;sizeHuman(avatar,poses,0,70);const p=streetIso(sampleJourney(neighbor.location.journey,neighbor.location.tile,now,STEP_MS).tile);container.setPosition(p.x,p.y).setDepth(p.y+30)
+   let container=this.visitors.get(neighbor.identity)
+   if(!container){const rig=this.rigRenderer.create(rigIdentity({appearance:neighbor.appearance,profile:neighbor.profile,collection:neighbor.identity.split(':')[1],tokenId:neighbor.tokenId}),94);this.visitorRigs.set(neighbor.identity,rig);const image=rig.image,name=this.add.text(0,-78,neighbor.name,{fontSize:'10px',backgroundColor:'#fff6e9',color:'#4a3e49',padding:{x:6,y:3}}).setOrigin(.5,1);container=this.add.container(0,0,[image,name]);container.setSize(50,85).setInteractive({useHandCursor:true}).on('pointerup',(pointer:Phaser.Input.Pointer,_a:number,_b:number,event:Phaser.Types.Input.EventData)=>{if(this.bridge.blocked()||!this.cameraView?.canSelect()||pointer.event.target!==this.game.canvas)return;event.stopPropagation();this.bridge.selectNeighbor(neighbor)});this.visitors.set(neighbor.identity,container)}
+   const movement=sampleJourney(neighbor.location.journey,neighbor.location.tile,now,STEP_MS);this.visitorRigs.get(neighbor.identity)?.update(movement.moving?'walking':'idle',time,movement.frame,this.reducedMotion);const p=streetIso(sampleJourney(neighbor.location.journey,neighbor.location.tile,now,STEP_MS).tile);container.setPosition(p.x,p.y).setDepth(p.y+30)
   }
 
  }

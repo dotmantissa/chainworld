@@ -19,7 +19,7 @@ Basic care now uses: snack 2s, meal 4s, rest 4s, sleep 20s, call 4s, reading 8s,
 
 The six generated WebP assets live in `public/art/realism/`; exact prompts, dimensions, SHA-256 hashes and built-in tool provenance are in [prompts.json](../public/art/realism/prompts.json). [realism-manifest.json](../src/world/realism-manifest.json) supplies runtime dimensions. The built-in imagegen tool generated each asset independently from text; browser canvas encoding resized and encoded the results while retaining alpha. Raw generated PNGs remain in the image tool output directory. No image-generation API key or external generation CLI was used.
 
-Current limits: characters still use directional pose art and procedural animation. Free-rotating 3D cameras, skeletal hand/limb animation, blanket cloth simulation, changing clothes and complete bathroom/privacy simulation need a larger renderer/animation pass. This delivery improves the existing playable scene and actual object interactions; it does not claim to reproduce a full 3D life-simulation engine.
+The follow-up [direct building and animation pass](direct-building-and-animation.md) replaces the directional human action art with a weighted skeletal mesh, adds bathing privacy and venue-specific interiors, and moves furniture editing into the actual room. The world remains isometric; a free 3D camera, clothing changes and cloth/hair physics remain future work.
 
 ## Verification
 

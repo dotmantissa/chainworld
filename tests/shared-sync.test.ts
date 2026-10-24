@@ -24,6 +24,15 @@ describe('background shared synchronization',()=>{
   expect(h.requests).toHaveLength(2);expect(h.requests[1].request.command).toEqual({type:'moveIndoor',target:{x:5,y:6}})
   expect(h.requests[1].request.revision).toBe(1);expect(h.requests[1].request).not.toHaveProperty('state');expect(h.view.state.routine?.queue).toHaveLength(1);h.sync.dispose()
  })
+ it('projects a Build-only owned edit while saving and commits the mode change before the edit',async()=>{
+  const h=harness(),object=initial().household!.blueprint.objects[0],version=initial().household!.blueprint.version
+  h.sync.enqueue({type:'setBuildMode',enabled:true});h.sync.enqueue({type:'storeFurniture',id:object.id,version})
+  expect(h.requests).toHaveLength(1);expect(h.view.state.buildMode).toBe(true);expect(h.view.state.household!.blueprint.objects[0].stored).toBe(true)
+  const entered=reduceGame(initial(),h.requests[0].request.command,{now:1000,gas:{}});h.requests[0].resolve({status:200,snapshot:{state:entered,revision:1}});await flush()
+  expect(h.requests[1].request.command.type).toBe('storeFurniture');expect(h.requests[1].request.revision).toBe(1)
+  const committed=reduceGame(entered,h.requests[1].request.command,{now:1000,gas:{}});h.requests[1].resolve({status:200,snapshot:{state:committed,revision:2}});await flush()
+  expect(h.view.state.household!.blueprint.objects).toEqual(committed.household!.blueprint.objects);expect(h.view.state.gChog).toBe(initial().gChog);expect(h.view.saving).toBe(false);h.sync.dispose()
+ })
  it('accepts user input while a routine clock save is in flight and does not build a tick backlog',async()=>{
   const h=harness();h.sync.enqueue({type:'tick'});h.sync.enqueue({type:'tick'});h.sync.enqueue({type:'moveIndoor',target:{x:4,y:6}})
   expect(h.view.state.household?.journey).not.toBeNull();expect(h.sync.getPending()).toHaveLength(2)

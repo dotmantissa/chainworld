@@ -1,6 +1,11 @@
 import type {GameState} from './types'
 import type {Tile} from '../world/navigation'
 export const FURNITURE={
+ cafeCounter:{label:'Café service counter',price:160,w:3,h:1,family:'eat',actions:['eat','snack']},
+ cafeTable:{label:'Bistro table & chairs',price:85,w:2,h:2,family:'eat',actions:['eat','snack','socialize','relax']},
+ bookStack:{label:'Library book stack',price:95,w:2,h:1,family:'socialize',actions:['unwind']},
+ readingTable:{label:'Library reading table',price:110,w:2,h:2,family:'socialize',actions:['unwind','practiceCoding','paint']},
+ meetingTable:{label:'Meeting table',price:130,w:3,h:2,family:'work',actions:['work','focus','socialize']},
  showerStall:{label:'Essential shower',price:0,w:1,h:1,family:'eat',actions:['shower']},
  bed:{label:'Cloud bed',price:45,w:2,h:3,family:'rest',actions:['rest','sleep']},
  basin:{label:'Oak washbasin',price:30,w:1,h:1,family:'eat',actions:['wash']},

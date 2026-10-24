@@ -28,13 +28,18 @@ export function drawRoom(scene:Phaser.Scene,b:Blueprint,style:string):Phaser.Gam
   g.lineStyle(5,0x9c846c).lineBetween(a.x,a.y,left.x,left.y).lineBetween(a.x,a.y,right.x,right.y)
   g.lineStyle(1,0x8e806c,.6).lineBetween(a.x,a.y-wallHeight,a.x,a.y)
  }
- const material=b.environment==='park'?3:b.environment==='cafe'?5:style==='midnight'?1:style==='terracotta'?2:0
- const tiled=new Set(detectRooms(b).filter(r=>r.label==='Bathroom'||r.label==='Kitchen').flatMap(r=>r.cells.map(t=>`${t.x},${t.y}`)))
+ const material=b.environment==='park'?3:b.environment==='work'?1:b.environment==='cafe'?5:b.environment==='library'?0:style==='midnight'?1:style==='terracotta'?2:0
+ const tiled=new Set((b.environment?[]:detectRooms(b)).filter(r=>r.label==='Bathroom'||r.label==='Kitchen').flatMap(r=>r.cells.map(t=>`${t.x},${t.y}`)))
  for(const object of b.objects.filter(o=>!o.stored&&['kitchen','basin','shower','showerStall'].includes(o.type)))for(const t of footprint(object))for(const dy of [0,1])tiled.add(`${t.x},${t.y+dy}`)
- for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){const p=houseIso({x,y}),tile=scene.add.image(p.x,p.y,materialArtwork[b.environment!=='park'&&tiled.has(`${x},${y}`)?5:material].key).setDisplaySize(50.8,26.5);if((x+y)%3===0)tile.setTint(0xf4f0e8);room.add(tile)}
+ for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){const p=houseIso({x,y}),zone=b.environment==='cafe'&&y>=3?0:b.environment==='work'&&y>=9?0:b.environment==='library'&&x>=7&&y>=2?1:material,tile=scene.add.image(p.x,p.y,materialArtwork[b.environment!=='park'&&tiled.has(`${x},${y}`)?5:zone].key).setDisplaySize(50.8,26.5);if((x+y)%3===0)tile.setTint(0xf4f0e8);room.add(tile)}
  if(b.environment==='park')return room
  const details=scene.add.graphics();room.add(details)
- for(const t of [1.5,Math.min(5,b.width-2)]){
+ if(b.environment){
+  // Commercial glazing and signage, without domestic curtains or bedroom decoration.
+  for(const x of [1,4,7,10]){const a=houseIso({x:x-.3,y:-.5}),z=houseIso({x:x+1.3,y:-.5}),pane=[{x:a.x,y:a.y-30},{x:z.x,y:z.y-30},{x:z.x,y:z.y-110},{x:a.x,y:a.y-110}];details.fillStyle(0xacc9ca,.85).fillPoints(pane,true).lineStyle(4,b.environment==='work'?0x58686a:0x7b654c).strokePoints(pane,true).lineStyle(2,0xf0e5c9,.7).lineBetween((a.x+z.x)/2,(a.y+z.y)/2-30,(a.x+z.x)/2,(a.y+z.y)/2-110)}
+  const p=houseIso({x:-.5,y:5.5}),label=scene.add.text(p.x,p.y-94,b.environment==='cafe'?'COFFEE  •  KITCHEN':b.environment==='library'?'READ  •  LEARN  •  GROW':'MAKE  •  SHARE  •  CREATE',{fontFamily:'Georgia',fontSize:'11px',color:b.environment==='library'?'#69583d':'#42635b',backgroundColor:'#f8efda',padding:{x:12,y:6}}).setOrigin(.5,.5).setAngle(-27);room.add(label)
+  if(b.environment==='work'){const p=houseIso({x:-.5,y:9});details.fillStyle(0xf4f1e4).fillRoundedRect(p.x-30,p.y-92,60,42,2).lineStyle(2,0x96a8a0).strokeRoundedRect(p.x-30,p.y-92,60,42,2);for(let i=0;i<3;i++)details.lineStyle(1,0x8aa8a0,.6).lineBetween(p.x-22,p.y-83+i*8,p.x+15-i*5,p.y-83+i*8)}
+ }else for(const t of [1.5,Math.min(5,b.width-2)]){
   const p=houseIso({x:t,y:-.5}),art=architectureArtwork[0],window=scene.add.image(p.x,p.y-75,art.key).setDisplaySize(61,61*art.height/art.width)
   room.add(window)
  }
