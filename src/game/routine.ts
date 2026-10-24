@@ -24,7 +24,7 @@ export function enqueueIntent(s:GameState,objectId:string,kind:ActionKind):GameS
 /** Autonomous choices are free care, never work, cooking, purchases or trades. */
 export function autonomyChoice(s:GameState,now:number):Intent|null{
  if(!s.routine?.autonomy||s.routine.nextAutonomyAt>now||s.location.kind!=='home'||s.location.venue||s.location.trip||!s.household)return null
- const options:[number,ActionKind][]=[[s.meters.energy,'sleep'],[s.meters.hygiene,'wash'],[s.meters.fun,'unwind'],[s.meters.comfort,'relax'],[s.meters.social,'socialize']]
+ const options:[number,ActionKind][]=[[s.meters.energy,'sleep'],[s.meters.hygiene,activeBlueprint(s).objects.some(o=>o.type==='shower'&&!o.stored)?'shower':'wash'],[s.meters.fun,'unwind'],[s.meters.comfort,'relax'],[s.meters.social,'socialize']]
  for(const[value,kind]of options.sort((a,b)=>a[0]-b[0])){
   if(value>=30||(s.cooldowns[kind]??0)>now)continue
   const b=activeBlueprint(s),object=b.objects.find(o=>!o.stored&&(FURNITURE[o.type].actions as readonly string[]).includes(kind)&&approachPath(b,s.household!.humanTile,o)!==null)

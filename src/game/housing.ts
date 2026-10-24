@@ -2,6 +2,8 @@ import type {GameState} from './types'
 import type {Tile} from '../world/navigation'
 export const FURNITURE={
  bed:{label:'Cloud bed',price:45,w:2,h:3,family:'rest',actions:['rest','sleep']},
+ basin:{label:'Oak washbasin',price:30,w:1,h:1,family:'eat',actions:['wash']},
+ shower:{label:'Rain shower',price:70,w:2,h:2,family:'eat',actions:['shower']},
  kitchen:{label:'Little kitchen',price:60,w:2,h:1,family:'eat',actions:['eat','snack','wash','cookBreakfast','cookStew','eatLeftovers']},
  desk:{label:'Study desk',price:65,w:2,h:1,family:'work',actions:['work','focus','hermit','practiceCoding']},
  sofa:{label:'Reading sofa',price:35,w:2,h:1,family:'socialize',actions:['socialize','unwind','relax','paint']},
@@ -30,7 +32,12 @@ export function housePath(b:Blueprint,start:Tile,goal:Tile):Tile[]|null{
  }return null
 }
 export function approaches(b:Blueprint,o:Furniture):Tile[]{const cells=footprint(o),unique=new Map<string,Tile>();for(const t of cells)for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const p={x:t.x+dx,y:t.y+dy};if(houseWalkable(b,p))unique.set(tileKey(p),p)}return [...unique.values()]}
-export function approachPath(b:Blueprint,start:Tile,o:Furniture):Tile[]|null{return approaches(b,o).map(p=>housePath(b,start,p)).filter((p):p is Tile[]=>p!==null).sort((a,z)=>a.length-z.length)[0]??null}
+export function approachPath(b:Blueprint,start:Tile,o:Furniture,kind?:import('./types').ActionKind):Tile[]|null{
+ const all=approaches(b,o),d=FURNITURE[o.type],w=o.rotation?d.h:d.w,h=o.rotation?d.w:d.h
+ const front=all.filter(t=>o.rotation?t.x===o.x+w:t.y===o.y+h),specific=kind==='wash'?front.filter(t=>o.rotation?t.y===o.y:t.x===o.x):kind==='cookBreakfast'||kind==='cookStew'?front.filter(t=>o.rotation?t.y===o.y+h-1:t.x===o.x+w-1):[]
+ const candidates=specific.length?specific:front.length?front:all
+ return candidates.map(p=>housePath(b,start,p)).filter((p):p is Tile[]=>p!==null).sort((a,z)=>a.length-z.length)[0]??null
+}
 export function validBlueprint(b:Blueprint):boolean{
  if(!Number.isInteger(b.width)||!Number.isInteger(b.height)||b.width<7||b.height<7||b.width>12||b.height>12||!Number.isSafeInteger(b.version)||b.version<1||!Array.isArray(b.objects)||b.objects.length>80||!Array.isArray(b.walls)||b.walls.length>200)return false
  const occupied=new Set<string>(),ids=new Set<string>()

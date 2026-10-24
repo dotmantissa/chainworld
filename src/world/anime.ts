@@ -1,13 +1,21 @@
 import Phaser from 'phaser'
 import type {Tile} from './navigation'
 import type {Blueprint,Furniture} from '../game/housing'
-import {FURNITURE} from '../game/housing'
-import {furnitureArtwork,materialArtwork,outdoorArtwork,architectureArtwork} from './artwork'
+import {footprint} from '../game/housing'
+import {materialArtwork,architectureArtwork} from './artwork'
+import {furnitureView,partitionSegment} from './furnitureView'
+import {detectRooms} from '../game/rooms'
 export const houseIso=(t:Tile)=>({x:400+(t.x-t.y)*25,y:115+(t.x+t.y)*13})
 export const houseFromIso=(x:number,y:number):Tile=>({x:Math.round((x-400)/50+(y-115)/26),y:Math.round((y-115)/26-(x-400)/50)})
 export function drawRoom(scene:Phaser.Scene,b:Blueprint,style:string):Phaser.GameObjects.Container{
  const room=scene.add.container(0,0).setDepth(-500),g=scene.add.graphics(),a=houseIso({x:-.5,y:-.5}),left=houseIso({x:-.5,y:b.height-.5}),right=houseIso({x:b.width-.5,y:-.5}),wallHeight=127
  room.add(g)
+ if(!b.environment){
+  const garden=[{x:-1.15,y:-1.15},{x:b.width+.3,y:-1.15},{x:b.width+.3,y:b.height+.45},{x:-1.15,y:b.height+.45}].map(houseIso)
+  g.fillStyle(0x8b9c7c).fillPoints(garden,true).lineStyle(4,0x738866,.6).strokePoints(garden,true)
+  const entry=houseIso({x:Math.floor(b.width/2),y:b.height-.05});g.fillStyle(0xc7c0ae).fillPoints([{x:entry.x-30,y:entry.y},{x:entry.x,y:entry.y-15},{x:entry.x+30,y:entry.y},{x:entry.x,y:entry.y+15}],true)
+ }
+ for(let i=4;i>=1;i--)g.fillStyle(0x44362a,.025).fillEllipse(400+(b.width-b.height)*12.5,115+(b.width+b.height)*6.5+14,(b.width+b.height)*25+i*7,(b.width+b.height)*13+i*5)
  const palettes:Record<string,number>={linen:0xe8dfce,sage:0xc9d4c0,lavender:0xd7ccdf,terracotta:0xe3c7ae,midnight:0xb9c8d0}
  const bottom=houseIso({x:b.width-.5,y:b.height-.5})
  g.fillStyle(0xb5a084).fillPoints([left,bottom,right,{x:right.x,y:right.y+10},{x:bottom.x,y:bottom.y+10},{x:left.x,y:left.y+10}],true)
@@ -16,11 +24,14 @@ export function drawRoom(scene:Phaser.Scene,b:Blueprint,style:string):Phaser.Gam
   g.fillGradientStyle(palettes[style]??palettes.linen,0xf8f3e6,0xc5b6a2,0xf3eadb,1).fillPoints([a,left,{x:left.x,y:left.y-wallHeight},{x:a.x,y:a.y-wallHeight}],true)
   g.fillGradientStyle(0xfff9e9,0xf5e8d6,0xf2e6d2,0xd8c6ae,1).fillPoints([a,right,{x:right.x,y:right.y-wallHeight},{x:a.x,y:a.y-wallHeight}],true)
   g.lineStyle(4,0xfaf1e0).lineBetween(a.x,a.y-wallHeight,left.x,left.y-wallHeight).lineBetween(a.x,a.y-wallHeight,right.x,right.y-wallHeight)
+  g.lineStyle(12,0x3c3025,.09).lineBetween(a.x,a.y-4,left.x,left.y-4).lineBetween(a.x,a.y-4,right.x,right.y-4)
   g.lineStyle(5,0x9c846c).lineBetween(a.x,a.y,left.x,left.y).lineBetween(a.x,a.y,right.x,right.y)
   g.lineStyle(1,0x8e806c,.6).lineBetween(a.x,a.y-wallHeight,a.x,a.y)
  }
  const material=b.environment==='park'?3:b.environment==='cafe'?5:style==='midnight'?1:style==='terracotta'?2:0
- for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){const p=houseIso({x,y}),tile=scene.add.image(p.x,p.y,materialArtwork[material].key).setDisplaySize(50.8,26.5);if((x+y)%3===0)tile.setTint(0xf4f0e8);room.add(tile)}
+ const tiled=new Set(detectRooms(b).filter(r=>r.label==='Bathroom'||r.label==='Kitchen').flatMap(r=>r.cells.map(t=>`${t.x},${t.y}`)))
+ for(const object of b.objects.filter(o=>!o.stored&&['kitchen','basin','shower'].includes(o.type)))for(const t of footprint(object))for(const dy of [0,1])tiled.add(`${t.x},${t.y+dy}`)
+ for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){const p=houseIso({x,y}),tile=scene.add.image(p.x,p.y,materialArtwork[b.environment!=='park'&&tiled.has(`${x},${y}`)?5:material].key).setDisplaySize(50.8,26.5);if((x+y)%3===0)tile.setTint(0xf4f0e8);room.add(tile)}
  if(b.environment==='park')return room
  const details=scene.add.graphics();room.add(details)
  for(const t of [1.5,Math.min(5,b.width-2)]){
@@ -32,13 +43,26 @@ export function drawRoom(scene:Phaser.Scene,b:Blueprint,style:string):Phaser.Gam
  return room
 }
 export function drawFurniture(scene:Phaser.Scene,o:Furniture,environment?:Blueprint['environment']):Phaser.GameObjects.Container{
- const d=FURNITURE[o.type],w=o.rotation?d.h:d.w,h=o.rotation?d.w:d.h,p=houseIso({x:o.x+(w-1)/2,y:o.y+(h-1)/2}),outdoor=environment==='park',asset=outdoor&&o.type==='sofa'?outdoorArtwork[o.rotation]:outdoor&&o.type==='plant'?outdoorArtwork[(o.x+o.y)%3===0?4+o.rotation:2+o.rotation]:furnitureArtwork(o.type,o.rotation)
- const widths={bed:118,kitchen:85,desk:91,sofa:91,bowl:28,plant:44,lamp:24,shelf:75},width=outdoor&&o.type==='plant'?asset===outdoorArtwork[2]||asset===outdoorArtwork[3]?76:46:widths[o.type],height=width*asset.height/asset.width
- const shadow=scene.add.ellipse(0,2,Math.min((w+h)*21,width*.8),Math.min((w+h)*8,20),0x3b3029,.13)
- const image=scene.add.image(0,(w+h)*6.5+2,asset.key).setDisplaySize(width,height).setOrigin(.5,1).setFlipX(o.type==='bed'&&o.rotation===1)
- const container=scene.add.container(p.x,p.y,[shadow,image]).setDepth(houseIso({x:o.x+w-1,y:o.y+h-1}).y+2)
+ const v=furnitureView(o,environment),shadow=scene.add.graphics()
+ shadow.fillStyle(0x332b24,.15).fillEllipse(0,2,Math.min((v.w+v.h)*21,v.width*.8),Math.min((v.w+v.h)*8,20))
+ if(o.type==='lamp'||o.type==='desk')for(let i=3;i>0;i--)shadow.fillStyle(0xffd99d,.025*i).fillEllipse(4,8,32+i*14,12+i*4)
+ const image=scene.add.image(0,v.baseY,v.asset.key).setDisplaySize(v.width,v.height).setOrigin(.5,1).setFlipX(v.flipX)
+ const container=scene.add.container(v.x,v.y,[shadow,image]).setDepth(v.depth)
  image.setInteractive({pixelPerfect:true,alphaTolerance:70,useHandCursor:true})
  for(const event of ['pointerover','pointerout'])image.on(event,()=>container.emit(event))
  image.on('pointerup',(pointer:Phaser.Input.Pointer,x:number,y:number,event:Phaser.Types.Input.EventData)=>container.emit('pointerup',pointer,x,y,event))
  return container
+}
+export function drawPartition(scene:Phaser.Scene,w:Blueprint['walls'][number]):Phaser.GameObjects.Graphics{
+ const [a,z]=partitionSegment(w),height=76,g=scene.add.graphics().setDepth(Math.max(a.y,z.y)+1)
+ if(w.door){
+  g.lineStyle(4,0xa98e71).lineBetween(a.x,a.y,a.x,a.y-height).lineBetween(z.x,z.y,z.x,z.y-height).lineBetween(a.x,a.y-height,z.x,z.y-height)
+  g.fillStyle(0xb49b80,.55).fillPoints([a,{x:a.x+14,y:a.y+5},{x:a.x+14,y:a.y-height+10},{x:a.x,y:a.y-height+5}],true)
+ }else{
+  g.fillStyle(0xd9d2c8).fillPoints([a,z,{x:z.x,y:z.y-height},{x:a.x,y:a.y-height}],true)
+  g.fillStyle(0xf5f0e4).fillPoints([{x:a.x,y:a.y-height},{x:z.x,y:z.y-height},{x:z.x+3,y:z.y-height-2},{x:a.x+3,y:a.y-height-2}],true)
+  g.lineStyle(4,0xf1e9d9).lineBetween(a.x,a.y-3,z.x,z.y-3)
+  g.lineStyle(1,0x8c8171,.5).lineBetween(a.x,a.y-height,z.x,z.y-height)
+ }
+ return g
 }

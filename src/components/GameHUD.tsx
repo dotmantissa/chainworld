@@ -56,7 +56,7 @@ export default function GameHUD({gameState,revision,traits,preview,onExit}:Props
   const activeObjects=activeBlueprint(roomState).objects.filter(o=>!o.stored)
   const chooseAction=(kind:import('../game/types').ActionKind)=>{
     if(outdoors){if(kind==='wash'){setTab('services');return}selectObject(kind==='work'||kind==='focus'?'work':kind==='eat'||kind==='snack'?'eat':'socialize');return}
-    const object=activeObjects.find(o=>(FURNITURE[o.type].actions as readonly string[]).includes(kind))
+    const object=kind==='wash'?activeObjects.find(o=>o.type==='shower')??activeObjects.find(o=>o.type==='basin')??activeObjects.find(o=>(FURNITURE[o.type].actions as readonly string[]).includes(kind)):activeObjects.find(o=>(FURNITURE[o.type].actions as readonly string[]).includes(kind))
     if(object)selectObject(FURNITURE[object.type].family as FurnitureKind,object.id)
     else {setTab('services')}
   }

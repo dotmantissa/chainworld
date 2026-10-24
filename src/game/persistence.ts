@@ -3,7 +3,7 @@ import {parseLife,newLife,RECIPES} from './life'
 import {ADDED_NEEDS} from './needs'
 import {parseRoutine,newRoutine} from './routine'
 import {parseDaily,newDaily,DAY_MS} from './dailyGoals'
-import { ACTIONS } from './gameEngine'
+import { ACTIONS,LEGACY_CARE_DURATIONS } from './gameEngine'
 import { parseEstate, DEFAULT_LOCATION, frontDoor, streetWalkable } from './neighborhood'
 import { DEFAULT_PROFILE, parseProfile } from './residentProfile'
 import {validBlueprint,houseWalkable,entryTile,wallBlocks,approaches,FURNITURE,ROOM_STEP,type Blueprint} from './housing'
@@ -62,7 +62,7 @@ export function restoreSave(raw: string, identity: GameState): GameState | null 
     if(p.location?.kind==='street'&&Number.isInteger(p.location.tile?.x)&&Number.isInteger(p.location.tile?.y)){const tile=p.location.tile;if(streetWalkable(tile))s.location={kind:'street',tile,journey:null}}
     const trip=p.location?.trip
     if(trip&&[0,1,2,3,4,5].includes(trip.zone)&&finite(trip.startedAt,0,s.lastSaved)&&finite(trip.endsAt,trip.startedAt,trip.startedAt+60000)&&finite(trip.fare,0,1e9))s.location={kind:'street',tile:{x:29,y:3},district:p.location.district??0,journey:null,trip}
-    if (v2 && p.action && Object.prototype.hasOwnProperty.call(ACTIONS,p.action.kind) && finite(p.action.id, 1, s.sequence) && finite(p.action.startedAt, 0, s.lastSaved) && finite(p.action.endsAt, p.action.startedAt, p.action.startedAt + 60000) && (p.action.kind!=='npcHangout'||typeof p.action.npcId==='string'&&npcById(p.action.npcId)!==null) && (p.action.mealRecipe===undefined||p.action.kind==='eatLeftovers'&&Object.prototype.hasOwnProperty.call(RECIPES,p.action.mealRecipe)) && p.action.endsAt-p.action.startedAt === ACTIONS[p.action.kind as keyof typeof ACTIONS].duration) s.action = p.action
+    if (v2 && p.action && Object.prototype.hasOwnProperty.call(ACTIONS,p.action.kind) && finite(p.action.id, 1, s.sequence) && finite(p.action.startedAt, 0, s.lastSaved) && finite(p.action.endsAt, p.action.startedAt, p.action.startedAt + 60000) && (p.action.kind!=='npcHangout'||typeof p.action.npcId==='string'&&npcById(p.action.npcId)!==null) && (p.action.mealRecipe===undefined||p.action.kind==='eatLeftovers'&&Object.prototype.hasOwnProperty.call(RECIPES,p.action.mealRecipe)) && (p.action.endsAt-p.action.startedAt === ACTIONS[p.action.kind as keyof typeof ACTIONS].duration||p.action.endsAt-p.action.startedAt===LEGACY_CARE_DURATIONS[p.action.kind as keyof typeof ACTIONS])) s.action = p.action
     const j = p.job
     if (v2 && j && ['validator','grifter'].includes(j.kind) && finite(j.id, 1, s.sequence) && finite(j.startedAt, 0, s.lastSaved) && finite(j.endsAt, j.startedAt, j.startedAt + 20000) && finite(j.seed, 0, 2147483647) && finite(j.score, 0, 330) && Array.isArray(j.clicked) && j.clicked.every((i: unknown) => Number.isInteger(i) && Number(i) >= 0 && Number(i) < 33) && j.zone === s.currentZone) {
       if (j.kind === 'validator' || (typeof j.openingWei === 'string' && /^\d+$/.test(j.openingWei) && finite(j.openingAt, 0, j.startedAt) && ['up','down'].includes(j.prediction))) s.job = j

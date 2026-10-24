@@ -16,7 +16,7 @@ export function queueIndoor(s:GameState,target:Tile,now:number,use?:{objectId:st
 export function queueObject(s:GameState,id:string,kind:ActionKind,now:number):GameState{
  s=ensureHousehold(s);const b=activeBlueprint(s),o=b.objects.find(o=>o.id===id&&!o.stored)
  if(!o||!(FURNITURE[o.type].actions as readonly string[]).includes(kind))return {...s,lastMessage:'This object does not support that interaction.'}
- const path=approachPath(b,s.household!.humanTile,o)
+ const path=approachPath(b,s.household!.humanTile,o,kind)
  if(path===null)return {...s,lastMessage:'This object is unreachable. Clear a path in Build & Buy.'}
  return queueIndoor(s,path[path.length-1]??s.household!.humanTile,now,{objectId:id,kind})
 }

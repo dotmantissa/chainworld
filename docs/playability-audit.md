@@ -47,3 +47,9 @@ The pass also fixes an indoor liquidity entry point that bypassed physical desk 
 ## Further work after this pass
 
 Full multi-frame human walk/use animation, physical pet care, wandering NPC schedules, direct placement in the rendered room, sound design and a fresh-player usability session remain separate follow-ups. Shared-input latency, financial/onchain and multi-wallet release gates require dedicated live-environment verification. Advanced job/NPC approach intentions are scene-held before they start; reloading that approach may require choosing it again, while established jobs and saved furniture queues persist. No local test should be reported as proving those gates.
+
+## Follow-up — 24 October 2026
+
+The saving/input release item now has a local implementation: immediate client projection, serialized background synchronization, coalescing, retry/rebase/rollback, an intent outbox and deferred browser writes. Movement/validator requests skip unrelated oracle/profile reads while retaining both ownership checks. Delayed-response browser coverage demonstrates active walking, object choice, queuing and cancellation before the first save response. Fresh live-environment latency measurement and multi-wallet validation are still required before making a production-readiness claim. See [background saving](background-saving.md).
+
+A reference-driven visual pass adds six original realistic furniture assets, usable bathroom fixtures, front-facing approaches, richer partition/material rendering, quieter activity markers and shorter basic care with legacy timer compatibility. Source screenshots supplied visual direction only. Full skeletal animation and a freely rotating 3D renderer remain outside this 2.5D pass. See [realism direction](realism-direction.md).

@@ -1,0 +1,38 @@
+{
+  "bed": {
+    "key": "realism-bed-v1",
+    "url": "/art/realism/bed-v1.webp",
+    "width": 768,
+    "height": 512
+  },
+  "kitchen": {
+    "key": "realism-kitchen-v1",
+    "url": "/art/realism/kitchen-v1.webp",
+    "width": 768,
+    "height": 512
+  },
+  "sofa": {
+    "key": "realism-sofa-v1",
+    "url": "/art/realism/sofa-v1.webp",
+    "width": 768,
+    "height": 512
+  },
+  "desk": {
+    "key": "realism-desk-v1",
+    "url": "/art/realism/desk-v1.webp",
+    "width": 768,
+    "height": 702
+  },
+  "basin": {
+    "key": "realism-basin-v1",
+    "url": "/art/realism/basin-v1.webp",
+    "width": 768,
+    "height": 702
+  },
+  "shower": {
+    "key": "realism-shower-v1",
+    "url": "/art/realism/shower-v1.webp",
+    "width": 732,
+    "height": 768
+  }
+}

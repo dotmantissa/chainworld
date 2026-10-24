@@ -176,11 +176,12 @@ describe('object action choices',()=>{
     s=reduce(s,{type:'startAction',kind:'snack'});expect(s.gChog).toBe(90)
     s=reduce(s,{type:'tick'},3000);expect(s.meters.hunger).toBeGreaterThan(34)
     s=reduce(s,{type:'startAction',kind:'sleep'},3000)
-    s=reduce(s,{type:'tick'},33000);expect(s.meters.energy).toBe(100)
-    s=reduce(s,{type:'startAction',kind:'focus'},33000);expect(s.meters.energy).toBe(80)
-    s=reduce(s,{type:'tick'},93000);expect(s.completedWork).toBe(1);expect(s.gChog).toBe(340)
-    s=reduce(s,{type:'startAction',kind:'unwind'},93000)
-    s=reduce(s,{type:'tick'},108000);expect(s.meters.energy).toBeGreaterThan(99)
+    const restedAt=3000+ACTIONS.sleep.duration,workedAt=restedAt+ACTIONS.focus.duration
+    s=reduce(s,{type:'tick'},restedAt);expect(s.meters.energy).toBe(100)
+    s=reduce(s,{type:'startAction',kind:'focus'},restedAt);expect(s.meters.energy).toBe(80)
+    s=reduce(s,{type:'tick'},workedAt);expect(s.completedWork).toBe(1);expect(s.gChog).toBe(340)
+    s=reduce(s,{type:'startAction',kind:'unwind'},workedAt)
+    s=reduce(s,{type:'tick'},workedAt+ACTIONS.unwind.duration);expect(s.meters.energy).toBeGreaterThan(99)
   })
   it('maps every activity to reachable furniture and explains action availability',async()=>{
     const {furnitureFor,unavailableReason}=await import('../src/world/interactions')

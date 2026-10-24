@@ -23,7 +23,7 @@ export interface Zone {
 export interface GameMeters {
   hunger: number; energy: number; social: number; hygiene: number; fun: number; comfort: number; reputation: number; housingTier: number
 }
-export type ActionKind = 'eat' | 'snack' | 'rest' | 'sleep' | 'socialize' | 'unwind' | 'work' | 'focus' | 'hermit' | 'wash' | 'relax' | 'cookBreakfast' | 'cookStew' | 'eatLeftovers' | 'practiceCoding' | 'paint' | 'npcHangout'
+export type ActionKind = 'eat' | 'snack' | 'rest' | 'sleep' | 'socialize' | 'unwind' | 'work' | 'focus' | 'hermit' | 'wash' | 'shower' | 'relax' | 'cookBreakfast' | 'cookStew' | 'eatLeftovers' | 'practiceCoding' | 'paint' | 'npcHangout'
 export type JobKind = 'validator' | 'grifter'
 export interface ActiveAction { id: number; kind: ActionKind; startedAt: number; endsAt: number;objectId?:string;npcId?:string;mealRecipe?:import('./life').Recipe }
 export interface JobSession {

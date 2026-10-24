@@ -36,7 +36,7 @@ export class SharedGameSync {
  view(now=this.clock()):SyncView{
   let state=this.confirmed.state
   for(const q of this.commands){try{state=reduceGame(state,q.command,{now:Math.max(state.lastSaved,q.at),gas:this.options.gas()})}catch{/* A damaged local outbox must not crash play; the authority rejects invalid intents. */}}
-  state=unlockEarnedZones(settle(state,{now:Math.max(now,state.lastSaved),gas:this.options.gas()}))
+  state=unlockEarnedZones(settle(state,{now:Math.max(now,state.lastSaved),gas:this.options.gas()},now-state.lastSaved>60000))
   return {state,saving:this.commands.length>0,offline:this.offline,queued:this.commands.length,error:this.error}
  }
  advance(){if(!this.stopped)this.publish()}

@@ -3,7 +3,7 @@ import {test,expect,type Page,type Locator} from '@playwright/test'
 import {readFileSync} from 'node:fs'
 import {decodeFunctionData,encodeFunctionResult,type Hex} from 'viem'
 import {CHAIN_WORLD_REGISTRY_ABI as abi} from '../../src/contracts/chainWorldRegistryAbi'
-const art=JSON.parse(readFileSync('src/world/art-manifest.json','utf8'))
+const realistic=JSON.parse(readFileSync('src/world/realism-manifest.json','utf8'))
 test.use({hasTouch:true})
 test.beforeEach(async({page})=>{await page.route('https://**/*',route=>route.abort());await page.goto('/');await page.getByRole('button',{name:'Explore a local preview'}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
 const zoom=async(surface:Locator)=>Number(await surface.getAttribute('data-camera-zoom'))
@@ -19,7 +19,7 @@ test('house zoom, pan, reset and direct furniture selection keep simulation sepa
  await canvas.hover();await page.mouse.wheel(0,-180);await expect.poll(()=>zoom(canvas)).toBeGreaterThan(initial)
  await controls.getByRole('button',{name:'Reset view',exact:true}).click()
  // Click the actual painted bed after a drag/reset, not its accessible proxy button.
- const b=before.household.blueprint,o=b.objects.find((o:{type:string})=>o.type==='bed'),asset=art.furniture.bed[o.rotation],w=o.rotation?3:2,h=o.rotation?2:3,wx=400+(o.x+(w-1)/2-o.y-(h-1)/2)*25+(o.rotation?-24:24),wy=115+(o.x+(w-1)/2+o.y+(h-1)/2)*13+(w+h)*6.5+2-118*asset.height/asset.width*.8
+ const b=before.household.blueprint,o=b.objects.find((o:{type:string})=>o.type==='bed'),asset=realistic.bed,w=o.rotation?3:2,h=o.rotation?2:3,wx=400+(o.x+(w-1)/2-o.y-(h-1)/2)*25,wy=115+(o.x+(w-1)/2+o.y+(h-1)/2)*13+(w+h)*6.5+2-144*asset.height/asset.width*.65
  const box=(await canvas.boundingBox())!,z=await zoom(canvas),sx=Number(await canvas.getAttribute('data-camera-x')),sy=Number(await canvas.getAttribute('data-camera-y'))
  await page.mouse.click(box.x+((wx-sx-400)*z+400)*box.width/800,box.y+((wy-sy-250)*z+250)*box.height/500)
  await expect(page.getByRole('heading',{name:'Your bed',exact:true})).toBeVisible();expect((await saved(page)).gChog).toBe(before.gChog)

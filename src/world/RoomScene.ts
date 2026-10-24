@@ -1,3 +1,5 @@
+import {ActivityEffects,activityGlyph} from './ActivityEffects'
+import {furnitureView,partitionSegment} from './furnitureView'
 import {MovementFeedback} from './MovementFeedback'
 import {sampleJourney,WALK_KEYS} from './motion'
 import {indoorTile} from '../game/household'
@@ -6,8 +8,8 @@ import type {CameraCommand,CameraView} from './cameraControls'
 import Phaser from 'phaser'
 import {humanArtwork,npcArtwork,furnitureArtwork,materialArtwork,outdoorArtwork,architectureArtwork,loadArtwork,sizeHuman,type ArtAsset} from './artwork'
 import {loadPetArtwork,setPetPose} from './petArtwork'
-import {drawRoom,drawFurniture,houseIso,houseFromIso} from './anime'
-import {ACTIONS,type Command} from '../game/gameEngine'
+import {drawRoom,drawFurniture,drawPartition,houseIso,houseFromIso} from './anime'
+import {type Command} from '../game/gameEngine'
 import {activeBlueprint} from '../game/indoor'
 import {FURNITURE,housePath,approachPath,entryTile,ROOM_STEP,houseWalkable,type Blueprint} from '../game/housing'
 import {type FurnitureKind} from './interactions'
@@ -24,7 +26,7 @@ export class RoomScene extends Phaser.Scene {
  private pendingNpc:{id:string;topic:keyof typeof TOPICS}|null=null
  private cameraView?:WorldCamera
  cameraCommand(command:CameraCommand){this.cameraView?.command(command)}
- private route!:MovementFeedback;private hoverLabel!:Phaser.GameObjects.Text;private floorHint!:Phaser.GameObjects.Graphics;private humanShadow!:Phaser.GameObjects.Ellipse;private sparks!:Phaser.GameObjects.Graphics
+ private route!:MovementFeedback;private hoverLabel!:Phaser.GameObjects.Text;private floorHint!:Phaser.GameObjects.Graphics;private humanShadow!:Phaser.GameObjects.Ellipse;private effects!:ActivityEffects;private activityRing!:Phaser.GameObjects.Graphics;private foregrounds=new Map<string,Phaser.GameObjects.Image>();private partitions:{view:Phaser.GameObjects.Graphics;mid:Tile}[]=[]
  private reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;private lastFrame=0;private lastKeyAt=0
  private poses:ArtAsset[]=[];private npcPoses:ArtAsset[]=[];private petKey=''
  constructor(private bridge:RoomBridge){super('home')}
@@ -36,9 +38,9 @@ export class RoomScene extends Phaser.Scene {
  }
 
  create(){
-  this.route=new MovementFeedback(this,houseIso);this.floorHint=this.add.graphics().setDepth(-185);this.sparks=this.add.graphics().setDepth(2001);this.humanShadow=this.add.ellipse(0,0,25,10,0x3b3029,.18);this.hoverLabel=this.add.text(0,0,'',{fontSize:'11px',color:'#594b6b',backgroundColor:'#fffaf0',padding:{x:9,y:6}}).setOrigin(.5,1).setDepth(3000).setVisible(false)
+  this.route=new MovementFeedback(this,houseIso);this.floorHint=this.add.graphics().setDepth(-185);this.effects=new ActivityEffects(this);this.activityRing=this.add.graphics().setDepth(2001);this.humanShadow=this.add.ellipse(0,0,25,10,0x3b3029,.18);this.hoverLabel=this.add.text(0,0,'',{fontSize:'11px',color:'#594b6b',backgroundColor:'#fffaf0',padding:{x:9,y:6}}).setOrigin(.5,1).setDepth(3000).setVisible(false)
   this.cameras.main.setBackgroundColor(activeBlueprint(this.bridge.state()).environment==='park'?'#dce5d2':'#e5dfd3');this.human=this.add.image(400,250,this.poses[0].key);sizeHuman(this.human,this.poses,0);this.pet=this.add.image(400,250,this.petKey);setPetPose(this.pet,this.petKey)
-  this.bubble=this.add.text(0,0,'',{fontSize:'11px',color:'#594b6b',backgroundColor:'#fffaf0',padding:{x:8,y:5}}).setOrigin(.5,1).setDepth(2000);this.petTile=entryTile(activeBlueprint(this.bridge.state()))
+  this.bubble=this.add.text(0,0,'',{fontSize:'13px',color:'#736054',backgroundColor:'#fffaf0',padding:{x:7,y:3}}).setOrigin(.5,1).setDepth(2000);this.petTile=entryTile(activeBlueprint(this.bridge.state()))
   this.pet.setInteractive({useHandCursor:true}).on('pointerup',(_p:unknown,_x:number,_y:number,event:Phaser.Types.Input.EventData)=>{if(this.bridge.dialogOpen()||!this.cameraView?.canSelect())return;event.stopPropagation();this.bridge.onObjectSelect('pet')})
   this.input.on('pointerup',(pointer:Phaser.Input.Pointer)=>{if(this.bridge.dialogOpen()||!this.cameraView?.canSelect()||pointer.event.target!==this.game.canvas||this.bridge.pending())return;this.walk(houseFromIso(pointer.worldX,pointer.worldY))});this.events.once('shutdown',()=>this.tweens.killAll())
   const onKey=(event:KeyboardEvent)=>{
@@ -64,10 +66,12 @@ export class RoomScene extends Phaser.Scene {
  cancel(){this.pendingJob=null;this.pendingNpc=null;this.predicted=null;this.bridge.dispatch({type:'cancel'})}
  private fitRoom(){const b=activeBlueprint(this.bridge.state());this.cameras.main.setZoom(Math.min(1.5,660/((b.width+b.height)*25),420/((b.width+b.height)*13+135))).centerOn(400+(b.width-b.height)*12.5,115+(b.width+b.height-2)*6.5-60)}
  private rebuild(b:Blueprint){
-  for(const o of this.room)o.destroy();this.room=[];this.hoverLabel.setVisible(false);this.floorHint.clear();this.room.push(drawRoom(this,b,this.bridge.state().home.style))
+  for(const o of this.room)o.destroy();this.room=[];this.foregrounds.clear();this.partitions=[];this.hoverLabel.setVisible(false);this.floorHint.clear();this.room.push(drawRoom(this,b,this.bridge.state().home.style))
   for(const o of b.objects.filter(o=>!o.stored)){const sprite=drawFurniture(this,o,b.environment),family=FURNITURE[o.type].family as FurnitureKind;sprite.on('pointerup',(pointer:Phaser.Input.Pointer,_x:number,_y:number,event:Phaser.Types.Input.EventData)=>{if(this.bridge.dialogOpen()||!this.cameraView?.canSelect()||pointer.event.target!==this.game.canvas)return;event.stopPropagation();this.bridge.onObjectSelect(family,o.id)});sprite.on('pointerover',()=>{if(this.bridge.dialogOpen()||!this.cameraView?.canSelect())return;const d=FURNITURE[o.type],w=o.rotation?d.h:d.w,h=o.rotation?d.w:d.h,p=houseIso({x:o.x+(w-1)/2,y:o.y+(h-1)/2});(sprite.list[1] as Phaser.GameObjects.Image).setTint(0xf0e1ff);this.hoverLabel.setText(`${d.label} · choose an action`).setPosition(p.x,p.y-90).setVisible(true);const corners=[{x:o.x-.5,y:o.y-.5},{x:o.x+w-.5,y:o.y-.5},{x:o.x+w-.5,y:o.y+h-.5},{x:o.x-.5,y:o.y+h-.5}].map(houseIso);this.floorHint.clear().lineStyle(2,0xab7ec4,.9).strokePoints(corners,true)})
-   sprite.on('pointerout',()=>{(sprite.list[1] as Phaser.GameObjects.Image).clearTint();this.hoverLabel.setVisible(false);this.floorHint.clear()});this.room.push(sprite)}
-  for(const w of b.walls){const g=this.add.graphics(),p=houseIso({x:w.x+.5,y:w.y+.5}),dx=w.axis==='x'?25:-25,dy=13;g.lineStyle(w.door?3:7,w.door?0xb49878:0xb6abc5).lineBetween(p.x-dx,p.y-dy-(w.door?35:45),p.x+dx,p.y+dy-(w.door?35:45));if(!w.door)g.lineStyle(2,0x73677f).lineBetween(p.x-dx,p.y-dy,p.x-dx,p.y-dy-45).lineBetween(p.x+dx,p.y+dy,p.x+dx,p.y+dy-45);g.setDepth(p.y+1);this.room.push(g)}
+   sprite.on('pointerout',()=>{(sprite.list[1] as Phaser.GameObjects.Image).clearTint();this.hoverLabel.setVisible(false);this.floorHint.clear()});this.room.push(sprite)
+   if(o.type==='bed'||o.type==='shower'){const v=furnitureView(o,b.environment),cut=o.type==='bed'?.48:.63,layer=this.add.image(v.x,v.y+v.baseY,v.asset.key).setDisplaySize(v.width,v.height).setOrigin(.5,1).setFlipX(v.flipX).setCrop(0,Math.round(v.asset.height*cut),v.asset.width,v.asset.height-Math.round(v.asset.height*cut)).setDepth(v.depth+5).setVisible(false);if(o.type==='shower')layer.setAlpha(.45);this.foregrounds.set(o.id,layer);this.room.push(layer)}
+  }
+  for(const w of b.walls){const view=drawPartition(this,w),[a,z]=partitionSegment(w);this.room.push(view);this.partitions.push({view,mid:{x:(a.x+z.x)/2,y:(a.y+z.y)/2}})}
  }
  update(time:number){
   if(!this.human)return;const s=this.bridge.state(),h=s.household;if(!h)return;const b=activeBlueprint(s),now=Date.now(),signature=JSON.stringify([b,s.home.style]);this.input.enabled=!this.bridge.dialogOpen()
@@ -82,21 +86,25 @@ export class RoomScene extends Phaser.Scene {
   this.game.canvas.dataset.destination=journey?.path.length?JSON.stringify(journey.path[journey.path.length-1]):''
   let resting=false
   if(s.action?.objectId){const o=b.objects.find(o=>o.id===s.action!.objectId);if(o){
-   const d=FURNITURE[o.type],w=o.rotation?d.h:d.w,height=o.rotation?d.w:d.h,seat=houseIso({x:o.x+(w-1)/2,y:o.y+(height-1)/2})
+   const settleIn=this.reducedMotion?1:Math.min(1,Math.max(0,(now-s.action.startedAt)/220)),d=FURNITURE[o.type],w=o.rotation?d.h:d.w,height=o.rotation?d.w:d.h,seat=houseIso({x:o.x+(w-1)/2,y:o.y+(height-1)/2})
    if(o.type==='bed'||o.type==='desk'||o.type==='sofa'){
     frame=o.type==='bed'?5:4;sizeHuman(this.human,this.poses,frame)
-    this.human.setPosition(seat.x+(frame===5?(o.rotation?15:-15):0),seat.y+(frame===5?-30:13)).setDepth(houseIso({x:o.x+w-1,y:o.y+height-1}).y+4)
+    this.human.setPosition(Phaser.Math.Linear(p.x,seat.x+(frame===5?(o.rotation?15:-15):0),settleIn),Phaser.Math.Linear(p.y,seat.y+(frame===5?-30:13),settleIn)).setDepth(houseIso({x:o.x+w-1,y:o.y+height-1}).y+4)
     if(frame===5){this.human.setAngle(o.rotation?27:-27).setFlipX(!o.rotation);resting=true}
-   }else{frame=seat.y<p.y?2:0}
+   }else if(o.type==='shower'){this.human.setPosition(Phaser.Math.Linear(p.x,seat.x,settleIn),Phaser.Math.Linear(p.y,seat.y+8,settleIn)).setDepth(furnitureView(o).depth+3);frame=2}else{frame=seat.y<p.y?2:0}
   }}
 
   if(!resting){sizeHuman(this.human,this.poses,frame);if(!this.reducedMotion){this.human.setScale(this.human.scaleX*(1+gait*.012),this.human.scaleY*(1-gait*.012));this.human.setAngle(motion.moving?gait*1.5:s.action?Math.sin(time/220)*.6:0)}}
   this.humanShadow.setVisible(!s.action||!['bed','desk','sofa'].includes(b.objects.find(o=>o.id===s.action?.objectId)?.type??''))
-  this.sparks.clear();if(s.action&&!this.reducedMotion){const cooking=['eat','snack','cookBreakfast','cookStew','wash'].includes(s.action.kind),color=cooking?0xfff6d9:0xc3a1d5;for(let i=0;i<3;i++){const phase=(time/1200+i/3)%1;this.sparks.fillStyle(color,(1-phase)*.7).fillCircle(this.human.x+18+Math.sin(phase*6+i)*7,this.human.y-40-phase*35,cooking?2.4:1.8)}}
-
-  this.bubble.setText(s.action?`${s.action.kind==='sleep'?'Z z z · ':''}${ACTIONS[s.action.kind].label} · ${Math.max(0,Math.ceil((s.action.endsAt-now)/1000))}s`:h.pendingUse?'On my way…':'').setPosition(this.human.x,this.human.y-(resting?35:105)).setVisible(!!(s.action||h.pendingUse))
+  const activeObject=b.objects.find(o=>o.id===s.action?.objectId)
+  this.effects.render(s.action?.kind,activeObject,this.human,time,this.reducedMotion)
+  for(const[id,layer]of this.foregrounds)layer.setVisible(s.action?.objectId===id)
+  for(const wall of this.partitions)wall.view.setAlpha(this.human.y<wall.mid.y+8&&Math.abs(this.human.x-wall.mid.x)<40?.32:1)
+  this.bubble.setText(s.action?activityGlyph(s.action.kind):'').setPosition(this.human.x,this.human.y-(resting?35:105)).setVisible(!!s.action)
+  this.activityRing.clear();if(s.action){const fraction=Math.max(0,Math.min(1,(now-s.action.startedAt)/(s.action.endsAt-s.action.startedAt))),x=this.human.x+20,y=this.human.y-(resting?45:115);this.activityRing.lineStyle(2,0xd5c9b8,.8).strokeCircle(x,y,7).lineStyle(2,0x7fa18d).beginPath().arc(x,y,7,-Math.PI/2,-Math.PI/2+Math.PI*2*fraction,false).strokePath()}
+  this.game.canvas.dataset.activity=s.action?.kind??(motion.moving?'walking':'idle')
   const petHere=s.location.kind==='home'||h.pet.following;this.pet.setVisible(petHere)
-  if(!this.petMoving&&petHere){const target=h.pet.following?{x:Math.round(t.x),y:Math.round(t.y)}:entryTile(b),path=housePath(b,this.petTile,target);if(path&&path.length>1){const next=path[0],z=houseIso(next);this.petMoving=true;setPetPose(this.pet,this.petKey,next.x>this.petTile.x?1:next.y<this.petTile.y?2:next.x<this.petTile.x?3:0);this.tweens.add({targets:this.pet,x:z.x-9,y:z.y,duration:ROOM_STEP,onUpdate:()=>this.pet.setDepth(this.pet.y+4),onComplete:()=>{this.petTile=next;this.petMoving=false}})}else{const z=houseIso(this.petTile);this.pet.setPosition(z.x-9,z.y+Math.sin(time/250)*.5).setDepth(z.y+4)}}
+  if(!this.petMoving&&petHere){const target=h.pet.following?{x:Math.round(t.x),y:Math.round(t.y)}:entryTile(b),path=housePath(b,this.petTile,target);if(path&&path.length>1){const next=path[0],z=houseIso(next);this.petMoving=true;setPetPose(this.pet,this.petKey,next.x>this.petTile.x?1:next.y<this.petTile.y?2:next.x<this.petTile.x?3:0);this.tweens.add({targets:this.pet,x:z.x-9,y:z.y,duration:ROOM_STEP,onUpdate:()=>this.pet.setDepth(this.pet.y+4),onComplete:()=>{this.petTile=next;this.petMoving=false}})}else{const z=houseIso(this.petTile);this.pet.setPosition(z.x-9,z.y+(this.reducedMotion?0:Math.sin(time/250)*.5)).setDepth(z.y+4)}}
   if(!s.action&&!s.job&&!h.journey&&!h.pendingUse&&!this.bridge.pending()){if(this.pendingJob){const command=this.pendingJob;this.pendingJob=null;this.bridge.dispatch(command)}else if(this.pendingNpc){const npc=this.pendingNpc;this.pendingNpc=null;this.bridge.dispatch({type:'talkNpc',npcId:npc.id,topic:npc.topic})}}
  }
 }

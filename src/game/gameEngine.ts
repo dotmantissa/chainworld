@@ -18,17 +18,18 @@ import {hangoutReason,completeHangout} from './social'
 export const REAL_HOUR = 3_600_000
 export const SIMULATION_SPEED = 10
 export const ACTIONS: Record<ActionKind, { duration: number; cost: number; label: string }> = {
-  eat: { duration: 6000, cost: 20, label: 'Eat a meal' },
-  snack: { duration: 3000, cost: 10, label: 'Have a snack' },
-  sleep: { duration: 30000, cost: 0, label: 'Sleep' },
-  unwind: { duration: 15000, cost: 0, label: 'Unwind with a book' },
+  eat: { duration: 4000, cost: 20, label: 'Eat a meal' },
+  snack: { duration: 2000, cost: 10, label: 'Have a snack' },
+  sleep: { duration: 20000, cost: 0, label: 'Sleep' },
+  unwind: { duration: 8000, cost: 0, label: 'Unwind with a book' },
   focus: { duration: 60000, cost: 0, label: 'Focus on a project' },
-  rest: { duration: 10000, cost: 0, label: 'Rest' },
-  socialize: { duration: 8000, cost: 0, label: 'Call a friend' },
+  rest: { duration: 4000, cost: 0, label: 'Rest' },
+  socialize: { duration: 4000, cost: 0, label: 'Call a friend' },
   work: { duration: 20000, cost: 0, label: 'Work a shift' },
   hermit: { duration: 60000, cost: 0, label: 'Provide liquidity' },
-  wash: { duration: 8000, cost: 0, label: 'Wash at the sink' },
-  relax: { duration: 12000, cost: 0, label: 'Relax on the sofa' },
+  wash: { duration: 3000, cost: 0, label: 'Wash at the sink' },
+  shower: {duration:5000,cost:0,label:'Take a shower'},
+  relax: { duration: 5000, cost: 0, label: 'Relax on the sofa' },
   cookBreakfast: {duration:15000,cost:0,label:'Cook fruit porridge'},
   cookStew: {duration:20000,cost:0,label:'Cook garden stew'},
   eatLeftovers: {duration:6000,cost:0,label:'Eat a prepared meal'},
@@ -36,6 +37,7 @@ export const ACTIONS: Record<ActionKind, { duration: number; cost: number; label
   paint: {duration:15000,cost:0,label:'Sketch in your notebook'},
   npcHangout:{duration:20000,cost:0,label:'Spend time with a friend'},
 }
+export const LEGACY_CARE_DURATIONS:Partial<Record<ActionKind,number>>={eat:6000,snack:3000,sleep:30000,unwind:15000,rest:10000,socialize:8000,wash:8000,relax:12000}
 export type Command =
   | {type:'claimDaily';id:DailyGoal}
   | {type:'enqueueAction';objectId:string;kind:ActionKind}
@@ -120,7 +122,8 @@ function completeAction(s: GameState, at: number): GameState {
   let next: GameState = { ...s, action: null, meters: { ...s.meters }, lastMessage: `${ACTIONS[action.kind].label} complete.` }
   if (action.kind === 'eat' || action.kind === 'snack') next.meters.hunger = Math.min(100, next.meters.hunger + (action.kind==='eat'?35:15))
   if (action.kind === 'rest' || action.kind === 'sleep' || action.kind === 'unwind') next.meters.energy = Math.min(100, next.meters.energy + (action.kind==='sleep'?100:action.kind==='unwind'?20:40 + next.meters.housingTier*2))
-  if(action.kind==='wash')next.meters.hygiene=Math.min(100,next.meters.hygiene+60)
+  if(action.kind==='wash'||action.kind==='shower')next.meters.hygiene=Math.min(100,next.meters.hygiene+(action.kind==='shower'?80:60))
+  if(action.kind==='shower')next.meters.comfort=Math.min(100,next.meters.comfort+10)
   if(action.kind==='unwind'){next.meters.fun=Math.min(100,next.meters.fun+35);next.meters.comfort=Math.min(100,next.meters.comfort+15)}
   if(action.kind==='relax'){next.meters.comfort=Math.min(100,next.meters.comfort+40);next.meters.fun=Math.min(100,next.meters.fun+15)}
   if(action.kind==='rest'||action.kind==='sleep')next.meters.comfort=Math.min(100,next.meters.comfort+(action.kind==='sleep'?40:20))

@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "created": "2026-10-24",
+  "tool": "image_gen built-in",
+  "reference_policy": "User screenshots inspected only for direction. Text-prompt original generation; no screenshot pixels or commercial game assets copied.",
+  "assets": {
+    "bed": {
+      "key": "realism-bed-v1",
+      "url": "/art/realism/bed-v1.webp",
+      "width": 768,
+      "height": 512,
+      "sha256": "24882fa1229006c3b15a95aa46c99c6d820eed5322cf6137d9d759e7da5fc9ad",
+      "transparent_background": true,
+      "prompt": "Use case: stylized-concept. Asset type: a single transparent isometric furniture sprite for Chainworld, an original browser life simulation. Direction: grounded high quality 3D game rendering with realistic proportions and PBR materials, subtle cozy styling; no painted watercolor/anime outlines, no flat vector art. Orthographic three-quarter isometric camera from upper front, 30-degree elevation, matching a diamond floor grid with 2:1 width/depth projection. Entire object visible, generous transparent padding, isolated on genuine alpha with no floor plate, room, people, UI, labels or text. Soft neutral daylight from upper left, ambient occlusion, fine wood grain and fabric/metal roughness, restrained natural warm colors. Do not reproduce any commercial game's exact object design. Primary request: A comfortable double bed, its headboard toward the upper-right/back and foot toward lower-left/front. Pale warm oak frame with rounded joinery, oatmeal linen fitted sheet, two slightly compressed cream pillows, a charcoal sage duvet with visible weave folded back at the head, draped softly over sides, subtle warm clay throw at foot. Realistic mattress thickness. A usable open pillow area for a sleeping resident to overlay. This is a solid household bed viewed from above, not a doll toy."
+    },
+    "kitchen": {
+      "key": "realism-kitchen-v1",
+      "url": "/art/realism/kitchen-v1.webp",
+      "width": 768,
+      "height": 512,
+      "sha256": "9534f063f1e08c3667bd512a227cbbc19fa076b68029cd89bf58775ef1c7f31b",
+      "transparent_background": true,
+      "prompt": "Use case: stylized-concept. Asset type: a single transparent isometric furniture sprite for Chainworld, an original browser life simulation. Direction: grounded high quality 3D game rendering with realistic proportions and PBR materials, subtle cozy styling; no painted watercolor/anime outlines, no flat vector art. Orthographic three-quarter isometric camera from upper front, 30-degree elevation, matching a diamond floor grid with 2:1 width/depth projection. Entire object visible, generous transparent padding, isolated on genuine alpha with no floor plate, room, people, UI, labels or text. Soft neutral daylight from upper left, ambient occlusion, fine wood grain and fabric/metal roughness, restrained natural warm colors. Do not reproduce any commercial game's exact object design. Primary request: A straight compact two-unit kitchen counter run, back edge upper-right and front lower-left. Pale sage shaker cabinet doors with brushed brass handles, warm ivory quartz worktop. Stainless steel inset sink and tall curved tap at the left, a small induction hob with a plain saucepan on the right, slim integrated oven and visible black glass door below. A small chopping board and ceramic utensil pot at the back, realistic household scale and restrained lived-in detail. No tall wall, backsplash, refrigerator or overhead cupboards."
+    },
+    "sofa": {
+      "key": "realism-sofa-v1",
+      "url": "/art/realism/sofa-v1.webp",
+      "width": 768,
+      "height": 512,
+      "sha256": "eaf0a2719f812e1f87cd74a6fbb68f756891e8037104f65d08ca62d5fffa6351",
+      "transparent_background": true,
+      "prompt": "Use case: stylized-concept. Asset type: a single transparent isometric furniture sprite for Chainworld, an original browser life simulation. Direction: grounded high quality 3D game rendering with realistic proportions and PBR materials, subtle cozy styling; no painted watercolor/anime outlines, no flat vector art. Orthographic three-quarter isometric camera from upper front, 30-degree elevation, matching a diamond floor grid with 2:1 width/depth projection. Entire object visible, generous transparent padding, isolated on genuine alpha with no floor plate, room, people, UI, labels or text. Soft neutral daylight from upper left, ambient occlusion, fine wood grain and fabric/metal roughness, restrained natural warm colors. Do not reproduce any commercial game's exact object design. Primary request: A compact two-seat household sofa, long back along the upper-right diagonal and the seat open toward lower-left/front. Oatmeal woven upholstery, soft rounded cushions with realistic seams and compression, slim walnut legs, one desaturated terracotta cushion and one muted sage cushion, a loose linen throw draped over one arm. The center of the seat is visibly accessible for a character sitting in it. Warm ordinary residential furniture, not luxury showroom ornament."
+    },
+    "desk": {
+      "key": "realism-desk-v1",
+      "url": "/art/realism/desk-v1.webp",
+      "width": 768,
+      "height": 702,
+      "sha256": "8e2d758595fe8222ea3ee011decbbcc07df71cbe69a9575f6be34ce7c5dd9397",
+      "transparent_background": true,
+      "prompt": "Use case: stylized-concept. Asset type: a single transparent isometric furniture sprite for Chainworld, an original browser life simulation. Direction: grounded high quality 3D game rendering with realistic proportions and PBR materials, subtle cozy styling; no painted watercolor/anime outlines, no flat vector art. Orthographic three-quarter isometric camera from upper front, 30-degree elevation, matching a diamond floor grid with 2:1 width/depth projection. Entire object visible, generous transparent padding, isolated on genuine alpha with no floor plate, room, people, UI, labels or text. Soft neutral daylight from upper left, ambient occlusion, fine wood grain and fabric/metal roughness, restrained natural warm colors. Do not reproduce any commercial game's exact object design. Primary request: A compact two-unit wide walnut household work desk, rear edge along the upper-right diagonal and clear front facing lower-left/front. Thin realistic woodgrain top, a dark open laptop with softly lit blank screen, plain ceramic mug, slim warm desk lamp and small closed notebook. Simple legs and one small drawer unit. One understated charcoal fabric office chair pulled near the front with a clear sitting area. Realistic ordinary home work furniture, tidy but used."
+    },
+    "basin": {
+      "key": "realism-basin-v1",
+      "url": "/art/realism/basin-v1.webp",
+      "width": 768,
+      "height": 702,
+      "sha256": "872eab31db8577af69af514a392151cb1ac565d893717b1948b0e7a0f905bc27",
+      "transparent_background": true,
+      "prompt": "Use case: stylized-concept. Create ONE original transparent isometric furniture sprite for Chainworld, a cozy browser life simulation. Grounded realistic 3D game rendering, PBR materials, ordinary residential proportions, orthographic three-quarter 30-degree isometric view. Soft warm neutral daylight, fine material texture, subtle contact shadow on genuine transparent alpha; no floor plate, wall, room background, people, logos, UI or text. Entire object visible with a little transparent padding. Avoid painterly/cartoon outlines and any recognizable commercial game design. Front of object faces diagonally down-left; back faces up-right. Primary request: A freestanding compact bathroom vanity: warm oak cabinet with two drawers and small brushed brass handles, white ceramic vessel sink on pale stone top, curved brass tap, tiny soap bottle and rolled ivory hand towel. Single-unit wide, realistic height at a person's waist. No mirror or surrounding wall."
+    },
+    "shower": {
+      "key": "realism-shower-v1",
+      "url": "/art/realism/shower-v1.webp",
+      "width": 732,
+      "height": 768,
+      "sha256": "37c32ea90a09e03a3ad576992960e34031713bd3f2afc3d6a62da9c9f7e5ac4d",
+      "transparent_background": true,
+      "prompt": "Use case: stylized-concept. Create ONE original transparent isometric furniture sprite for Chainworld, a cozy browser life simulation. Grounded realistic 3D game rendering, PBR materials, ordinary residential proportions, orthographic three-quarter 30-degree isometric view. Soft warm neutral daylight, fine material texture, subtle contact shadow on genuine transparent alpha; no floor plate, wall, room background, people, logos, UI or text. Entire object visible with a little transparent padding. Avoid painterly/cartoon outlines and any recognizable commercial game design. Front of object faces diagonally down-left; back faces up-right. Primary request: A compact walk-in shower enclosure with a slim brushed bronze frame, clear glass side panels with subtle reflections, pale warm stone shower tray, a brass rain shower head and hand shower on a narrow freestanding rear panel of ivory ceramic tile. Door open toward front, interior clearly visible, small recessed shelf with two plain bottles. Designed for a standing adult, with an open clear entry. No floor outside the tray."
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import type {GameState} from './types'
 import type {Tile} from '../world/navigation'
-import {entryTile,houseSeed,starterBlueprint,type Blueprint} from './housing'
+import {entryTile,houseSeed,starterBlueprint,FURNITURE,type Blueprint} from './housing'
 import {estateDefault,HOME_STYLES,frontDoor} from './neighborhood'
 export interface IndoorJourney {from:Tile;path:Tile[];startedAt:number;endsAt:number}
 export interface Household {
@@ -20,7 +20,7 @@ export function freshHousehold(s:GameState):GameState{
  const tier=s.appearance.sourceTier as keyof typeof SOURCE_PACKAGES,pack=s.rarityVerified?SOURCE_PACKAGES[tier]:undefined
  if(!pack)return ensureHousehold(s)
  const seed=houseSeed(s),blueprint=starterBlueprint(seed,pack.level),meters={...s.meters,housingTier:pack.level},home={...estateDefault({...s,meters}),style:HOME_STYLES[(seed>>>16)%HOME_STYLES.length]},next=ensureHousehold({...s,meters,home,location:{...s.location,tile:frontDoor(home)}})
- const value=blueprint.objects.reduce((sum,o)=>sum+({bed:45,kitchen:60,desk:65,sofa:35,bowl:15,plant:12,lamp:18,shelf:30})[o.type],0)
+ const value=blueprint.objects.reduce((sum,o)=>sum+FURNITURE[o.type].price,0)
  return {...next,gChog:pack.funds-value,household:{...next.household!,sourceTier:tier,grant:'source-tier-v1',blueprint,humanTile:entryTile(blueprint)}}
 }
 export function indoorTile(h:Household,now:number):Tile{

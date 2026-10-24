@@ -2,7 +2,7 @@
 
 A browser life simulator on Monad Testnet. Play a human resident with a separate Chog pet, build a home, visit five blockchain cities and form friendships. The Chog NFT owns the household's identity, property, balance and progression.
 
-The current build implements the human/pet household, editable modular homes, physical object interactions, enterable city venues, timed travel and persistent NPC friendships described in the [life-simulation architecture](docs/life-simulation-architecture.md). See [implementation status](docs/implementation-status.md) for verified behavior and remaining work. Graphics use detailed painted anime characters, independent furniture and city assets, with layouts and collision driven by saved game geometry.
+The current build implements the human/pet household, editable modular homes, physical object interactions, enterable city venues, timed travel and persistent NPC friendships described in the [life-simulation architecture](docs/life-simulation-architecture.md). See [implementation status](docs/implementation-status.md) for verified behavior and remaining work. Graphics use NFT-derived painted characters, original realistic furniture and city assets, with layouts and collision driven by saved game geometry. The [realism direction](docs/realism-direction.md) records the material, room and physical-interaction improvements guided by the supplied references.
 
 ## Run locally
 
@@ -24,13 +24,15 @@ Set `VITE_SHARED_WORLD=false` for a browser-only prototype. These local saves do
 
 ## Play
 
+Saving runs in the background. In shared play, movement and choices project immediately while a serialized command queue reconciles them with the server; a small status below the world shows unsaved choices or connection recovery. Routine saves never lock the room or add a waiting bubble above the resident. Local snapshots are batched into idle work and flushed when leaving the page. See [background saving](docs/background-saving.md) for retry, rollback and authority details.
+
 Start with **Explore a local preview**. There is nothing to configure before playing. Follow the suggested next step above the room, click a need meter for matching care, or select furniture directly. **Household**, **Build & buy**, and **Travel & neighbors** open optional tools. Household includes resident/pet care, skills, pantry and rewards; kitchen actions also link directly to supplies, and desk actions link to advanced jobs.
 
 - Click the floor to walk, or focus the world and use **WASD**. Click another floor tile to redirect an ordinary walk. Press **E** for nearby object/service choices. Route dots, a destination ring and furniture hover labels show what your resident can do. Active object use can be queued or cancelled.
 - Zoom with the mouse wheel, trackpad pinch, touch pinch or **+ / −** controls in homes, streets and the world map. Drag to pan; **Pan** mode makes every drag/tap a camera gesture. Arrow controls/keys pan, **+ / −** zoom, and **0 / Center** refits the home or follows your resident outdoors. House labels stay above roofs, readable and clickable while zooming.
 - Click/tap furniture to open its action dialog, or use the corresponding controls below the room. Opening a dialog costs nothing.
 - The human walks around furniture and walls before acting. The separate Chog follows on walkable routes. Beds support rest and sleep; kitchens support meals and snacks; the workstation supports shifts, projects and liquidity work; the reading nook supports calls and quiet reading.
-- Desks and sofas use sitting poses, beds use a lying sleeping pose, and kitchens/bookcases use standing interactions. Up to three future actions can be queued. Canceling before an interaction starts costs nothing; consumed resources are not refunded.
+- Desks and sofas use sitting poses, beds use a lying sleeping pose, and kitchens/bookcases use standing interactions. Up to six future actions can be queued. Canceling before an interaction starts costs nothing; consumed resources are not refunded.
 - Choose **Household → Customize resident** to set a name, sex/gender and optional pronouns. These are editable. Sex/gender selects the human presentation family and never changes the Chog, rarity or household wealth.
 - Choose **Leave home & explore** for timed, collision-aware street walking. Select a café, coworking club, park, tram station, home or resident to choose an interaction. City services require the resident to reach them.
 - In shared play, visit open homes, wave/chat/high-five nearby online residents, purchase adjacent available parcels, or fund an offer to their owner. Accepting transfers land and pays its seller atomically; rejecting/canceling refunds held funds once. Home parcels and estate connectivity are protected.
@@ -45,6 +47,8 @@ Start with **Explore a local preview**. There is nothing to configure before pla
 ## Latest localhost features
 
 The current local build adds six human needs, sink washing and sofa relaxation; a real pantry with groceries, cooking, fresh leftovers and learned skills; three rewarded household projects; a saved six-action queue with reorder/remove controls and optional free-care autonomy; timed NPC hangouts, consumable meal gifts and daily goals; and room detection from walls/doors. These additions and the subsequent playability/UX pass have not been pushed or deployed. See the [playability audit](docs/playability-audit.md) for findings, implemented changes and remaining animation/release work.
+
+Build & buy also offers an **Oak washbasin** and **Rain shower**. These are real placed fixtures with collision, approach routes, hygiene recovery and reload persistence. New basic care is quicker (washing 3s, rest 4s, shower 5s), while old in-progress timers keep their original completion time.
 
 Choose **Household → Skills & pantry** to order ingredients, start a project and review learned skills. Select a placed kitchen to cook or eat its prepared meals, a desk to practice coding, or a sofa to sketch. Queue choices while busy; waiting actions survive reload. **Free care autonomy** only uses free activities at home. It never cooks, earns money, purchases goods or accepts trades.
 

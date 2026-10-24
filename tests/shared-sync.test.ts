@@ -59,6 +59,11 @@ describe('background shared synchronization',()=>{
   h.requests[0].resolve({status:403,error:'NFT ownership changed'});await flush()
   expect(h.view.queued).toBe(0);expect(h.view.state.gChog).toBe(initial().gChog);expect(h.view.error).toContain('ownership');h.sync.dispose()
  })
+ it('uses the authority offline caps when a suspended tab or outage leaves the snapshot old',()=>{
+  const state={...initial(),gChog:1000,currentZone:1 as const}
+  const sync=new SharedGameSync({initial:{state,revision:0},now:()=>48*3600000+1000,gas:()=>({}),onChange:()=>{},transport:async()=>({status:200})})
+  expect(sync.view().state.gChog).toBeGreaterThanOrEqual(750);sync.dispose()
+ })
  it('does not crash on malformed outbox JSON or a damaged command',()=>{
   expect(restoreOutbox('{bad')).toEqual([])
   const s=new SharedGameSync({initial:{state:initial(),revision:0},restored:[{requestId:crypto.randomUUID(),command:{type:'buyFurniture'} as never,at:1000,conflicts:0}],gas:()=>({}),now:()=>1000,onChange:()=>{},transport:async()=>({status:400})})
