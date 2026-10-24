@@ -1,6 +1,6 @@
-import {test,expect} from '@playwright/test'
+import {test,expect} from './walletFixture'
 import {place} from './buildTools'
-test.beforeEach(async({page})=>{await page.route('https://**/*',r=>r.abort());await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
+test.beforeEach(async({page})=>{await page.route('https://**/*',r=>r.abort());await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
 test('buys bathroom fixtures, uses them physically and preserves them across reload',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
  await page.getByRole('button',{name:'Build & buy',exact:true}).click();await place(page,'Oak washbasin');await place(page,'Rain shower');await page.locator('.build-panel').getByRole('button',{name:'Finish building',exact:true}).click()
@@ -10,7 +10,7 @@ test('buys bathroom fixtures, uses them physically and preserves them across rel
  await page.locator('.place-objects').getByRole('button',{name:'Rain shower',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:/Take a shower/}).click()
  await expect(page.locator('canvas')).toHaveAttribute('data-activity','shower',{timeout:15000});await expect(page.locator('canvas')).toHaveAttribute('data-privacy','blurred');await expect(page.locator('canvas')).toHaveAttribute('data-animation-backend','skinned-mesh');await page.locator('.room-card').screenshot({path:'/tmp/chainworld-realism-shower.png'})
  await expect(page.getByRole('status')).toContainText('Take a shower complete',{timeout:10000})
- await page.reload();await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click();await page.getByRole('button',{name:'Build & buy',exact:true}).click()
+ await page.reload();await page.getByRole('button',{name:'Continue with my Chog'}).click();await page.getByRole('button',{name:'Build & buy',exact:true}).click()
  await page.locator('.build-storage summary').click();await expect(page.locator('.owned-item').filter({hasText:'Rain shower'})).toBeVisible();await expect(page.locator('.owned-item').filter({hasText:'Oak washbasin'})).toBeVisible();expect(errors).toEqual([])
 })
 test('sleep uses a lying pose and a quiet activity marker, without a network wait bubble',async({page})=>{

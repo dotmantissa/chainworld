@@ -1,6 +1,6 @@
-import {test,expect} from '@playwright/test'
+import {test,expect} from './walletFixture'
 
-test.beforeEach(async({page})=>{await page.route('https://**/*',r=>r.abort());await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
+test.beforeEach(async({page})=>{await page.route('https://**/*',r=>r.abort());await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
 
 test('first screen puts the world, needs and one suggested action before optional settings',async({page})=>{
  await expect(page.getByRole('navigation',{name:'Game tools'}).getByRole('button')).toHaveCount(3)
@@ -48,9 +48,11 @@ test('keyboard walking shows its destination, nearby actions open with E, and di
  await expect(canvas).toHaveAttribute('data-human-frame','1')
  await expect(canvas).toHaveAttribute('data-walking','false',{timeout:5000})
  await canvas.focus();await page.keyboard.press('e');await expect(page.getByRole('dialog')).toBeVisible()
- const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('chainworld_v2_0_preview_0')!).household.humanTile)
+ // The projected walk can finish before the server's next clock checkpoint.
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('cw_test_snapshot')!).household.humanTile)).toEqual({x:4,y:6})
+ const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('cw_test_snapshot')!).household.humanTile)
  await page.keyboard.press('w');await page.keyboard.press('d');await page.keyboard.press('s')
- expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('chainworld_v2_0_preview_0')!).household.humanTile)).toEqual(before)
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('cw_test_snapshot')!).household.humanTile)).toEqual(before)
  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0)
  await expect(canvas).toBeFocused();expect(errors).toEqual([])
 })
@@ -66,7 +68,7 @@ test('a floor click redirects an ordinary walk and keeps route feedback aligned 
  await clickFloor(6,4)
  await expect(canvas).toHaveAttribute('data-destination',JSON.stringify({x:6,y:4}))
  await expect(canvas).toHaveAttribute('data-walking','false',{timeout:5000})
- await expect.poll(async()=>page.evaluate(()=>JSON.parse(localStorage.getItem('chainworld_v2_0_preview_0')!).household.humanTile)).toEqual({x:6,y:4})
+ await expect.poll(async()=>page.evaluate(()=>JSON.parse(localStorage.getItem('cw_test_snapshot')!).household.humanTile)).toEqual({x:6,y:4})
  await page.locator('.room-card').screenshot({path:'/tmp/chainworld-play-movement.png'})
 })
 
@@ -76,7 +78,7 @@ test('liquidity from advanced jobs approaches a real desk and can be stopped',as
  await expect(page.getByRole('dialog')).toHaveCount(0)
  await expect(page.getByRole('status')).toContainText('Provide liquidity',{timeout:15000})
  await expect(page.locator('.current-activity')).toContainText('Provide liquidity')
- await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('chainworld_v2_0_preview_0')!).action?.objectId)).toBe('starter-2-desk');await page.getByRole('button',{name:'Cancel',exact:true}).click();await expect(page.getByRole('status')).toContainText('canceled')
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('cw_test_snapshot')!).action?.objectId)).toBe('starter-2-desk');await page.getByRole('button',{name:'Cancel',exact:true}).click();await expect(page.getByRole('status')).toContainText('canceled')
 })
 
 test('outdoor care offers usable park recovery and routes sink washing to a cafe',async({page})=>{

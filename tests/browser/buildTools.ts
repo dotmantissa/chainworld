@@ -2,7 +2,7 @@ import {validBlueprint,FURNITURE,type FurnitureType} from '../../src/game/housin
 import {expect,type Page} from '@playwright/test'
 import {readFileSync} from 'node:fs'
 const assets={...JSON.parse(readFileSync('src/world/art-manifest.json','utf8')).furniture,...JSON.parse(readFileSync('src/world/realism-manifest.json','utf8')),...JSON.parse(readFileSync('src/world/venue-manifest.json','utf8'))}
-export async function saved(page:Page){return page.evaluate(()=>Object.values(localStorage).map(v=>{try{return JSON.parse(v)}catch{return null}}).find(s=>s?.version===2&&s?.walletAddress==='preview'))}
+export async function saved(page:Page){return page.evaluate(()=>JSON.parse(localStorage.getItem('cw_test_snapshot')!))}
 export async function worldPoint(page:Page,x:number,y:number){const canvas=page.locator('canvas'),box=(await canvas.boundingBox())!,z=Number(await canvas.getAttribute('data-camera-zoom')),sx=Number(await canvas.getAttribute('data-camera-x')),sy=Number(await canvas.getAttribute('data-camera-y'));return{x:box.x+((x-sx-400)*z+400)*box.width/800,y:box.y+((y-sy-250)*z+250)*box.height/500}}
 export async function tilePoint(page:Page,x:number,y:number){return worldPoint(page,400+(x-y)*25,115+(x+y)*13)}
 export async function clickTile(page:Page,x:number,y:number){const p=await tilePoint(page,x,y);await page.mouse.click(p.x,p.y)}

@@ -92,3 +92,5 @@
 .welcome-tagline{font-size:10px;letter-spacing:.15em;color:#8d7d66}@media(max-width:700px){.welcome-tagline{font-size:8px;letter-spacing:.08em}}
 
 .chog-workshop{gap:10px}.chog-workshop>p{font-size:12px;line-height:1.6}.chog-workshop .business-stats{padding:10px 14px}.workshop-rules summary{font-size:12px;cursor:pointer}.workshop-rules p{font-size:11px;line-height:1.7;margin-top:10px}
+
+.signup-steps{display:flex;gap:8px;list-style:none;padding:0;flex-wrap:wrap}.signup-steps li{font-size:11px;padding:7px 10px;border-radius:9px;background:#ebe4d8;color:#746854}.signup-steps li[aria-current=step]{background:#e5d7f0;color:#49365f;font-weight:700}.game-account{display:flex;align-items:center;gap:10px}@media(max-width:700px){.game-account{gap:5px}.game-account>button{font-size:9px;padding:7px}.game-header .game-account{flex-wrap:wrap;justify-content:flex-end}}

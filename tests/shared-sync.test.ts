@@ -65,7 +65,7 @@ describe('background shared synchronization',()=>{
  it('drops queued choices after ownership rejection and preserves a recoverable pending outbox during interruption',async()=>{
   const h=harness();h.sync.enqueue({type:'moveIndoor',target:{x:4,y:6}});h.sync.enqueue({type:'buyGroceries',pack:'breakfast'})
   expect(restoreOutbox(JSON.stringify(h.sync.getPending()))).toHaveLength(2)
-  h.requests[0].resolve({status:403,error:'NFT ownership changed'});await flush()
+  h.requests[0].resolve({status:403,error:'NFT ownership changed'});await flush();expect(h.sync.view().authorizationLost).toBe(true);h.sync.enqueue({type:'leaveHome'});expect(h.sync.getPending()).toHaveLength(0)
   expect(h.view.queued).toBe(0);expect(h.view.state.gChog).toBe(initial().gChog);expect(h.view.error).toContain('ownership');h.sync.dispose()
  })
  it('uses the authority offline caps when a suspended tab or outage leaves the snapshot old',()=>{

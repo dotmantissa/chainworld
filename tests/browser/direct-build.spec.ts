@@ -1,8 +1,8 @@
-import {test,expect} from '@playwright/test'
+import {test,expect} from './walletFixture'
 import {saved,worldPoint,tilePoint,objectGeometry,place} from './buildTools'
 import {validBlueprint} from '../../src/game/housing'
 test.use({hasTouch:true})
-test.beforeEach(async({page})=>{await page.route('https://**/*',r=>r.abort());await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
+test.beforeEach(async({page})=>{await page.route('https://**/*',r=>r.abort());await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click();await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')})
 test('furniture drags only edit in Build mode, with atomic rejection, cancel, rotation and reload',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));const canvas=page.locator('canvas'),initial=await saved(page),b=initial.household.blueprint,o=b.objects.find((o:{type:string})=>o.type==='sofa'),v=objectGeometry(o),start=await worldPoint(page,v.x,v.y)
  await page.mouse.move(start.x,start.y);await page.mouse.down();await page.mouse.move(start.x+35,start.y+15,{steps:8});await page.mouse.up();expect((await saved(page)).household.blueprint).toEqual(b);await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -16,7 +16,7 @@ test('furniture drags only edit in Build mode, with atomic rejection, cancel, ro
  await page.mouse.move(p.x,p.y);await page.mouse.down();await page.mouse.move(p.x+bad.x-ma.x,p.y+bad.y-ma.y,{steps:8});await page.mouse.up();expect((await saved(page)).household.blueprint.objects.find((item:{id:string})=>item.id===o.id)).toEqual(moved)
  // Rotation is a preview until a legal click; Escape cancels without a write.
  await page.locator('.build-storage summary').click();await page.locator('.owned-item').filter({hasText:'Reading sofa'}).getByRole('button',{name:'Select',exact:true}).click();await page.getByRole('button',{name:'Rotate selected item'}).click();await canvas.focus();await page.keyboard.press('Escape');expect((await saved(page)).household.blueprint.objects.find((item:{id:string})=>item.id===o.id)).toEqual(moved)
- await page.reload();await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click();await expect(canvas).toHaveAttribute('data-build-mode','true');expect((await saved(page)).household.blueprint.objects.find((item:{id:string})=>item.id===o.id)).toEqual(moved)
+ await page.reload();await page.getByRole('button',{name:'Continue with my Chog'}).click();await expect(canvas).toHaveAttribute('data-build-mode','true');expect((await saved(page)).household.blueprint.objects.find((item:{id:string})=>item.id===o.id)).toEqual(moved)
  await page.locator('.build-panel').getByRole('button',{name:'Finish building',exact:true}).click();await expect(canvas).toHaveAttribute('data-build-mode','false');await page.getByText('Objects in this place',{exact:true}).click();await page.locator('.place-objects').getByRole('button',{name:'Reading sofa',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();expect(errors).toEqual([])
 })
 test('touch Build placement stays inside the house and Pan and pinch never buy furniture',async({page})=>{

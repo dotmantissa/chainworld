@@ -1,16 +1,16 @@
-import {test,expect} from '@playwright/test'
+import {test,expect} from './walletFixture'
 test('six human needs, real sink use and care persist on localhost',async({page})=>{
  await page.route('https://**/*',route=>route.abort())
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
- await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+ await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click()
  await expect(page.locator('.room-canvas')).toHaveAttribute('aria-busy','false')
  for(const need of ['Hygiene','Fun','Comfort'])await expect(page.getByRole('region',{name:'Your needs'})).toContainText(need)
  await page.getByText('Objects in this place',{exact:true}).click()
  await page.locator('.place-objects').getByRole('button',{name:'Little kitchen',exact:true}).click()
  await page.getByRole('dialog').getByRole('button',{name:/Wash at the sink/}).click()
  await expect(page.getByRole('status')).toContainText('Wash at the sink complete',{timeout:20000})
- await page.reload();await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+ await page.reload();await page.getByRole('button',{name:'Continue with my Chog'}).click()
  await expect(page.getByRole('region',{name:'Your needs'})).toContainText('Hygiene')
- const hygiene=await page.evaluate(()=>{const key=Object.keys(localStorage).find(k=>k.startsWith('chainworld_v2_'))!;return JSON.parse(localStorage.getItem(key)!).meters.hygiene})
+ const hygiene=await page.evaluate(()=>{const key=Object.keys(localStorage).find(k=>k==='cw_test_snapshot')!;return JSON.parse(localStorage.getItem(key)!).meters.hygiene})
  expect(hygiene).toBeGreaterThan(99);expect(errors).toEqual([])
 })

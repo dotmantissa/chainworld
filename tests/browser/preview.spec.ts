@@ -1,5 +1,5 @@
 import {household,closeTools,goals,quick,jobs} from './playTools'
-import { test,expect } from '@playwright/test'
+import { test,expect } from './walletFixture'
 test('resident completes care, work, quest and home improvement and keeps progress on reload',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
   await page.route('https://**/*',async route=>{
@@ -7,7 +7,7 @@ test('resident completes care, work, quest and home improvement and keeps progre
     else await route.abort()
   })
   await page.goto('/')
-  await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+  await page.getByRole('button',{name:'Continue with my Chog'}).click()
   await expect(page.locator('canvas')).toBeVisible()
   await quick(page,'Call a friend')
   await expect(page.getByRole('dialog')).toBeVisible()
@@ -21,7 +21,7 @@ test('resident completes care, work, quest and home improvement and keeps progre
   await page.locator('.build-house-options summary').click();await page.getByRole('button',{name:/Improve home/}).click()
   await expect(page.getByRole('status')).toContainText('Home improved')
   await expect(page.locator('.game-header')).toContainText('Shared Dorm');await page.locator('.build-panel').getByRole('button',{name:'Finish building',exact:true}).click()
-  await page.reload();await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+  await page.reload();await page.getByRole('button',{name:'Continue with my Chog'}).click()
   await expect(page.locator('.game-header')).toContainText('Shared Dorm')
   await goals(page);await expect(page.getByRole('button',{name:'✓ Claimed',exact:true})).toHaveCount(1);await closeTools(page)
   await page.screenshot({path:'/tmp/chainworld-preview.png',fullPage:true})
@@ -29,7 +29,7 @@ test('resident completes care, work, quest and home improvement and keeps progre
 })
 test('mobile preview fits the viewport and allows cancellation',async({page})=>{
   await page.setViewportSize({width:390,height:844})
-  await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+  await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click()
   await expect(page.locator('canvas')).toBeVisible()
   await quick(page,'Rest')
   await page.getByRole('dialog').getByRole('button',{name:/^Rest/}).click()
@@ -42,7 +42,7 @@ test('mobile preview fits the viewport and allows cancellation',async({page})=>{
 test('selecting real furniture opens choices without spending; selected action starts after approach',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
   await page.route('https://**/*',async route=>{if(route.request().postData()?.includes('eth_gasPrice'))await route.fulfill({json:{jsonrpc:'2.0',id:1,result:'0xba43b7400'}});else await route.abort()})
-  await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+  await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click()
   await expect(page.locator('canvas')).toBeVisible();await page.waitForTimeout(1000)
   const balanceBefore=await page.locator('.header-balance strong').innerText()
   await page.getByText('Objects in this place',{exact:true}).click()
@@ -63,7 +63,7 @@ test('gas prediction settles while its jobs panel is closed',async({page})=>{
   await page.route('https://**/*',async route=>{
     if(route.request().postData()?.includes('eth_gasPrice')){quote+=1000000n;await route.fulfill({json:{jsonrpc:'2.0',id:1,result:`0x${quote.toString(16)}`}})}else await route.abort()
   })
-  await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+  await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click()
   await expect(page.locator('canvas')).toBeVisible()
   await jobs(page)
   await page.getByRole('button',{name:'↑ Higher',exact:true}).click()
@@ -74,7 +74,7 @@ test('gas prediction settles while its jobs panel is closed',async({page})=>{
 
 test('dialog actions do not click through to furniture behind the menu',async({page})=>{
   await page.setViewportSize({width:1440,height:1000})
-  await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+  await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click()
   await expect(page.locator('canvas')).toBeVisible()
   await quick(page,'Work a shift')
   await page.getByRole('dialog').getByRole('button',{name:'Focus on a project'}).click()
@@ -90,7 +90,7 @@ test('dialog actions do not click through to furniture behind the menu',async({p
 test('resident identity persists and the character can leave home, walk to a cafe and return',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
   await page.route('https://**/*',async route=>{if(route.request().postData()?.includes('eth_gasPrice'))await route.fulfill({json:{jsonrpc:'2.0',id:1,result:'0xba43b7400'}});else await route.abort()})
-  await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+  await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click()
   await household(page);await page.getByRole('button',{name:'Customize resident'}).click()
   await page.getByLabel('Resident name', {exact:true}).fill('Prickle')
   await page.getByLabel('Sex / gender',{exact:true}).selectOption('nonbinary')
@@ -110,30 +110,12 @@ test('resident identity persists and the character can leave home, walk to a caf
   await expect(page.getByRole('heading',{name:'Home, sweet node.'})).toBeVisible({timeout:12000})
   await page.getByRole('button',{name:'Build & buy',exact:true}).click();await page.locator('.build-house-options summary').click();await page.getByLabel('Interior palette').selectOption('sage')
   await expect(page.getByRole('status')).toContainText('style and visitor settings saved')
-  await page.reload();await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+  await page.reload();await page.getByRole('button',{name:'Continue with my Chog'}).click()
   await household(page);await expect(page.getByRole('heading',{name:'Prickle',exact:true})).toBeVisible();await closeTools(page);await expect(page.locator('canvas')).toHaveAttribute('data-build-mode','true');await page.locator('.build-house-options summary').click()
   await expect(page.getByLabel('Interior palette')).toHaveValue('sage')
   expect(errors).toEqual([])
 })
 
-test('original collection previews preserve the NFT pet and generate a separate human',async({page})=>{
-  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
-  await page.route('https://**/*',async route=>{
-    if(route.request().url().endsWith('/1462.webp'))await route.fulfill({path:'public/art/chog/source-1.webp',contentType:'image/webp'})
-    else if(route.request().postData()?.includes('eth_gasPrice'))await route.fulfill({json:{jsonrpc:'2.0',id:1,result:'0xba43b7400'}})
-    else await route.abort()
-  })
-  await page.goto('/');await page.getByRole('button',{name:'Explore the collection',exact:true}).click()
-  await expect(page.locator('.collection-card')).toHaveCount(8)
-  await page.locator('.collection-card').first().getByRole('button',{name:'Try this resident'}).click()
-  await household(page);await expect(page.locator('.human-avatar')).toBeVisible()
-  await expect(page.locator('.pet-card')).toContainText('CHOG #1462')
-  await expect(page.locator('.resident-card')).toContainText('Uncommon Chog household')
-  await expect(page.getByRole('heading',{name:'CHOG #1462',exact:true})).toBeVisible()
-  await expect(page.locator('canvas')).toBeVisible()
-  await page.getByText('NFT traits & abilities',{exact:true}).click()
-  await expect(page.locator('.trait-row').filter({hasText:'Yellow 143 Jersey'})).toBeVisible()
-  await expect(page.locator('.trait-row').filter({hasText:'BTC Glass'})).toBeVisible()
-  await closeTools(page);await page.waitForTimeout(1000);await page.locator('.room-card').screenshot({path:'/tmp/chainworld-original-chog-1.png'})
-  expect(errors).toEqual([])
+test('the collection shows authentic traits without a gameplay entry',async({page})=>{
+ await page.route('https://**/*',r=>r.abort());await page.goto('/');await page.getByRole('button',{name:'Explore the collection',exact:true}).click();await expect(page.locator('.collection-card')).toHaveCount(8);await expect(page.locator('.collection-card').first()).toContainText('CHOG #1462');await expect(page.getByRole('button',{name:/Try this resident|Play now|Continue playing/})).toHaveCount(0);await expect(page.locator('canvas')).toHaveCount(0);await page.locator('.collection-card').first().getByText('Original traits',{exact:true}).click();await expect(page.locator('.trait-row').filter({hasText:'Yellow 143 Jersey'})).toBeVisible()
 })

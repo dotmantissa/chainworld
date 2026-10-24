@@ -1,32 +1,32 @@
 import {place} from './buildTools'
 import {household,closeTools,world} from './playTools'
-import {test,expect} from '@playwright/test'
+import {test,expect} from './walletFixture'
 test.beforeEach(async({page})=>{await page.route('https://**/*',route=>route.abort())})
 test('human and Chog household buys furniture, stores it and preserves the layout on reload',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
- await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+ await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click()
  await household(page);await expect(page.locator('.human-avatar')).toBeVisible();await expect(page.locator('.pet-card')).toContainText('Your Chog');await closeTools(page)
  await page.getByRole('button',{name:'Build & buy',exact:true}).click();await place(page,'Window fern');await page.locator('.build-storage summary').click()
  const fern=page.locator('.owned-item').filter({hasText:'Window fern'});await fern.getByRole('button',{name:'Store',exact:true}).click();await expect(fern).toContainText('In storage')
- await page.reload();await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click();await expect(page.locator('canvas')).toHaveAttribute('data-build-mode','true')
+ await page.reload();await page.getByRole('button',{name:'Continue with my Chog'}).click();await expect(page.locator('canvas')).toHaveAttribute('data-build-mode','true')
  await page.locator('.build-storage summary').click();await expect(page.locator('.owned-item').filter({hasText:'Window fern'})).toContainText('In storage');expect(errors).toEqual([])
 })
 test('enters a café, approaches an NPC and preserves friendship and venue across reload',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
- await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click();await page.getByRole('button',{name:'Leave home & explore'}).click()
+ await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click();await page.getByRole('button',{name:'Leave home & explore'}).click()
  await page.getByRole('button',{name:'Parallel Perk Café',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Go inside',exact:true}).click()
  await expect(page.getByRole('heading',{name:'Parallel Perk Café',exact:true})).toBeVisible({timeout:25000})
  await page.getByRole('button',{name:'Meet Violet',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Introduce yourself'}).click()
  await expect(page.getByRole('status')).toContainText('Friendship 8/100',{timeout:20000})
- await page.reload();await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+ await page.reload();await page.getByRole('button',{name:'Continue with my Chog'}).click()
  await expect(page.getByRole('heading',{name:'Parallel Perk Café',exact:true})).toBeVisible();await household(page);await expect(page.locator('.friendships')).toContainText('Violet');await closeTools(page);expect(errors).toEqual([])
  await page.locator('.room-card').screenshot({path:'/tmp/chainworld-cafe-final.png'})
 })
 test('walks to transport, resumes a trip after reload and returns to the same home',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
- await page.goto('/');await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click();await world(page)
+ await page.goto('/');await page.getByRole('button',{name:'Continue with my Chog'}).click();await world(page)
  await page.getByRole('button',{name:/Basedford/}).click();await expect(page.locator('.transit-card')).toBeVisible({timeout:25000})
- await page.reload();await page.getByRole('button',{name:/^(Play now|Continue playing)/}).click()
+ await page.reload();await page.getByRole('button',{name:'Continue with my Chog'}).click()
  await expect(page.locator('.game-header')).toContainText('Basedford',{timeout:25000})
  await world(page);await page.getByRole('button',{name:/Monhattan/}).click()
  await expect(page.locator('.game-header')).toContainText('Monhattan',{timeout:25000})

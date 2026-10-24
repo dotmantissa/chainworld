@@ -5,7 +5,7 @@ export interface GameSnapshot {state:GameState;revision:number}
 export interface PendingCommand {requestId:string;command:Command;at:number;conflicts:number;sent?:boolean}
 export interface SyncRequest {tokenId:number;command:Command;revision:number;requestId:string}
 export interface SyncResponse {status:number;snapshot?:GameSnapshot;error?:string}
-export interface SyncView {state:GameState;transitioning:boolean;saving:boolean;offline:boolean;queued:number;error:string}
+export interface SyncView {state:GameState;authorizationLost:boolean;transitioning:boolean;saving:boolean;offline:boolean;queued:number;error:string}
 interface Options {
  initial:GameSnapshot
  transport(request:SyncRequest):Promise<SyncResponse>
@@ -30,6 +30,7 @@ export class SharedGameSync {
  private stopped=false
  private error=''
  private offline=false
+ private authorizationLost=false
  private clock:()=>number
  constructor(private options:Options){this.confirmed=options.initial;this.commands=[...(options.restored??[])];this.clock=options.now??Date.now}
  start(){this.publish();void this.pump()}
@@ -39,11 +40,11 @@ export class SharedGameSync {
   let state=this.confirmed.state
   for(const q of this.commands){if(isNavigation(q.command))break;try{state=reduceGame(state,q.command,{now:Math.max(state.lastSaved,q.at),gas:this.options.gas()})}catch{/* A damaged local outbox must not crash play; the authority rejects invalid intents. */}}
   state=unlockEarnedZones(settle(state,{now:Math.max(now,state.lastSaved),gas:this.options.gas()},now-state.lastSaved>60000))
-  return {state,transitioning:this.commands.some(q=>isNavigation(q.command)),saving:this.commands.length>0,offline:this.offline,queued:this.commands.length,error:this.error}
+  return {state,authorizationLost:this.authorizationLost,transitioning:this.commands.some(q=>isNavigation(q.command)),saving:this.commands.length>0,offline:this.offline,queued:this.commands.length,error:this.error}
  }
  advance(){if(!this.stopped)this.publish()}
  enqueue(command:Command){
-  if(this.stopped)return
+  if(this.stopped||this.authorizationLost)return
   if(command.type==='tick'&&this.commands.length)return
   if(this.commands.some(q=>isNavigation(q.command))&&(isNavigation(command)||movement(command)||['enqueueAction','useObject','startAction','startJob','carePet','talkNpc','setBuildMode'].includes(command.type)))return
   // Idle retries must never sit in front of a new user choice.
@@ -73,7 +74,7 @@ export class SharedGameSync {
    if(response.snapshot&&response.snapshot.revision>=this.confirmed.revision)this.confirmed=response.snapshot
    if(response.status===409&&response.snapshot&&q.conflicts<2){q.conflicts++;q.at=this.clock()}
    else if(response.status>=200&&response.status<300&&response.snapshot){this.commands.shift();this.offline=false;this.attempts=0;if(q.command.type!=='tick')this.error=''}
-   else if(response.status===401||response.status===403){this.commands=[];this.offline=false;this.error=response.error??'Verify the current NFT owner before continuing.'}
+   else if(response.status===401||response.status===403){this.authorizationLost=true;this.commands=[];this.offline=false;this.error=response.error??'Verify the current NFT owner before continuing.'}
    else if(response.status===429||response.status>=500)throw new Error(response.error??'The game service is temporarily unavailable.')
    else{this.commands.shift();this.offline=false;this.error=response.error??'That choice could not be saved. Your household has refreshed.'}
   }catch{
