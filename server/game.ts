@@ -11,7 +11,7 @@ import { createNewGameState, reduceGame, settle, unlockEarnedZones } from '../sr
 import { DEFAULT_PROFILE } from '../src/game/residentProfile'
 import { DEFAULT_LOCATION, estateDefault, frontDoor, distance } from '../src/game/neighborhood'
 import { cityPrice } from '../src/game/zones'
-import { getAllZoneGwei, getZoneGwei } from '../src/game/zones'
+import { getAllZoneGwei, getZoneGwei,cachedZoneGwei } from '../src/game/zones'
 import type { GameState } from '../src/game/types'
 import { parseAbi } from 'viem'
 import {ensureHousehold,freshHousehold} from '../src/game/household'
@@ -29,12 +29,14 @@ export default endpoint(async(req,res)=>{
   if(req.method==='POST'&&(typeof requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)||!Number.isInteger(input.revision)))throw new HttpError(400,'A command request ID and revision are required')
   let command=req.method==='POST'?parseCommand(input.command):{type:'tick'} as const
   const sql=db(),registry=process.env.REGISTRY_V2_ADDRESS
+  // Direct controls do not wait for unrelated gas or published-profile RPCs.
+  const directInput=['walk','moveIndoor','clickBlock'].includes(command.type)
   // Ownership, the state snapshot and public observations are independent reads.
   const [owner,existing,observations,registryProfile]=await Promise.all([
     chainClient.readContract({address,abi:nftAbi,functionName:'ownerOf',args:[BigInt(tokenId)]}),
     sql`SELECT state,revision,EXISTS(SELECT 1 FROM cw_parcels WHERE identity=${key}) AS estate_ready,EXISTS(SELECT 1 FROM cw_commands WHERE identity=${key} AND request_id=${typeof requestId==='string'?requestId:null}::uuid) AS repeated FROM cw_games WHERE identity=${key}`,
-    getAllZoneGwei(serverFetch),
-    registry&&/^0x[0-9a-f]{40}$/i.test(registry)?chainClient.readContract({address:registry as `0x${string}`,abi:parseAbi(['function getPlayer(uint256) view returns (bool,uint256,uint8,uint16[6],uint256)']),functionName:'getPlayer',args:[BigInt(tokenId)]}):Promise.resolve(null),
+    directInput?Promise.resolve(cachedZoneGwei()):getAllZoneGwei(serverFetch),
+    req.method==='GET'&&registry&&/^0x[0-9a-f]{40}$/i.test(registry)?chainClient.readContract({address:registry as `0x${string}`,abi:parseAbi(['function getPlayer(uint256) view returns (bool,uint256,uint8,uint16[6],uint256)']),functionName:'getPlayer',args:[BigInt(tokenId)]}):Promise.resolve(null),
   ])
   if(owner.toLowerCase()!==wallet)throw new HttpError(403,'This wallet no longer owns the selected NFT.')
   let rows=existing

@@ -76,8 +76,7 @@ test('liquidity from advanced jobs approaches a real desk and can be stopped',as
  await expect(page.getByRole('dialog')).toHaveCount(0)
  await expect(page.getByRole('status')).toContainText('Provide liquidity',{timeout:15000})
  await expect(page.locator('.current-activity')).toContainText('Provide liquidity')
- const id=await page.evaluate(()=>JSON.parse(localStorage.getItem('chainworld_v2_0_preview_0')!).action?.objectId)
- expect(id).toBe('starter-2-desk');await page.getByRole('button',{name:'Cancel',exact:true}).click();await expect(page.getByRole('status')).toContainText('canceled')
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('chainworld_v2_0_preview_0')!).action?.objectId)).toBe('starter-2-desk');await page.getByRole('button',{name:'Cancel',exact:true}).click();await expect(page.getByRole('status')).toContainText('canceled')
 })
 
 test('outdoor care offers usable park recovery and routes sink washing to a cafe',async({page})=>{

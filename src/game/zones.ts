@@ -43,6 +43,10 @@ export async function getZoneGwei(zoneId: ZoneId, fresh = false, fetcher: typeof
   pending.set(zoneId, request)
   try { const result = await request; cache.set(zoneId, result); return result } finally { pending.delete(zoneId) }
 }
+/** Movement/validator input can use the server's last observations without waiting on five RPCs. */
+export function cachedZoneGwei(now=Date.now()):GweiData[]{
+ return ZONES.map(zone=>{const quote=cache.get(zone.id);return quote&&now-quote.fetchedAt<=300000?{...quote,stale:quote.stale||now-quote.fetchedAt>=60000}:{zoneId:zone.id,gwei:null,wei:null,fetchedAt:0,stale:true}})
+}
 export function getAllZoneGwei(fetcher: typeof fetch = fetch): Promise<GweiData[]> { return Promise.all(ZONES.map(z => getZoneGwei(z.id, false, fetcher))) }
 export function computeDailyCost(zone: Zone, gwei: number | null, rarityRank: number, eventMultiplier = 1): number {
   if (zone.id === 5) return 0
